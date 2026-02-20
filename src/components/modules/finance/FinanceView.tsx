@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useStore } from "@/stores/app";
 import { writeNote, listNotes, createDirAll } from "@/services/tauri";
 import { format } from "date-fns";
-import type { FinancePerson, FinanceRecord } from "@/types";
+import type { FinancePerson, FinanceRecord, FinanceSubItem } from "@/types";
 import {
   Wallet,
   Users,
@@ -25,11 +25,11 @@ const RECORDS_DIR = "finance/records";
 type ViewMode = "overview" | "record" | "history" | "add-record";
 
 const STEP_LABELS = [
-  { key: "liquid" as const, label: "流动资金", desc: "银行存款、现金、余额宝等" },
-  { key: "fixed" as const, label: "固定资产", desc: "房产、车辆等" },
-  { key: "investment" as const, label: "投资理财", desc: "股票、基金、理财产品等" },
-  { key: "receivable" as const, label: "应收款", desc: "借出的钱、待收款项" },
-  { key: "debt" as const, label: "负债", desc: "房贷、车贷、信用卡欠款等" },
+  { key: "liquid" as const, label: "流动资金", desc: "银行存款、现金、余额宝等", defaults: ["银行存款", "现金", "余额宝", "微信钱包", "支付宝"] },
+  { key: "fixed" as const, label: "固定资产", desc: "房产、车辆等", defaults: ["房产", "车辆", "贵重物品"] },
+  { key: "investment" as const, label: "投资理财", desc: "股票、基金、理财产品等", defaults: ["股票", "基金", "理财产品", "国债", "黄金"] },
+  { key: "receivable" as const, label: "应收款", desc: "借出的钱、待收款项", defaults: ["借款", "退款", "分红"] },
+  { key: "debt" as const, label: "负债", desc: "房贷、车贷、信用卡欠款等", defaults: ["房贷", "车贷", "信用卡", "消费贷"] },
 ];
 
 function slugify(name: string): string {
@@ -41,6 +41,14 @@ function formatMoney(value: number): string {
     return `${(value / 10000).toFixed(1)}万`;
   }
   return value.toLocaleString();
+}
+
+function createDefaultSubItems(defaultNames: string[]): FinanceSubItem[] {
+  return defaultNames.map((name, i) => ({
+    id: `sub-${Date.now()}-${i}`,
+    name,
+    amount: 0,
+  }));
 }
 
 export default function FinanceView() {
@@ -60,13 +68,13 @@ export default function FinanceView() {
   const [newPersonName, setNewPersonName] = useState("");
   const [newPersonRole, setNewPersonRole] = useState("family");
 
-  // Record form values
-  const [recordValues, setRecordValues] = useState({
-    liquid: 0,
-    fixed: 0,
-    investment: 0,
-    receivable: 0,
-    debt: 0,
+  // Record form values - arrays of sub-items
+  const [recordValues, setRecordValues] = useState<Record<string, FinanceSubItem[]>>({
+    liquid: createDefaultSubItems(STEP_LABELS[0].defaults),
+    fixed: createDefaultSubItems(STEP_LABELS[1].defaults),
+    investment: createDefaultSubItems(STEP_LABELS[2].defaults),
+    receivable: createDefaultSubItems(STEP_LABELS[3].defaults),
+    debt: createDefaultSubItems(STEP_LABELS[4].defaults),
   });
 
   // History month navigation
@@ -114,14 +122,33 @@ export default function FinanceView() {
           await createDirAll(personDir);
           const notes = await listNotes(personDir, false);
           for (const n of notes) {
+            // Parse sub-items from frontmatter (support both old single-value and new array format)
+            const parseSubItems = (key: string): FinanceSubItem[] => {
+              const raw = n.frontmatter[key];
+              if (!raw) return createDefaultSubItems(STEP_LABELS.find(s => s.key === key)?.defaults || []);
+              // Try JSON format first (new format)
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+              } catch {
+                // Not JSON, might be old single number format
+              }
+              // Old format: single number - convert to array with default item
+              const num = parseFloat(raw);
+              if (!isNaN(num)) {
+                return [{ id: `sub-${Date.now()}`, name: "总计", amount: num }];
+              }
+              return createDefaultSubItems(STEP_LABELS.find(s => s.key === key)?.defaults || []);
+            };
+
             allRecords.push({
               person: n.frontmatter.person || person.name,
               date: n.frontmatter.date || "",
-              liquid: parseFloat(n.frontmatter.liquid) || 0,
-              fixed: parseFloat(n.frontmatter.fixed) || 0,
-              investment: parseFloat(n.frontmatter.investment) || 0,
-              receivable: parseFloat(n.frontmatter.receivable) || 0,
-              debt: parseFloat(n.frontmatter.debt) || 0,
+              liquid: parseSubItems("liquid"),
+              fixed: parseSubItems("fixed"),
+              investment: parseSubItems("investment"),
+              receivable: parseSubItems("receivable"),
+              debt: parseSubItems("debt"),
               path: n.path,
             });
           }
@@ -157,16 +184,20 @@ export default function FinanceView() {
   const latestRecord = personRecords[0] || null;
   const previousRecord = personRecords[1] || null;
 
+  // Helper to sum sub-items
+  const sumItems = (items: FinanceSubItem[]): number =>
+    items.reduce((sum, item) => sum + (item.amount || 0), 0);
+
   const totalAssets = latestRecord
-    ? latestRecord.liquid + latestRecord.fixed + latestRecord.investment + latestRecord.receivable
+    ? sumItems(latestRecord.liquid) + sumItems(latestRecord.fixed) + sumItems(latestRecord.investment) + sumItems(latestRecord.receivable)
     : 0;
-  const netAssets = totalAssets - (latestRecord?.debt || 0);
-  const debtRatio = totalAssets > 0 ? ((latestRecord?.debt || 0) / totalAssets) * 100 : 0;
+  const netAssets = totalAssets - (latestRecord ? sumItems(latestRecord.debt) : 0);
+  const debtRatio = totalAssets > 0 ? (latestRecord ? sumItems(latestRecord.debt) : 0) / totalAssets * 100 : 0;
 
   const prevTotalAssets = previousRecord
-    ? previousRecord.liquid + previousRecord.fixed + previousRecord.investment + previousRecord.receivable
+    ? sumItems(previousRecord.liquid) + sumItems(previousRecord.fixed) + sumItems(previousRecord.investment) + sumItems(previousRecord.receivable)
     : 0;
-  const prevNetAssets = prevTotalAssets - (previousRecord?.debt || 0);
+  const prevNetAssets = prevTotalAssets - (previousRecord ? sumItems(previousRecord.debt) : 0);
 
   // ── Actions ────────────────────────────────────────────────────
   const handleAddPerson = async () => {
@@ -191,17 +222,25 @@ export default function FinanceView() {
 
   const handleStartRecord = () => {
     setStep(1);
-    setRecordValues({ liquid: 0, fixed: 0, investment: 0, receivable: 0, debt: 0 });
-    // Pre-fill from latest record if exists
-    if (latestRecord) {
-      setRecordValues({
-        liquid: latestRecord.liquid,
-        fixed: latestRecord.fixed,
-        investment: latestRecord.investment,
-        receivable: latestRecord.receivable,
-        debt: latestRecord.debt,
-      });
-    }
+    // Initialize with defaults or pre-fill from latest record
+    const initFromLatest = (key: string): FinanceSubItem[] => {
+      if (latestRecord) {
+        const items = latestRecord[key as keyof typeof latestRecord] as FinanceSubItem[];
+        if (items && items.length > 0 && items[0].amount > 0) {
+          return items;
+        }
+      }
+      const defaults = STEP_LABELS.find(s => s.key === key)?.defaults || [];
+      return createDefaultSubItems(defaults);
+    };
+
+    setRecordValues({
+      liquid: initFromLatest("liquid"),
+      fixed: initFromLatest("fixed"),
+      investment: initFromLatest("investment"),
+      receivable: initFromLatest("receivable"),
+      debt: initFromLatest("debt"),
+    });
     setView("add-record");
   };
 
@@ -213,14 +252,15 @@ export default function FinanceView() {
     await createDirAll(recordDir);
 
     const path = `${recordDir}/${now}.md`;
+    // Serialize sub-items as JSON strings
     await writeNote(path, {
       person: selectedPerson.name,
       date: now,
-      liquid: recordValues.liquid,
-      fixed: recordValues.fixed,
-      investment: recordValues.investment,
-      receivable: recordValues.receivable,
-      debt: recordValues.debt,
+      liquid: JSON.stringify(recordValues.liquid),
+      fixed: JSON.stringify(recordValues.fixed),
+      investment: JSON.stringify(recordValues.investment),
+      receivable: JSON.stringify(recordValues.receivable),
+      debt: JSON.stringify(recordValues.debt),
     }, "");
 
     // Update person's updated date
@@ -255,8 +295,8 @@ export default function FinanceView() {
     if (!latestRecord) return [];
     const items = STEP_LABELS.map((s) => ({
       label: s.label,
-      value: latestRecord[s.key],
-      prev: previousRecord ? previousRecord[s.key] : null,
+      value: sumItems(latestRecord[s.key as keyof typeof latestRecord] as FinanceSubItem[]),
+      prev: previousRecord ? sumItems(previousRecord[s.key as keyof typeof previousRecord] as FinanceSubItem[]) : null,
     }));
     return items;
   }, [latestRecord, previousRecord]);
@@ -433,17 +473,18 @@ export default function FinanceView() {
         value: totalAssets,
         color: "var(--accent)",
         children: [
-          { label: "流动资金", value: latestRecord.liquid },
-          { label: "固定资产", value: latestRecord.fixed },
-          { label: "投资理财", value: latestRecord.investment },
-          { label: "应收款", value: latestRecord.receivable },
+          { label: "流动资金", value: sumItems(latestRecord.liquid), items: latestRecord.liquid },
+          { label: "固定资产", value: sumItems(latestRecord.fixed), items: latestRecord.fixed },
+          { label: "投资理财", value: sumItems(latestRecord.investment), items: latestRecord.investment },
+          { label: "应收款", value: sumItems(latestRecord.receivable), items: latestRecord.receivable },
         ],
       },
       {
         label: "总负债",
-        value: latestRecord.debt,
+        value: sumItems(latestRecord.debt),
         color: "#ef4444",
         children: [],
+        items: latestRecord.debt,
       },
     ];
 
@@ -959,41 +1000,124 @@ export default function FinanceView() {
                 {STEP_LABELS[step - 1].desc}
               </div>
 
-              <div style={{ position: "relative" }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--text-dim)",
-                    fontSize: 14,
-                  }}
-                >
-                  ¥
-                </span>
-                <input
-                  type="number"
-                  value={recordValues[STEP_LABELS[step - 1].key] || ""}
-                  onChange={(e) =>
+              {/* Sub-items list */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {recordValues[STEP_LABELS[step - 1].key].map((item, idx) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      background: "var(--panel2)",
+                      borderRadius: 8,
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={item.name}
+                      onChange={(e) => {
+                        const newItems = [...recordValues[STEP_LABELS[step - 1].key]];
+                        newItems[idx] = { ...newItems[idx], name: e.target.value };
+                        setRecordValues({ ...recordValues, [STEP_LABELS[step - 1].key]: newItems });
+                      }}
+                      placeholder="名称"
+                      style={{
+                        flex: 1,
+                        background: "transparent",
+                        border: "none",
+                        color: "inherit",
+                        fontSize: 14,
+                        outline: "none",
+                      }}
+                    />
+                    <span style={{ color: "var(--text-dim)", fontSize: 14 }}>¥</span>
+                    <input
+                      type="number"
+                      value={item.amount || ""}
+                      onChange={(e) => {
+                        const newItems = [...recordValues[STEP_LABELS[step - 1].key]];
+                        newItems[idx] = { ...newItems[idx], amount: parseFloat(e.target.value) || 0 };
+                        setRecordValues({ ...recordValues, [STEP_LABELS[step - 1].key]: newItems });
+                      }}
+                      placeholder="0"
+                      style={{
+                        width: 100,
+                        background: "transparent",
+                        border: "none",
+                        color: "inherit",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        textAlign: "right",
+                        outline: "none",
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        const newItems = recordValues[STEP_LABELS[step - 1].key].filter((_, i) => i !== idx);
+                        setRecordValues({ ...recordValues, [STEP_LABELS[step - 1].key]: newItems });
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--accent4)",
+                        cursor: "pointer",
+                        padding: 4,
+                        fontSize: 16,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+
+                {/* Add new sub-item */}
+                <button
+                  onClick={() => {
+                    const newItem = { id: `sub-${Date.now()}`, name: "", amount: 0 };
                     setRecordValues({
                       ...recordValues,
-                      [STEP_LABELS[step - 1].key]: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  placeholder="0"
-                  style={{
-                    width: "100%",
-                    padding: "12px 12px 12px 28px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border)",
-                    background: "transparent",
-                    color: "inherit",
-                    fontSize: 20,
-                    fontWeight: 600,
-                    boxSizing: "border-box",
+                      [STEP_LABELS[step - 1].key]: [...recordValues[STEP_LABELS[step - 1].key], newItem],
+                    });
                   }}
-                />
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: "1px dashed var(--border)",
+                    background: "transparent",
+                    color: "var(--accent)",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Plus size={14} />
+                  添加子项
+                </button>
+              </div>
+
+              {/* Category total */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: 16,
+                  padding: "12px 16px",
+                  background: "rgba(0,200,255,0.05)",
+                  borderRadius: 8,
+                  border: "1px solid rgba(0,200,255,0.2)",
+                }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 600 }}>小计</span>
+                <span style={{ fontSize: 18, fontWeight: 700, color: "var(--accent)" }}>
+                  ¥{recordValues[STEP_LABELS[step - 1].key].reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}
+                </span>
               </div>
 
               <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
@@ -1094,7 +1218,7 @@ export default function FinanceView() {
                 >
                   <span>{s.label}</span>
                   <span style={{ fontWeight: 500 }}>
-                    ¥{recordValues[s.key].toLocaleString()}
+                    ¥{recordValues[s.key].reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}
                   </span>
                 </div>
               ))}
@@ -1113,11 +1237,11 @@ export default function FinanceView() {
                 <span>
                   ¥
                   {(
-                    recordValues.liquid +
-                    recordValues.fixed +
-                    recordValues.investment +
-                    recordValues.receivable -
-                    recordValues.debt
+                    recordValues.liquid.reduce((sum, item) => sum + (item.amount || 0), 0) +
+                    recordValues.fixed.reduce((sum, item) => sum + (item.amount || 0), 0) +
+                    recordValues.investment.reduce((sum, item) => sum + (item.amount || 0), 0) +
+                    recordValues.receivable.reduce((sum, item) => sum + (item.amount || 0), 0) -
+                    recordValues.debt.reduce((sum, item) => sum + (item.amount || 0), 0)
                   ).toLocaleString()}
                 </span>
               </div>
@@ -1172,8 +1296,8 @@ export default function FinanceView() {
                   </div>
                 ) : (
                   historyRecords.map((record) => {
-                    const recTotal = record.liquid + record.fixed + record.investment + record.receivable;
-                    const recNet = recTotal - record.debt;
+                    const recTotal = sumItems(record.liquid) + sumItems(record.fixed) + sumItems(record.investment) + sumItems(record.receivable);
+                    const recNet = recTotal - sumItems(record.debt);
                     return (
                       <div
                         key={record.date}

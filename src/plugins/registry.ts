@@ -19,6 +19,7 @@ import SchedulerView from "@/components/modules/SchedulerView";
 import SettingsView from "@/components/modules/SettingsView";
 import FinanceView from "@/components/modules/finance/FinanceView";
 import SubscriptionsView from "@/components/modules/subscriptions/SubscriptionsView";
+import NotesView from "@/components/modules/NotesView";
 
 import type { ComponentType } from "react";
 
@@ -45,6 +46,7 @@ export const PLUGIN_REGISTRY: Record<string, PluginComponent> = {
   finance: FinanceView,
   subscriptions: SubscriptionsView,
   settings: SettingsView,
+  notes: NotesView,
 };
 
 // 获取插件组件

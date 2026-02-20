@@ -259,7 +259,8 @@ export type ViewId =
   | "servers"
   | "finance"
   | "subscriptions"
-  | "settings";
+  | "settings"
+  | "notes";
 
 export interface AppConfig {
   vaultPath: string;
@@ -325,6 +326,7 @@ export interface EmailAccount {
   email: string;
   imapHost: string;
   imapPort: number;
+  protocol?: "imap" | "pop3"; // 协议类型
   username: string;
   password?: string; // 密码存储在 vault 中（简化实现）
   authType: "password" | "oauth2";
@@ -372,14 +374,20 @@ export interface FinancePerson {
   path: string;
 }
 
+export interface FinanceSubItem {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 export interface FinanceRecord {
   person: string;
   date: string;
-  liquid: number;       // 流动资金
-  fixed: number;        // 固定资产
-  investment: number;   // 投资理财
-  receivable: number;   // 应收款
-  debt: number;         // 负债
+  liquid: FinanceSubItem[];       // 流动资金（可多项）
+  fixed: FinanceSubItem[];        // 固定资产（可多项）
+  investment: FinanceSubItem[];   // 投资理财（可多项）
+  receivable: FinanceSubItem[];   // 应收款（可多项）
+  debt: FinanceSubItem[];         // 负债（可多项）
   path: string;
 }
 

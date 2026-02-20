@@ -1,9 +1,85 @@
 import { useState, useEffect, useCallback } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, listNotes, imapSync } from "@/services/tauri";
+import { writeNote, listNotes, imapSync, getCachedEmails } from "@/services/tauri";
+import type { EmailMessage } from "@/services/tauri";
 import type { EmailAccount } from "@/types";
+import { HelpCircle } from "lucide-react";
 
 const EMAILS_DIR = ".lifeos/emails";
+
+// 常见邮箱配置帮助
+const EMAIL_PROVIDERS = {
+  "163": {
+    name: "163邮箱",
+    imapHost: "imap.163.com",
+    imapPort: "993",
+    usernameTip: "your_email@163.com",
+    steps: [
+      "登录 163 邮箱网页版",
+      "设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP 服务",
+      "设置 → 账户安全 → 开启客户端授权密码",
+      "使用授权密码作为登录密码",
+    ],
+  },
+  "126": {
+    name: "126邮箱",
+    imapHost: "imap.126.com",
+    imapPort: "993",
+    usernameTip: "your_email@126.com",
+    steps: [
+      "登录 126 邮箱网页版",
+      "设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP 服务",
+      "设置 → 账户安全 → 开启客户端授权密码",
+      "使用授权密码作为登录密码",
+    ],
+  },
+  "qq": {
+    name: "QQ邮箱",
+    imapHost: "imap.qq.com",
+    imapPort: "993",
+    usernameTip: "your_email@qq.com",
+    steps: [
+      "登录 QQ 邮箱网页版",
+      "设置 → 账户 → 开启 IMAP/SMTP 服务",
+      "生成授权码（需要手机验证）",
+      "使用授权码作为登录密码",
+    ],
+  },
+  "gmail": {
+    name: "Gmail",
+    imapHost: "imap.gmail.com",
+    imapPort: "993",
+    usernameTip: "your_email@gmail.com",
+    steps: [
+      "登录 Gmail 网页版",
+      "Google 账户 → 安全 → 开启两步验证",
+      "Google 账户 → 安全 → 应用专用密码",
+      "生成专用密码并使用",
+    ],
+  },
+  "outlook": {
+    name: "Outlook/Hotmail",
+    imapHost: "outlook.office365.com",
+    imapPort: "993",
+    usernameTip: "your_email@outlook.com",
+    steps: [
+      "登录 Outlook 网页版",
+      "设置 → POP 和 IMAP → 开启 IMAP",
+      "如需 App Password，使用 Microsoft 账户安全生成",
+    ],
+  },
+  "aliyun": {
+    name: "阿里云邮箱",
+    imapHost: "imap.aliyun.com",
+    imapPort: "993",
+    usernameTip: "your_email@aliyun.com",
+    steps: [
+      "登录阿里云邮箱网页版",
+      "设置 → IMAP/SMTP → 开启 IMAP 服务",
+      "设置 → 客户端专用密码 → 生成密码",
+    ],
+  },
+};
 
 export default function MailView() {
   const vaultPath = useStore((s) => s.vaultPath);
@@ -12,9 +88,12 @@ export default function MailView() {
 
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<EmailAccount | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
+  const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [editingAccount, setEditingAccount] = useState<EmailAccount | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Context menu state
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; account: EmailAccount } | null>(null);
@@ -41,6 +120,7 @@ export default function MailView() {
   // Form state
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
+  const [formProtocol, setFormProtocol] = useState<"imap" | "pop3">("imap");
   const [formImapHost, setFormImapHost] = useState("");
   const [formImapPort, setFormImapPort] = useState("993");
   const [formUsername, setFormUsername] = useState("");
@@ -57,6 +137,7 @@ export default function MailView() {
       const accounts: EmailAccount[] = [];
 
       for (const n of notes) {
+        console.log("Loaded note frontmatter:", n.frontmatter);
         if (n.frontmatter.id && n.frontmatter.imapHost) {
           accounts.push({
             id: n.frontmatter.id,
@@ -64,6 +145,7 @@ export default function MailView() {
             email: n.frontmatter.email || "",
             imapHost: n.frontmatter.imapHost || "",
             imapPort: parseInt(n.frontmatter.imapPort) || 993,
+            protocol: (n.frontmatter.protocol as "imap" | "pop3") || "imap",
             username: n.frontmatter.username || "",
             password: n.frontmatter.password || "",
             authType: (n.frontmatter.authType as "password" | "oauth2") || "password",
@@ -95,6 +177,35 @@ export default function MailView() {
     setFormFolders("INBOX,Sent,Draft,Trash,Archive");
   };
 
+  // 根据邮箱地址自动填充配置
+  const autoFillProvider = (email: string, protocol: "imap" | "pop3" = "imap") => {
+    const domain = email.split("@")[1]?.toLowerCase() || "";
+    const prefix = protocol === "pop3" ? "pop" : "imap";
+    if (domain.includes("163.com")) {
+      setFormImapHost(`${prefix}.163.com`);
+      setFormImapPort(protocol === "pop3" ? "995" : "993");
+    } else if (domain.includes("126.com")) {
+      setFormImapHost(`${prefix}.126.com`);
+      setFormImapPort(protocol === "pop3" ? "995" : "993");
+    } else if (domain.includes("qq.com") || domain.includes("foxmail.com")) {
+      setFormImapHost(`${prefix}.qq.com`);
+      setFormImapPort(protocol === "pop3" ? "995" : "993");
+    } else if (domain.includes("gmail.com") || domain.includes("googlemail.com")) {
+      setFormImapHost("imap.gmail.com");
+      setFormImapPort("993");
+    } else if (domain.includes("outlook.com") || domain.includes("hotmail.com") || domain.includes("office365.com")) {
+      setFormImapHost("outlook.office365.com");
+      setFormImapPort("993");
+    } else if (domain.includes("aliyun.com")) {
+      setFormImapHost(`${prefix}.aliyun.com`);
+      setFormImapPort(protocol === "pop3" ? "995" : "993");
+    }
+    // Set username to email if empty
+    if (!formUsername && email) {
+      setFormUsername(email);
+    }
+  };
+
   const handleSaveAccount = async () => {
     if (!vaultPath || !formName.trim() || !formEmail.trim()) return;
 
@@ -102,18 +213,22 @@ export default function MailView() {
     const slug = formName.toLowerCase().replace(/\s+/g, "-");
     const path = `${vaultPath}/${EMAILS_DIR}/${slug}.md`;
 
-    const fm = {
+    console.log("Saving account - formPassword:", formPassword);
+
+    const fm: Record<string, string> = {
       id,
       name: formName,
       email: formEmail,
       imapHost: formImapHost,
       imapPort: formImapPort,
+      protocol: formProtocol,
       username: formUsername,
-      password: formPassword,
+      password: formPassword || "",
       authType: "password",
       folders: formFolders,
       enabled: "true",
     };
+    console.log("Saving fm:", fm);
 
     const content = `# ${formName}
 
@@ -172,13 +287,14 @@ export default function MailView() {
         return;
       }
 
-      // Sync emails from INBOX
+      // Sync emails
       const emails = await imapSync(
         {
           email: account.email,
           password: password,
           imapHost,
           imapPort,
+          protocol: account.protocol || "imap",
         },
         vaultPath,
         "INBOX",
@@ -186,7 +302,10 @@ export default function MailView() {
       );
 
       console.log("Sync complete, received emails:", emails.length);
-      alert(`同步完成！获取 ${emails.length} 封邮件`);
+      // Load emails from cache
+      const cached = await getCachedEmails(vaultPath, "INBOX");
+      setEmails(cached);
+      alert(`同步完成！获取 ${cached.length} 封邮件`);
     } catch (e) {
       console.error("IMAP sync error:", e);
       const errorMsg = String(e);
@@ -212,6 +331,7 @@ export default function MailView() {
       email: account.email,
       imapHost: account.imapHost,
       imapPort: String(account.imapPort),
+      protocol: account.protocol || "imap",
       username: account.username,
       authType: account.authType,
       folders: account.folders.join(","),
@@ -344,7 +464,31 @@ export default function MailView() {
       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         {showAccountForm ? (
           <div className="panel" style={{ padding: 24, maxWidth: 500 }}>
-            <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 16 }}>{editingAccount ? "编辑邮箱账户" : "添加邮箱账户"}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontSize: 16, fontWeight: 500 }}>{editingAccount ? "编辑邮箱账户" : "添加邮箱账户"}</div>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowHelp(!showHelp)}
+                style={{ padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+              >
+                <HelpCircle size={14} />
+                配置帮助
+              </button>
+            </div>
+            {showHelp && (
+              <div style={{ marginBottom: 16, padding: 12, background: "var(--panel2)", borderRadius: "var(--radius-sm)", fontSize: 12 }}>
+                <div style={{ fontWeight: 500, marginBottom: 8 }}>常见邮箱配置</div>
+                {Object.entries(EMAIL_PROVIDERS).map(([key, provider]) => (
+                  <div key={key} style={{ marginBottom: 12 }}>
+                    <div style={{ fontWeight: 500, color: "var(--accent)" }}>{provider.name}</div>
+                    <div style={{ color: "var(--text-dim)", marginBottom: 4 }}>IMAP: {provider.imapHost} | 端口: {provider.imapPort}</div>
+                    <ol style={{ margin: 0, paddingLeft: 16, color: "var(--text-dim)", lineHeight: 1.6 }}>
+                      {provider.steps.map((step, i) => <li key={i}>{step}</li>)}
+                    </ol>
+                  </div>
+                ))}
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>账户名称</label>
@@ -361,19 +505,40 @@ export default function MailView() {
                 <input
                   className="input"
                   value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
+                  onChange={(e) => { setFormEmail(e.target.value); autoFillProvider(e.target.value, formProtocol); }}
                   placeholder="you@example.com"
                   style={{ width: "100%" }}
                 />
               </div>
+              <div>
+                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>协议</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`btn ${formProtocol === "imap" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => { setFormProtocol("imap"); autoFillProvider(formEmail, "imap"); }}
+                    style={{ flex: 1, fontSize: 12 }}
+                  >
+                    IMAP
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${formProtocol === "pop3" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => { setFormProtocol("pop3"); autoFillProvider(formEmail, "pop3"); }}
+                    style={{ flex: 1, fontSize: 12 }}
+                  >
+                    POP3
+                  </button>
+                </div>
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>IMAP 服务器</label>
+                  <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>{formProtocol === "imap" ? "IMAP" : "POP3"} 服务器</label>
                   <input
                     className="input"
                     value={formImapHost}
                     onChange={(e) => setFormImapHost(e.target.value)}
-                    placeholder="imap.example.com"
+                    placeholder={formProtocol === "imap" ? "imap.example.com" : "pop.example.com"}
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -465,15 +630,56 @@ export default function MailView() {
               ))}
             </div>
 
-            {/* Email List Placeholder */}
-            <div style={{ flex: 1, overflow: "auto" }}>
-              <div style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>📬</div>
-                <div>点击"同步"收取邮件</div>
-                <div style={{ fontSize: 11, marginTop: 8, color: "var(--text-dim)" }}>
-                  邮件同步功能需要配置 Tauri 后端
-                </div>
+            {/* Email List */}
+            <div style={{ flex: 1, overflow: "auto", display: "flex", gap: 12 }}>
+              {/* Email List */}
+              <div style={{ flex: 1, overflow: "auto" }}>
+                {emails.length === 0 ? (
+                  <div style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>
+                    <div style={{ fontSize: 32, marginBottom: 12 }}>📬</div>
+                    <div>点击"同步"收取邮件</div>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    {emails.map((email, i) => (
+                      <div
+                        key={email.id || i}
+                        onClick={() => setSelectedEmail(email)}
+                        style={{
+                          padding: "10px 12px",
+                          background: selectedEmail?.id === email.id ? "rgba(0,200,255,0.1)" : "var(--panel)",
+                          borderBottom: "1px solid var(--border)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {email.subject || "(无主题)"}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", gap: 8 }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 150 }}>
+                            {email.from}
+                          </span>
+                          <span>{email.date}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+              {/* Email Detail */}
+              {selectedEmail && (
+                <div style={{ width: 320, borderLeft: "1px solid var(--border)", padding: 16, overflow: "auto" }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{selectedEmail.subject}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 8 }}>
+                    <div>From: {selectedEmail.from}</div>
+                    <div>To: {selectedEmail.to}</div>
+                    <div>Date: {selectedEmail.date}</div>
+                  </div>
+                  <div style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                    {selectedEmail.bodyText || "（邮件内容需要进一步解析）"}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (

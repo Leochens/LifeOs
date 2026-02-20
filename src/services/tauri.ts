@@ -134,6 +134,32 @@ export const deleteLaunchdTask = (id: string): Promise<void> =>
   invoke("delete_launchd_task", { id });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Apple Notes (备忘录)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface AppleNote {
+  id: string;
+  name: string;
+  content: string;
+  created: string | null;
+  modified: string | null;
+  folder: string;
+}
+
+export interface AppleNotesResult {
+  notes: AppleNote[];
+  total: number;
+  has_more: boolean;
+}
+
+export const getAppleNotes = (
+  query?: string,
+  offset?: number,
+  limit?: number
+): Promise<AppleNotesResult> =>
+  invoke("get_apple_notes", { query, offset, limit });
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Email / IMAP Sync
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -142,6 +168,7 @@ export interface ImapAccount {
   password: string;
   imapHost: string;
   imapPort: number;
+  protocol?: string;
 }
 
 export interface EmailMessage {
@@ -170,6 +197,7 @@ export const imapSync = (
       password: account.password,
       imap_host: account.imapHost,
       imap_port: account.imapPort,
+      protocol: account.protocol,
     },
     vaultPath,
     folder,

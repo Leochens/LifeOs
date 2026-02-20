@@ -3,7 +3,7 @@ import { useStore } from "@/stores/app";
 import * as tauri from "@/services/tauri";
 import * as parser from "@/services/parser";
 import { format } from "date-fns";
-import type { HabitStore, DayNote, Project, DiaryEntry, Decision, Goal, FinancePerson, FinanceRecord, Subscription } from "@/types";
+import type { HabitStore, DayNote, Project, DiaryEntry, Decision, Goal, FinancePerson, FinanceRecord, FinanceSubItem, Subscription } from "@/types";
 
 export function useVaultLoader() {
   const { vaultPath, setTodayNote, setProjects, setDiaryEntries, setDecisions, setGoals, setHabits, setFinancePersons, setFinanceRecords, setSubscriptions, setLoading, loadMenuConfigFromVault } =
@@ -154,6 +154,33 @@ async function loadFinanceData(
     setFinancePersons(persons);
 
     const records: FinanceRecord[] = [];
+
+    // Helper to parse sub-items from frontmatter
+    const parseSubItems = (raw: string | undefined, defaults: string[]): FinanceSubItem[] => {
+      if (!raw) return defaults.map((name, i) => ({ id: `sub-${i}`, name, amount: 0 }));
+      // Try JSON format first (new format)
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // Not JSON, might be old single number format
+      }
+      // Old format: single number
+      const num = parseFloat(raw);
+      if (!isNaN(num)) {
+        return [{ id: "sub-total", name: "总计", amount: num }];
+      }
+      return defaults.map((name, i) => ({ id: `sub-${i}`, name, amount: 0 }));
+    };
+
+    const defaultItems: Record<string, string[]> = {
+      liquid: ["银行存款", "现金", "余额宝", "微信钱包", "支付宝"],
+      fixed: ["房产", "车辆", "贵重物品"],
+      investment: ["股票", "基金", "理财产品", "国债", "黄金"],
+      receivable: ["借款", "退款", "分红"],
+      debt: ["房贷", "车贷", "信用卡", "消费贷"],
+    };
+
     for (const person of persons) {
       const slug = person.id;
       try {
@@ -162,11 +189,11 @@ async function loadFinanceData(
           records.push({
             person: rn.frontmatter.person ?? person.name,
             date: rn.frontmatter.date ?? rn.filename.replace(".md", ""),
-            liquid: parseFloat(rn.frontmatter.liquid ?? "0"),
-            fixed: parseFloat(rn.frontmatter.fixed ?? "0"),
-            investment: parseFloat(rn.frontmatter.investment ?? "0"),
-            receivable: parseFloat(rn.frontmatter.receivable ?? "0"),
-            debt: parseFloat(rn.frontmatter.debt ?? "0"),
+            liquid: parseSubItems(rn.frontmatter.liquid, defaultItems.liquid),
+            fixed: parseSubItems(rn.frontmatter.fixed, defaultItems.fixed),
+            investment: parseSubItems(rn.frontmatter.investment, defaultItems.investment),
+            receivable: parseSubItems(rn.frontmatter.receivable, defaultItems.receivable),
+            debt: parseSubItems(rn.frontmatter.debt, defaultItems.debt),
             path: rn.path,
           });
         }

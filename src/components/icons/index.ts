@@ -18,6 +18,7 @@ import {
   GitBranch,
   Clock,
   Settings,
+  FileText,
 } from "lucide-react";
 
 export {
@@ -37,4 +38,5 @@ export {
   GitBranch,
   Clock,
   Settings,
+  FileText,
 };

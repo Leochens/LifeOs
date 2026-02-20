@@ -43,6 +43,8 @@ pub fn run() {
             extra_commands::create_launchd_task,
             extra_commands::list_launchd_tasks,
             extra_commands::delete_launchd_task,
+            // Apple Notes
+            extra_commands::get_apple_notes,
             // Email: IMAP sync
             email_commands::imap_sync,
             email_commands::get_cached_emails,

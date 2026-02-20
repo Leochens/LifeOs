@@ -165,7 +165,7 @@ const DEFAULT_MENU_CONFIG: MenuConfig = {
       name: "生活",
       order: 2,
       collapsed: false,
-      pluginIds: ["life", "chat", "mail", "finance", "subscriptions"],
+      pluginIds: ["life", "chat", "mail", "finance", "subscriptions", "notes"],
     },
     {
       id: "tools",
@@ -196,6 +196,7 @@ const DEFAULT_MENU_CONFIG: MenuConfig = {
     { id: "scheduler", name: "定时任务", icon: "Clock", component: "scheduler", enabled: true, builtin: false },
     { id: "finance", name: "财务", icon: "Wallet", component: "finance", enabled: true, builtin: false },
     { id: "subscriptions", name: "订阅", icon: "CreditCard", component: "subscriptions", enabled: true, builtin: false },
+    { id: "notes", name: "备忘录", icon: "FileText", component: "notes", enabled: true, builtin: false },
     // 设置 - 必选
     { id: "settings", name: "设置", icon: "Settings", component: "settings", enabled: true, builtin: true },
   ],

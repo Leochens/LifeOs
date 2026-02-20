@@ -39,6 +39,23 @@ pub struct LaunchdTask {
     pub enabled: bool,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AppleNote {
+    pub id: String,
+    pub name: String,
+    pub content: String,
+    pub created: Option<String>,
+    pub modified: Option<String>,
+    pub folder: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AppleNotesResult {
+    pub notes: Vec<AppleNote>,
+    pub total: usize,
+    pub has_more: bool,
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // System: Open in Finder
 // ─────────────────────────────────────────────────────────────────────────────
@@ -411,4 +428,103 @@ pub fn delete_launchd_task(id: String) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Apple Notes (备忘录)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn get_apple_notes(query: Option<String>, offset: Option<usize>, limit: Option<usize>) -> Result<AppleNotesResult, String> {
+    let query = query.unwrap_or_default().to_lowercase();
+    let offset = offset.unwrap_or(0);
+    let limit = limit.unwrap_or(20);
+
+    // 使用 Python 调用 AppleScript 并正确生成 JSON
+    let python_script = r#"
+import subprocess
+import json
+import sys
+
+# AppleScript 简化版
+script = '''
+tell application "Notes"
+    set notesList to {}
+    repeat with aNote in every note
+        set noteName to name of aNote
+        set noteContent to plaintext of aNote
+        set noteId to id of aNote
+        set noteFolder to "Notes"
+        set end of notesList to {noteId, noteName, noteContent, noteFolder}
+    end repeat
+    return notesList
+end tell
+'''
+
+result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
+if result.returncode != 0:
+    print(result.stderr, file=sys.stderr)
+    sys.exit(1)
+
+output = result.stdout.strip()
+if not output:
+    print("[]")
+    sys.exit(0)
+
+parts = output.split(',')
+notes = []
+
+i = 0
+while i + 3 < len(parts):
+    note = {
+        "id": parts[i].strip(),
+        "name": parts[i+1].strip(),
+        "content": parts[i+2].strip(),
+        "folder": parts[i+3].strip(),
+        "created": None,
+        "modified": None
+    }
+    notes.append(note)
+    i += 4
+
+print(json.dumps(notes, ensure_ascii=False))
+"#;
+
+    let output = Command::new("python3")
+        .arg("-c")
+        .arg(python_script)
+        .output()
+        .map_err(|e| format!("Failed to execute Python: {}", e))?;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    if !output.status.success() {
+        return Err(format!("Python failed. stderr: {}", stderr));
+    }
+
+    // 解析 JSON
+    let all_notes: Vec<AppleNote> = serde_json::from_str(&stdout)
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+    let total = all_notes.len();
+
+    // 过滤搜索结果
+    let filtered: Vec<AppleNote> = if query.is_empty() {
+        all_notes
+    } else {
+        all_notes.into_iter().filter(|n| {
+            n.name.to_lowercase().contains(&query) || n.content.to_lowercase().contains(&query)
+        }).collect()
+    };
+
+    // 分页
+    let paginated: Vec<AppleNote> = filtered.iter().skip(offset).take(limit).cloned().collect();
+    let has_more = offset + limit < filtered.len();
+
+    Ok(AppleNotesResult {
+        notes: paginated,
+        total: filtered.len(),
+        has_more,
+    })
 }

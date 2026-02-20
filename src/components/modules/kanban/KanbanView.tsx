@@ -16,6 +16,53 @@ import {
 } from "@dnd-kit/core";
 import { Plus, ChevronLeft, Calendar, Flag } from "lucide-react";
 
+// Serialize tasks to markdown format
+function tasksToMarkdown(tasks: Task[], existingContent: string): string {
+  // Find the "## 任务" section in the existing content
+  const lines = existingContent.split("\n");
+  const taskLines: string[] = [];
+
+  for (const task of tasks) {
+    const check = task.done ? "x" : " ";
+    let taskStr = `- [${check}] ${task.text}`;
+    if (task.priority) taskStr += ` [${task.priority}]`;
+    if (task.dueDate) taskStr += ` <${task.dueDate}>`;
+    taskLines.push(taskStr);
+  }
+
+  // Find where to insert tasks (after ## 任务 or create section)
+  let result: string[] = [];
+  let foundTasks = false;
+  for (const line of lines) {
+    if (line.match(/^##\s+.*任务/)) {
+      foundTasks = true;
+      result.push(line);
+      result.push("");
+      result.push(...taskLines);
+    } else if (!foundTasks && line.startsWith("## ")) {
+      // Insert tasks section before other sections
+      result.push("## 任务");
+      result.push("");
+      result.push(...taskLines);
+      result.push("");
+      foundTasks = true;
+      result.push(line);
+    } else {
+      result.push(line);
+    }
+  }
+
+  if (!foundTasks) {
+    // No sections found, append tasks at the end
+    result.push("");
+    result.push("## 任务");
+    result.push("");
+    result.push(...taskLines);
+  }
+
+  return result.join("\n");
+}
+
 const DEFAULT_COLUMNS: KanbanColumn[] = [
   { id: "backlog", name: "待规划", color: "#888" },
   { id: "todo", name: "计划中", color: "#00c8ff" },
@@ -603,6 +650,28 @@ function ProjectBoard({
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  const vaultPath = useStore((s) => s.vaultPath);
+
+  // Save tasks back to project file
+  const saveTasks = async (newTasks: Task[]) => {
+    if (!vaultPath || !project.path) return;
+    const newContent = tasksToMarkdown(newTasks, project.content);
+    const frontmatter = {
+      title: project.title,
+      status: project.status,
+      priority: project.priority,
+      created: project.created,
+      updated: format(new Date(), "yyyy-MM-dd"),
+      progress: String(project.progress),
+      tags: project.tags.join(","),
+      due: project.due || "",
+    };
+    try {
+      await writeNote(project.path, frontmatter, newContent);
+    } catch (e) {
+      console.error("Failed to save tasks:", e);
+    }
+  };
 
   useEffect(() => {
     const lines = project.content.split("\n");
@@ -643,9 +712,11 @@ function ProjectBoard({
   }, [tasks, columns]);
 
   const toggleTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t))
-    );
+    setTasks((prev) => {
+      const newTasks = prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t));
+      saveTasks(newTasks);
+      return newTasks;
+    });
   };
 
   const [newTaskCol, setNewTaskCol] = useState<string | null>(null);
@@ -655,17 +726,19 @@ function ProjectBoard({
 
   const addTask = (colId: string) => {
     if (!newTaskText.trim()) return;
-    setTasks((prev) => [
-      ...prev,
-      {
-        id: `task-${Date.now()}`,
-        text: newTaskText.trim(),
-        done: false,
-        status: colId,
-        priority: newTaskPriority || undefined,
-        dueDate: newTaskDueDate || undefined,
-      },
-    ]);
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      text: newTaskText.trim(),
+      done: false,
+      status: colId,
+      priority: newTaskPriority || undefined,
+      dueDate: newTaskDueDate || undefined,
+    };
+    setTasks((prev) => {
+      const newTasks = [...prev, newTask];
+      saveTasks(newTasks);
+      return newTasks;
+    });
     setNewTaskCol(null);
     setNewTaskText("");
     setNewTaskPriority("");
@@ -691,17 +764,21 @@ function ProjectBoard({
     if (targetCol) {
       // Dropped on a column
       if (task.status !== targetCol.id) {
-        setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? { ...t, status: targetCol.id } : t))
-        );
+        setTasks((prev) => {
+          const newTasks = prev.map((t) => (t.id === taskId ? { ...t, status: targetCol.id } : t));
+          saveTasks(newTasks);
+          return newTasks;
+        });
       }
     } else {
       // Dropped on another task - find which column that task belongs to
       const overTask = tasks.find((t) => t.id === overId);
       if (overTask && task.status !== overTask.status) {
-        setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? { ...t, status: overTask.status } : t))
-        );
+        setTasks((prev) => {
+          const newTasks = prev.map((t) => (t.id === taskId ? { ...t, status: overTask.status } : t));
+          saveTasks(newTasks);
+          return newTasks;
+        });
       }
     }
   };

@@ -26,9 +26,10 @@ pub struct ImapAccount {
     pub password: String,
     pub imap_host: String,
     pub imap_port: u16,
+    pub protocol: Option<String>, // "imap" or "pop3"
 }
 
-/// Connect to IMAP server and sync emails (with TLS support)
+/// Connect to IMAP or POP3 server and sync emails (with TLS support)
 #[tauri::command]
 pub fn imap_sync(
     account: ImapAccount,
@@ -40,16 +41,25 @@ pub fn imap_sync(
     let port = account.imap_port;
     let email = &account.email;
     let password = &account.password;
+    let protocol = account.protocol.as_deref().unwrap_or("imap");
 
-    // Determine if we need TLS (port 993 typically means IMAPS)
+    // Determine if we need TLS (port 993/995 typically means SSL)
     let use_tls = port == 993 || port == 995;
 
-    if use_tls {
-        // TLS connection
-        imap_sync_tls(host, port, email, password, &vault_path, &folder, max_emails)
+    // Route to IMAP or POP3 based on protocol
+    if protocol == "pop3" {
+        if use_tls {
+            pop3_sync_tls(host, port, email, password, &vault_path, max_emails)
+        } else {
+            pop3_sync_plain(host, port, email, password, &vault_path, max_emails)
+        }
     } else {
-        // Plain TCP connection (not recommended for production)
-        imap_sync_plain(host, port, email, password, &vault_path, &folder, max_emails)
+        // IMAP
+        if use_tls {
+            imap_sync_tls(host, port, email, password, &vault_path, &folder, max_emails)
+        } else {
+            imap_sync_plain(host, port, email, password, &vault_path, &folder, max_emails)
+        }
     }
 }
 
@@ -243,6 +253,250 @@ fn imap_sync_plain(
     fs::write(&index_path, index_json).map_err(|e| format!("写入文件失败: {}", e))?;
 
     Ok(emails)
+}
+
+// ── POP3 support ─────────────────────────────────────────────────────────────────
+
+fn pop3_sync_tls(
+    host: &str,
+    port: u16,
+    email: &str,
+    password: &str,
+    vault_path: &str,
+    max_emails: u32,
+) -> Result<Vec<EmailMessage>, String> {
+    use native_tls::TlsStream;
+
+    // Create TLS connector
+    let connector = TlsConnector::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|e| format!("TLS 创建失败: {}", e))?;
+
+    // Connect to POP3 server
+    let addr = format!("{}:{}", host, port);
+    let tcp_stream = TcpStream::connect(&addr).map_err(|e| format!("连接失败: {}", e))?;
+    tcp_stream.set_read_timeout(Some(std::time::Duration::from_secs(30))).ok();
+
+    // Upgrade to TLS
+    let tls_stream = connector.connect(host, tcp_stream)
+        .map_err(|e| format!("TLS 握手失败: {}", e))?;
+
+    let mut stream: TlsStream<TcpStream> = tls_stream;
+
+    // Read greeting
+    read_response(&mut stream)?;
+
+    // Login
+    let user_cmd = format!("USER {}\r\n", email);
+    stream.write_all(user_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
+    let user_resp = read_response(&mut stream)?;
+    if !user_resp.contains("+OK") {
+        return Err(format!("USER 命令失败: {}", user_resp));
+    }
+
+    let pass_cmd = format!("PASS {}\r\n", password);
+    stream.write_all(pass_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
+    let pass_resp = read_response(&mut stream)?;
+    if !pass_resp.contains("+OK") {
+        return Err(format!("登录失败: {}", pass_resp));
+    }
+
+    // Get email count
+    let stat_cmd = "STAT\r\n".to_string();
+    stream.write_all(stat_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
+    let stat_resp = read_response(&mut stream)?;
+
+    // Parse message count from STAT response: +OK n s
+    let message_count = stat_resp
+        .split_whitespace()
+        .nth(1)
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(0);
+
+    let fetch_count = std::cmp::min(max_emails as usize, message_count);
+
+    if fetch_count == 0 {
+        stream.write_all(b"QUIT\r\n").ok();
+        return Ok(Vec::new());
+    }
+
+    // Fetch emails
+    let mut emails = Vec::new();
+    for i in 1..=fetch_count {
+        let retr_cmd = format!("RETR {}\r\n", i);
+        stream.write_all(retr_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
+
+        // Read multi-line response
+        let mut response = Vec::new();
+        let mut buf = [0u8; 8192];
+        loop {
+            match stream.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    response.extend_from_slice(&buf[..n]);
+                    let resp_str = String::from_utf8_lossy(&response);
+                    if resp_str.contains("\r\n.\r\n") || resp_str.contains("\n.\n") {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+
+        let resp_str = String::from_utf8_lossy(&response);
+        let email_msg = parse_pop3_email(&resp_str, "INBOX");
+        emails.push(email_msg);
+    }
+
+    // Logout
+    stream.write_all(b"QUIT\r\n").ok();
+
+    // Save to vault
+    let emails_dir = PathBuf::from(vault_path).join(".lifeos/emails").join("INBOX");
+    fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
+
+    let index_path = emails_dir.join("index.json");
+    let index_json = serde_json::to_string_pretty(&emails).map_err(|e| e.to_string())?;
+    fs::write(&index_path, index_json).map_err(|e| format!("写入文件失败: {}", e))?;
+
+    Ok(emails)
+}
+
+fn pop3_sync_plain(
+    host: &str,
+    port: u16,
+    email: &str,
+    password: &str,
+    vault_path: &str,
+    max_emails: u32,
+) -> Result<Vec<EmailMessage>, String> {
+    // Connect to POP3 server
+    let addr = format!("{}:{}", host, port);
+    let mut stream = TcpStream::connect(&addr).map_err(|e| format!("连接失败: {}", e))?;
+    stream.set_read_timeout(Some(std::time::Duration::from_secs(30))).ok();
+
+    // Read greeting
+    let mut buf = [0u8; 1024];
+    let _n = stream.read(&mut buf).map_err(|e| format!("读取失败: {}", e))?;
+
+    // Login
+    let user_cmd = format!("USER {}\r\n", email);
+    stream.write_all(user_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
+    let mut buf = [0u8; 4096];
+    let n = stream.read(&mut buf).map_err(|e| format!("读取失败: {}", e))?;
+    let user_resp = String::from_utf8_lossy(&buf[..n]);
+    if !user_resp.contains("+OK") {
+        return Err(format!("USER 命令失败: {}", user_resp));
+    }
+
+    let pass_cmd = format!("PASS {}\r\n", password);
+    stream.write_all(pass_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
+    let n = stream.read(&mut buf).map_err(|e| format!("读取失败: {}", e))?;
+    let pass_resp = String::from_utf8_lossy(&buf[..n]);
+    if !pass_resp.contains("+OK") {
+        return Err(format!("登录失败: {}", pass_resp));
+    }
+
+    // Get email count
+    let stat_cmd = "STAT\r\n".to_string();
+    stream.write_all(stat_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
+    let n = stream.read(&mut buf).map_err(|e| format!("读取失败: {}", e))?;
+    let stat_resp = String::from_utf8_lossy(&buf[..n]);
+
+    let message_count = stat_resp
+        .split_whitespace()
+        .nth(1)
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(0);
+
+    let fetch_count = std::cmp::min(max_emails as usize, message_count);
+
+    if fetch_count == 0 {
+        stream.write_all(b"QUIT\r\n").ok();
+        return Ok(Vec::new());
+    }
+
+    // Fetch emails
+    let mut emails = Vec::new();
+    for i in 1..=fetch_count {
+        let retr_cmd = format!("RETR {}\r\n", i);
+        stream.write_all(retr_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
+
+        let mut response = Vec::new();
+        loop {
+            match stream.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    response.extend_from_slice(&buf[..n]);
+                    let resp_str = String::from_utf8_lossy(&response);
+                    if resp_str.contains("\r\n.\r\n") || resp_str.contains("\n.\n") {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+
+        let resp_str = String::from_utf8_lossy(&response);
+        let email_msg = parse_pop3_email(&resp_str, "INBOX");
+        emails.push(email_msg);
+    }
+
+    // Logout
+    stream.write_all(b"QUIT\r\n").ok();
+
+    // Save to vault
+    let emails_dir = PathBuf::from(vault_path).join(".lifeos/emails").join("INBOX");
+    fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
+
+    let index_path = emails_dir.join("index.json");
+    let index_json = serde_json::to_string_pretty(&emails).map_err(|e| e.to_string())?;
+    fs::write(&index_path, index_json).map_err(|e| format!("写入文件失败: {}", e))?;
+
+    Ok(emails)
+}
+
+fn parse_pop3_email(response: &str, folder: &str) -> EmailMessage {
+    let mut from = String::new();
+    let mut to = String::new();
+    let mut subject = String::new();
+    let mut date = String::new();
+
+    for line in response.lines() {
+        if line.starts_with("From:") || line.starts_with("From ") {
+            from = extract_pop3_header(line);
+        } else if line.starts_with("To:") || line.starts_with("To ") {
+            to = extract_pop3_header(line);
+        } else if line.starts_with("Subject:") || line.starts_with("Subject ") {
+            subject = line.replace("Subject:", "").replace("Subject", "").trim().to_string();
+        } else if line.starts_with("Date:") || line.starts_with("Date ") {
+            date = line.replace("Date:", "").replace("Date", "").trim().to_string();
+        }
+    }
+
+    EmailMessage {
+        id: format!("{}_{}", folder, 1),
+        uid: 1,
+        from,
+        to,
+        subject,
+        date,
+        body_text: None,
+        body_html: None,
+        attachments: vec![],
+        flags: vec![],
+        folder: folder.to_string(),
+    }
+}
+
+fn extract_pop3_header(line: &str) -> String {
+    let parts: Vec<&str> = line.splitn(2, ':').collect();
+    if parts.len() > 1 {
+        parts[1].trim().to_string()
+    } else {
+        line.replace("From", "").replace("To", "").trim().to_string()
+    }
 }
 
 fn read_response<T: Read>(stream: &mut T) -> Result<String, String> {
