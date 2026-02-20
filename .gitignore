@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.life-os/connectors.yaml
+src-tauri/target/
+*.local
+.DS_Store
