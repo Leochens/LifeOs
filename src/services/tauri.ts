@@ -27,6 +27,9 @@ export const loadBoardConfig = (vaultPath: string): Promise<string> =>
 export const saveBoardConfig = (vaultPath: string, content: string): Promise<void> =>
   invoke("save_board_config", { vaultPath, content });
 
+export const regenerateSkills = (vaultPath: string): Promise<void> =>
+  invoke("regenerate_skills", { vaultPath });
+
 export const pickVaultFolder = async (): Promise<string | null> => {
   const selected = await open({ directory: true, multiple: false });
   return selected as string | null;
@@ -129,3 +132,52 @@ export const listLaunchdTasks = (): Promise<ScheduledTask[]> =>
 
 export const deleteLaunchdTask = (id: string): Promise<void> =>
   invoke("delete_launchd_task", { id });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Email / IMAP Sync
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ImapAccount {
+  email: string;
+  password: string;
+  imapHost: string;
+  imapPort: number;
+}
+
+export interface EmailMessage {
+  id: string;
+  uid: number;
+  from: string;
+  to: string;
+  subject: string;
+  date: string;
+  bodyText?: string;
+  bodyHtml?: string;
+  attachments: string[];
+  flags: string[];
+  folder: string;
+}
+
+export const imapSync = (
+  account: ImapAccount,
+  vaultPath: string,
+  folder: string,
+  maxEmails: number
+): Promise<EmailMessage[]> =>
+  invoke("imap_sync", {
+    account: {
+      email: account.email,
+      password: account.password,
+      imap_host: account.imapHost,
+      imap_port: account.imapPort,
+    },
+    vaultPath,
+    folder,
+    maxEmails,
+  });
+
+export const getCachedEmails = (vaultPath: string, folder: string): Promise<EmailMessage[]> =>
+  invoke("get_cached_emails", { vaultPath, folder });
+
+export const listEmailFolders = (vaultPath: string): Promise<string[]> =>
+  invoke("list_email_folders", { vaultPath });

@@ -1,0 +1,10 @@
+{
+  "id": "kanban",
+  "name": "项目",
+  "icon": "Kanban",
+  "description": "项目管理看板，支持项目列表和看板视图",
+  "dataDirectory": "projects",
+  "configFile": ".lifeos/board.yaml",
+  "builtin": true,
+  "version": "1.0.0"
+}

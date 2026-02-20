@@ -1,6 +1,6 @@
 mod commands;
 
-use commands::{fs_commands, vault_commands, extra_commands};
+use commands::{fs_commands, vault_commands, extra_commands, email_commands};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -17,6 +17,7 @@ pub fn run() {
             vault_commands::save_menu_config,
             vault_commands::load_board_config,
             vault_commands::save_board_config,
+            vault_commands::regenerate_skills,
             // Generic file system
             fs_commands::read_file,
             fs_commands::write_file,
@@ -42,6 +43,10 @@ pub fn run() {
             extra_commands::create_launchd_task,
             extra_commands::list_launchd_tasks,
             extra_commands::delete_launchd_task,
+            // Email: IMAP sync
+            email_commands::imap_sync,
+            email_commands::get_cached_emails,
+            email_commands::list_email_folders,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Life OS");

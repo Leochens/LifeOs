@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
-import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder } from "@/services/tauri";
-import { Settings, FolderOpen, Moon, Sun, Info, Bot, CheckCircle } from "lucide-react";
+import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder, regenerateSkills } from "@/services/tauri";
+import { Settings, FolderOpen, Moon, Sun, Info, Bot, CheckCircle, RefreshCw } from "lucide-react";
 import MenuManager from "./Settings/MenuManager";
 
 export default function SettingsView() {
@@ -16,6 +16,7 @@ export default function SettingsView() {
 
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
+  const [regeneratingSkills, setRegeneratingSkills] = useState(false);
 
   const handlePickFolder = async () => {
     const selected = await pickVaultFolder();
@@ -50,6 +51,20 @@ export default function SettingsView() {
 
   const handleOpenFinder = () => {
     if (vaultPath) openInFinder(vaultPath);
+  };
+
+  const handleRegenerateSkills = async () => {
+    if (!vaultPath) return;
+    setRegeneratingSkills(true);
+    try {
+      await regenerateSkills(vaultPath);
+      alert("Skills 已重新生成！");
+    } catch (e) {
+      console.error("Failed to regenerate skills:", e);
+      alert("生成失败: " + String(e));
+    } finally {
+      setRegeneratingSkills(false);
+    }
   };
 
   return (
@@ -190,6 +205,25 @@ export default function SettingsView() {
               </div>
             </>
           )}
+        </div>
+      </div>
+
+      {/* Skills Management */}
+      <div>
+        <div className="label" style={{ marginBottom: 12 }}>AI Skills</div>
+        <div className="panel-inner" style={{ padding: 20 }}>
+          <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12 }}>
+            重新生成 AI 斜杠命令技能文档，用于 /看板、/日记 等 AI 助手命令。
+          </div>
+          <button
+            className="btn btn-ghost"
+            onClick={handleRegenerateSkills}
+            disabled={!vaultPath || regeneratingSkills}
+            style={{ display: "flex", alignItems: "center", gap: 8 }}
+          >
+            <RefreshCw size={14} className={regeneratingSkills ? "spin" : ""} />
+            {regeneratingSkills ? "生成中..." : "重新生成 Skills"}
+          </button>
         </div>
       </div>
 

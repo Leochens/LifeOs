@@ -41,6 +41,7 @@ pub fn init_vault(path: String) -> Result<(), String> {
         ".lifeos",
         ".lifeos/servers",
         ".lifeos/emails",
+        ".lifeos/skills",
         "daily/tasks",
         "daily/habits",
         "projects/backlog",
@@ -331,6 +332,234 @@ calendar:
     // Write vault path to global config
     fs::write(global_config_path(), &path).map_err(|e| e.to_string())?;
 
+    // Write skills to vault
+    write_skills(&root)?;
+
+    Ok(())
+}
+
+// Write skills to .lifeos/skills/
+fn write_skills(root: &PathBuf) -> Result<(), String> {
+    let skills_dir = root.join(".lifeos/skills");
+    fs::create_dir_all(&skills_dir).map_err(|e| e.to_string())?;
+
+    // Kanban skill
+    let kanban_skill = r#"---
+name: 看板
+description: 用于管理 LifeOS 项目看板模块的斜杠命令技能。当用户使用 /看板 命令或提及项目、看板、任务管理时触发此技能。
+---
+
+# 看板技能
+
+此技能用于通过 AI 辅助管理 LifeOS 项目看板。
+
+## 触发条件
+
+- 用户输入 /看板
+- 用户提及 "创建项目"、"删除项目"、"查看任务"
+- 用户要求分析项目进度
+
+## 可用命令
+
+### 创建新项目
+/看板 创建项目 [项目名称]
+
+### 删除项目
+/看板 删除项目 [项目名称]
+
+### 查看项目状态
+/看板 查看所有项目
+/看板 查看 [项目名称] 的任务
+
+### 创建任务
+/看板 在 [项目名称] 创建任务 [任务内容]
+
+### 完成/取消任务
+/看板 完成 [项目名称] 的任务 [任务内容]
+
+### 查看进度
+/看板 查看 [项目名称] 进度
+/看板 项目统计
+
+## 数据存储
+
+### 项目文件路径
+{vault}/projects/{status}/{project-slug}.md
+
+状态目录：
+- backlog - 待规划
+- todo - 计划中
+- active - 进行中
+- paused - 暂停
+- done - 已完成
+
+### Frontmatter 格式
+---
+title: 项目标题
+status: backlog | todo | active | paused | done
+priority: low | medium | high | urgent
+created: 2025-01-01
+updated: 2025-01-15
+progress: 0-100
+tags: 标签1, 标签2
+due: 2025-12-31
+---
+
+### Markdown 任务格式
+## 任务
+
+- [ ] 任务1
+- [x] 任务2
+- [ ] 任务3
+
+## AI 操作指南
+
+### 读取项目列表
+使用 list_notes 或遍历 {vault}/projects/{status}/*.md
+
+### 创建新项目
+1. 在 {vault}/projects/backlog/ 目录创建 .md 文件
+2. 写入 frontmatter 和内容
+
+### 更新任务状态
+修改 markdown 文件中的 - [ ] 为 - [x] 或反向
+
+### 移动项目
+1. 移动文件到新的状态目录
+2. 更新 frontmatter 中的 status 字段
+"#;
+    fs::write(skills_dir.join("kanban.md"), kanban_skill).map_err(|e| e.to_string())?;
+
+    // Daily skill
+    let daily_skill = r#"---
+name: 日常
+description: 用于管理 LifeOS 日常任务和 habits 模块的斜杠命令技能。当用户使用 /日常 命令或提及任务、habits、习惯追踪时触发此技能。
+---
+
+# 日常技能
+
+此技能用于通过 AI 辅助管理 LifeOS 日常任务。
+
+## 触发条件
+
+- 用户输入 /日常
+- 用户提及 "今日任务"、" habits"、"习惯"
+
+## 数据存储
+
+### 今日笔记
+{vault}/daily/tasks/{YYYY-MM-DD}.md
+
+### Habits 配置
+{vault}/daily/habits/habits.yaml
+
+### Frontmatter 格式
+---
+date: 2025-01-15
+energy: high | medium | low
+mood: 😊
+---
+"#;
+    fs::write(skills_dir.join("daily.md"), daily_skill).map_err(|e| e.to_string())?;
+
+    // Diary skill
+    let diary_skill = r#"---
+name: 日记
+description: 用于管理 LifeOS 日记模块的斜杠命令技能。当用户使用 /日记 命令或提及日记、心情、天气时触发此技能。
+---
+
+# 日记技能
+
+此技能用于通过 AI 辅助管理 LifeOS 日记。
+
+## 触发条件
+
+- 用户输入 /日记
+- 用户提及 "写日记"、"查看日记"
+
+## 数据存储
+
+### 日记文件
+{vault}/diary/{YYYY}/{YYYY-MM-DD}.md
+
+### Frontmatter 格式
+---
+date: 2025-01-15
+title: 日记标题
+mood: 😊
+weather: sunny
+tags: tag1, tag2
+---
+"#;
+    fs::write(skills_dir.join("diary.md"), diary_skill).map_err(|e| e.to_string())?;
+
+    // Decisions skill
+    let decisions_skill = r#"---
+name: 决策
+description: 用于管理 LifeOS 决策记录模块的斜杠命令技能。当用户使用 /决策 命令或提及决策、决定时触发此技能。
+---
+
+# 决策技能
+
+此技能用于通过 AI 辅助管理 LifeOS 决策记录。
+
+## 触发条件
+
+- 用户输入 /决策
+- 用户提及 "记录决策"、"查看决策"
+
+## 数据存储
+
+### 决策文件
+{vault}/decisions/{slug}.md
+
+### Frontmatter 格式
+---
+title: 决策标题
+created: 2025-01-15
+status: pending | decided | archived
+weight: low | medium | high | critical
+decided_on: 2025-01-20
+outcome: 决策结果
+---
+"#;
+    fs::write(skills_dir.join("decisions.md"), decisions_skill).map_err(|e| e.to_string())?;
+
+    // Planning skill
+    let planning_skill = r#"---
+name: 计划
+description: 用于管理 LifeOS 目标规划模块的斜杠命令技能。当用户使用 /计划 命令或提及目标、年度计划、季度计划时触发此技能。
+---
+
+# 计划技能
+
+此技能用于通过 AI 辅助管理 LifeOS 目标规划。
+
+## 触发条件
+
+- 用户输入 /计划
+- 用户提及 "年度目标"、"季度计划"
+
+## 数据存储
+
+### 目标文件
+{vault}/planning/goals/{slug}.md
+
+### Frontmatter 格式
+---
+title: 目标标题
+type: annual | quarterly | monthly
+year: 2025
+quarter: 1
+month: 1
+progress: 0-100
+due: 2025-12-31
+priority: low | medium | high
+status: active | completed | archived
+---
+"#;
+    fs::write(skills_dir.join("planning.md"), planning_skill).map_err(|e| e.to_string())?;
+
     Ok(())
 }
 
@@ -368,6 +597,13 @@ pub fn load_board_config(vault_path: String) -> Result<String, String> {
 pub fn save_board_config(vault_path: String, content: String) -> Result<(), String> {
     let board_path = PathBuf::from(&vault_path).join(".lifeos/board.yaml");
     fs::write(&board_path, content).map_err(|e| e.to_string())
+}
+
+/// Regenerate skills in vault
+#[tauri::command]
+pub fn regenerate_skills(vault_path: String) -> Result<(), String> {
+    let root = PathBuf::from(&vault_path);
+    write_skills(&root)
 }
 
 fn write_if_not_exists(path: &PathBuf, content: &str) -> Result<(), String> {

@@ -3,7 +3,7 @@
 
 import Dashboard from "@/components/modules/Dashboard";
 import DailyView from "@/components/modules/DailyView";
-import KanbanView from "@/components/modules/KanbanView";
+import KanbanView from "@/components/modules/kanban/KanbanView";
 import PlanningView from "@/components/modules/PlanningView";
 import DiaryView from "@/components/modules/DiaryView";
 import DecisionsView from "@/components/modules/DecisionsView";

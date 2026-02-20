@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, listNotes } from "@/services/tauri";
+import { writeNote, listNotes, imapSync } from "@/services/tauri";
 import type { EmailAccount } from "@/types";
 
 const EMAILS_DIR = ".lifeos/emails";
@@ -129,14 +129,45 @@ export default function MailView() {
   };
 
   const handleSync = async (account: EmailAccount) => {
-    if (!account.enabled) return;
+    if (!account.enabled || !vaultPath) return;
     setSyncing(true);
-    // TODO: Call Tauri command to sync emails
-    // For now, just show a message
-    setTimeout(() => {
+    console.log("Starting IMAP sync for:", account.email);
+
+    try {
+      // Get IMAP settings from account (stored in frontmatter)
+      const imapHost = (account as any).imapHost || "imap.example.com";
+      const imapPort = (account as any).imapPort || 993;
+
+      // Sync emails from INBOX
+      console.log("Calling IMAP sync with:", { email: account.email, imapHost, imapPort });
+
+      const emails = await imapSync(
+        {
+          email: account.email,
+          password: (account as any).password || "",
+          imapHost,
+          imapPort,
+        },
+        vaultPath,
+        "INBOX",
+        50
+      );
+
+      console.log("Sync complete, received emails:", emails.length);
+      alert(`同步完成！获取 ${emails.length} 封邮件`);
+    } catch (e) {
+      console.error("IMAP sync error:", e);
+      const errorMsg = String(e);
+      if (errorMsg.includes("Connection refused") || errorMsg.includes("os error 35") || errorMsg.includes("Connection timed out")) {
+        alert("连接失败：请检查 IMAP 服务器地址和端口是否正确。\n\n支持的端口：\n- 993 (Gmail, Outlook)\n- 995 (POP3 SSL)\n- 143 (非加密)");
+      } else if (errorMsg.includes("TLS") || errorMsg.includes("SSL") || errorMsg.includes("握手")) {
+        alert("TLS 连接失败：" + errorMsg);
+      } else {
+        alert("同步失败: " + errorMsg);
+      }
+    } finally {
       setSyncing(false);
-      alert("邮件同步功能需要配置 Tauri 后端 IMAP 支持。");
-    }, 1000);
+    }
   };
 
   return (
