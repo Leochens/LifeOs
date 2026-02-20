@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
-import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder, runShellCommand } from "@/services/tauri";
-import { Settings, FolderOpen, Moon, Sun, Info, Bot, CheckCircle, XCircle, Loader } from "lucide-react";
+import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder } from "@/services/tauri";
+import { Settings, FolderOpen, Moon, Sun, Info, Bot, CheckCircle } from "lucide-react";
+import MenuManager from "./Settings/MenuManager";
 
 export default function SettingsView() {
   const vaultPath = useStore((s) => s.vaultPath);
@@ -189,6 +190,14 @@ export default function SettingsView() {
               </div>
             </>
           )}
+        </div>
+      </div>
+
+      {/* Menu Management */}
+      <div>
+        <div className="label" style={{ marginBottom: 12 }}>菜单管理</div>
+        <div className="panel-inner" style={{ padding: 20 }}>
+          <MenuManager />
         </div>
       </div>
 

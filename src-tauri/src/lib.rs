@@ -13,6 +13,10 @@ pub fn run() {
             vault_commands::get_vault_path,
             vault_commands::set_vault_path,
             vault_commands::init_vault,
+            vault_commands::load_menu_config,
+            vault_commands::save_menu_config,
+            vault_commands::load_board_config,
+            vault_commands::save_board_config,
             // Generic file system
             fs_commands::read_file,
             fs_commands::write_file,
@@ -28,6 +32,7 @@ pub fn run() {
             // Extra: system & tools
             extra_commands::open_in_finder,
             extra_commands::run_shell_command,
+            extra_commands::run_shortcut,
             // Extra: git scanner
             extra_commands::scan_git_repos,
             // Extra: skills manager

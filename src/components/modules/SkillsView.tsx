@@ -25,10 +25,6 @@ function ideGroup(ide: string) {
   return "Other";
 }
 
-function formatSize(bytes: number) {
-  return (bytes / 1024).toFixed(1) + " KB";
-}
-
 const DEFAULT_TEMPLATE = `---
 description: Describe what this skill does
 ---

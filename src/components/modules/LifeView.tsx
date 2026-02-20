@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { runShellCommand } from "@/services/tauri";
+import { runShortcut } from "@/services/tauri";
 import type { ScreenTimeData, HealthData } from "@/types";
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 
 export default function LifeView() {
   const vaultPath = useStore((s) => s.vaultPath);
@@ -11,36 +11,99 @@ export default function LifeView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+  const [shortcutsConfigured, setShortcutsConfigured] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
 
+    const today = format(new Date(), "yyyy-MM-dd");
+
     try {
       // Try to get Screen Time data via shortcuts
-      const today = format(new Date(), "yyyy-MM-dd");
+      let screenTimeData: ScreenTimeData | null = null;
+      let healthData: HealthData | null = null;
 
-      // For now, we'll show a placeholder as macOS Screen Time API requires special permissions
-      // In a real implementation, you would create a Shortcut that exports Screen Time data
+      try {
+        const stResult = await runShortcut("Get Screen Time");
+        const st = JSON.parse(stResult);
+        if (st && st.totalMinutes) {
+          screenTimeData = {
+            totalMinutes: st.totalMinutes || 0,
+            byCategory: st.byCategory || {},
+            byApp: st.byApp || {},
+            pickupCount: st.pickupCount || 0,
+            date: today,
+          };
+          setShortcutsConfigured(true);
+        }
+      } catch (e) {
+        console.log("Screen Time shortcut not available:", e);
+      }
+
+      try {
+        const healthResult = await runShortcut("Get Health Data");
+        const hd = JSON.parse(healthResult);
+        if (hd && hd.steps) {
+          healthData = {
+            steps: hd.steps || 0,
+            activeMinutes: hd.activeMinutes || 0,
+            calories: hd.calories || 0,
+            sleepHours: hd.sleepHours || 0,
+            heartRate: hd.heartRate,
+            date: today,
+          };
+          setShortcutsConfigured(true);
+        }
+      } catch (e) {
+        console.log("Health shortcut not available:", e);
+      }
+
+      // If shortcuts didn't work, use mock data
+      if (!screenTimeData) {
+        screenTimeData = {
+          totalMinutes: 0,
+          byCategory: {
+            "社交": 120,
+            "工作": 180,
+            "娱乐": 60,
+            "其他": 40,
+          },
+          byApp: {
+            "Slack": 90,
+            "Chrome": 120,
+            "VS Code": 60,
+            "微信": 30,
+          },
+          pickupCount: 45,
+          date: today,
+        };
+      }
+
+      if (!healthData) {
+        healthData = {
+          steps: 8500,
+          activeMinutes: 45,
+          calories: 2100,
+          sleepHours: 7.5,
+          heartRate: 72,
+          date: today,
+        };
+      }
+
+      setScreenTime(screenTimeData);
+      setHealth(healthData);
+      setLastUpdate(new Date().toLocaleTimeString());
+    } catch (e) {
+      console.error("Failed to load life data:", e);
+      // Use mock data as fallback
       setScreenTime({
         totalMinutes: 0,
-        byCategory: {
-          "社交": 120,
-          "工作": 180,
-          "娱乐": 60,
-          "其他": 40,
-        },
-        byApp: {
-          "Slack": 90,
-          "Chrome": 120,
-          "VS Code": 60,
-          "微信": 30,
-        },
+        byCategory: { "社交": 120, "工作": 180, "娱乐": 60, "其他": 40 },
+        byApp: { "Slack": 90, "Chrome": 120, "VS Code": 60, "微信": 30 },
         pickupCount: 45,
         date: today,
       });
-
-      // Similarly for Health data - would need Shortcuts integration
       setHealth({
         steps: 8500,
         activeMinutes: 45,
@@ -49,11 +112,6 @@ export default function LifeView() {
         heartRate: 72,
         date: today,
       });
-
-      setLastUpdate(new Date().toLocaleTimeString());
-    } catch (e) {
-      console.error("Failed to load life data:", e);
-      setError("无法加载数据。请确保已授予必要的权限。");
     } finally {
       setLoading(false);
     }
@@ -234,7 +292,17 @@ export default function LifeView() {
 
           {/* Info */}
           <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", padding: 12 }}>
-            数据需要 macOS 屏幕使用时间 和 健康 权限。如数据不准确，请检查系统偏好设置。
+            {shortcutsConfigured ? (
+              <span style={{ color: "var(--accent3)" }}>✓ 数据已通过 Shortcuts 实时获取</span>
+            ) : (
+              <>
+                数据使用模拟值。请在 Shortcuts 应用中创建两个捷径：
+                <br />
+                1. "Get Screen Time" - 输出 JSON 格式的屏幕使用时间
+                <br />
+                2. "Get Health Data" - 输出 JSON 格式的健康数据
+              </>
+            )}
           </div>
         </div>
       )}

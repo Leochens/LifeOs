@@ -28,7 +28,9 @@
       "Bash(openssl rand:*)",
       "Bash(cargo check:*)",
       "WebFetch(domain:bundlephobia.com)",
-      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)"
+      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)",
+      "Bash(cargo build)",
+      "Bash(npm run tsc:*)"
     ]
   }
 }

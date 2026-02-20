@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, readNote, listNotes, deleteFile } from "@/services/tauri";
+import { writeNote, listNotes, deleteFile } from "@/services/tauri";
 import type { ServerInfo } from "@/types";
 import { format } from "date-fns";
 
@@ -41,7 +41,7 @@ export default function ServersView() {
             host: n.frontmatter.host || "",
             port: parseInt(n.frontmatter.port) || 22,
             username: n.frontmatter.username || "",
-            authType: n.frontmatter.authType || "key",
+            authType: (n.frontmatter.authType as "password" | "key" | "both") || "key",
             password: n.frontmatter.password,
             privateKeyPath: n.frontmatter.privateKeyPath,
             publicKeyPath: n.frontmatter.publicKeyPath,

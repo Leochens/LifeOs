@@ -15,7 +15,6 @@ export default function ChatView() {
 
   // Settings from store
   const claudeCodeEnabled = useStore((s) => s.claudeCodeEnabled);
-  const claudeCodePath = useStore((s) => s.claudeCodePath);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

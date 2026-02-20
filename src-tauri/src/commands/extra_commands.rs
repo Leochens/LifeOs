@@ -266,6 +266,33 @@ pub async fn run_shell_command(command: String, args: Vec<String>) -> Result<Str
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// macOS Shortcuts
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn run_shortcut(name: String) -> Result<String, String> {
+    let output = tokio::process::Command::new("shortcuts")
+        .args(["run", &name, "--output-format", "json"])
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run shortcut '{}': {e}", name))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8(output.stdout)
+            .map_err(|e| format!("Invalid UTF-8 output: {e}"))?;
+        // Shortcuts might return empty or newlines for some shortcuts
+        if stdout.trim().is_empty() {
+            return Ok("{}".to_string());
+        }
+        Ok(stdout)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        Err(if stderr.is_empty() { stdout } else { stderr })
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // macOS launchd scheduler
 // ─────────────────────────────────────────────────────────────────────────────
 

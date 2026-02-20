@@ -15,6 +15,18 @@ export const setVaultPath = (path: string): Promise<void> =>
 export const initVault = (path: string): Promise<void> =>
   invoke("init_vault", { path });
 
+export const loadMenuConfig = (vaultPath: string): Promise<string> =>
+  invoke("load_menu_config", { vaultPath });
+
+export const saveMenuConfig = (vaultPath: string, content: string): Promise<void> =>
+  invoke("save_menu_config", { vaultPath, content });
+
+export const loadBoardConfig = (vaultPath: string): Promise<string> =>
+  invoke("load_board_config", { vaultPath });
+
+export const saveBoardConfig = (vaultPath: string, content: string): Promise<void> =>
+  invoke("save_board_config", { vaultPath, content });
+
 export const pickVaultFolder = async (): Promise<string | null> => {
   const selected = await open({ directory: true, multiple: false });
   return selected as string | null;
@@ -80,6 +92,10 @@ export const runShellCommand = (
   args: string[]
 ): Promise<string> =>
   invoke("run_shell_command", { command, args });
+
+/** Run a macOS Shortcut and return JSON output */
+export const runShortcut = (name: string): Promise<string> =>
+  invoke("run_shortcut", { name });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Extra: Git Scanner

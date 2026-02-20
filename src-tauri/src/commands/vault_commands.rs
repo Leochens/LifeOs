@@ -38,13 +38,14 @@ pub fn init_vault(path: String) -> Result<(), String> {
     let root = PathBuf::from(&path);
 
     let dirs = [
-        ".life-os",
+        ".lifeos",
         ".lifeos/servers",
+        ".lifeos/emails",
         "daily/tasks",
         "daily/habits",
-        "projects/active",
         "projects/backlog",
-        "projects/paused",
+        "projects/todo",
+        "projects/active",
         "projects/done",
         "planning/goals",
         "planning/reviews",
@@ -67,7 +68,151 @@ pub fn init_vault(path: String) -> Result<(), String> {
         path,
         chrono::Local::now().format("%Y-%m-%d")
     );
-    write_if_not_exists(&root.join(".life-os/config.yaml"), &config_content)?;
+    write_if_not_exists(&root.join(".lifeos/config.yaml"), &config_content)?;
+
+    // Write menu config
+    let menu_content = r#"# LifeOS 菜单配置
+# 用户可以自定义修改此文件来调整侧边栏菜单
+
+groups:
+  - id: work
+    name: 工作
+    order: 0
+    collapsed: false
+    pluginIds:
+      - dashboard
+      - daily
+      - kanban
+      - planning
+  - id: journal
+    name: 记录
+    order: 1
+    collapsed: false
+    pluginIds:
+      - diary
+      - decisions
+      - stickynotes
+  - id: life
+    name: 生活
+    order: 2
+    collapsed: false
+    pluginIds:
+      - life
+      - chat
+      - mail
+  - id: tools
+    name: 工具
+    order: 3
+    collapsed: false
+    pluginIds:
+      - servers
+      - connectors
+      - skills
+      - gitscanner
+      - scheduler
+
+plugins:
+  # 必选插件 - 不可关闭
+  - id: dashboard
+    name: 总览
+    icon: LayoutDashboard
+    component: dashboard
+    enabled: true
+    builtin: true
+  # 可选插件 - 默认开启，用户可关闭
+  - id: daily
+    name: 日常
+    icon: ListTodo
+    component: daily
+    enabled: true
+    builtin: false
+  - id: kanban
+    name: 项目
+    icon: Kanban
+    component: kanban
+    enabled: true
+    builtin: false
+  - id: planning
+    name: 计划
+    icon: Target
+    component: planning
+    enabled: true
+    builtin: false
+  - id: diary
+    name: 日记
+    icon: BookOpen
+    component: diary
+    enabled: true
+    builtin: false
+  - id: decisions
+    name: 决策
+    icon: Scale
+    component: decisions
+    enabled: true
+    builtin: false
+  - id: stickynotes
+    name: 便利贴
+    icon: StickyNote
+    component: stickynotes
+    enabled: true
+    builtin: false
+  - id: life
+    name: 生活数据
+    icon: Heart
+    component: life
+    enabled: true
+    builtin: false
+  - id: chat
+    name: AI 聊天
+    icon: MessageCircle
+    component: chat
+    enabled: true
+    builtin: false
+  - id: mail
+    name: 邮箱
+    icon: Mail
+    component: mail
+    enabled: true
+    builtin: false
+  - id: servers
+    name: 服务器
+    icon: Server
+    component: servers
+    enabled: true
+    builtin: false
+  - id: connectors
+    name: 连接
+    icon: Plug
+    component: connectors
+    enabled: true
+    builtin: false
+  - id: skills
+    name: Skills
+    icon: Wrench
+    component: skills
+    enabled: true
+    builtin: false
+  - id: gitscanner
+    name: Git 仓库
+    icon: GitBranch
+    component: gitscanner
+    enabled: true
+    builtin: false
+  - id: scheduler
+    name: 定时任务
+    icon: Clock
+    component: scheduler
+    enabled: true
+    builtin: false
+  # 设置 - 必选
+  - id: settings
+    name: 设置
+    icon: Settings
+    component: settings
+    enabled: true
+    builtin: true
+"#;
+    write_if_not_exists(&root.join(".lifeos/menu.yaml"), menu_content)?;
 
     // Seed habit tracker
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
@@ -133,7 +278,7 @@ mood: 😊
     name: "✅ 已完成"
     color: "#00ffa3"
 "##;
-    write_if_not_exists(&root.join("projects/_board.yaml"), board_content)?;
+    write_if_not_exists(&root.join(".lifeos/board.yaml"), board_content)?;
 
     // Seed diary template
     let diary_template = r#"---
@@ -179,7 +324,7 @@ calendar:
   # OAuth handled separately
 "#;
     write_if_not_exists(
-        &root.join(".life-os/connectors.yaml"),
+        &root.join(".lifeos/connectors.yaml"),
         connectors_content,
     )?;
 
@@ -187,6 +332,42 @@ calendar:
     fs::write(global_config_path(), &path).map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+/// Load menu config from vault
+#[tauri::command]
+pub fn load_menu_config(vault_path: String) -> Result<String, String> {
+    let menu_path = PathBuf::from(&vault_path).join(".lifeos/menu.yaml");
+    if menu_path.exists() {
+        fs::read_to_string(&menu_path).map_err(|e| e.to_string())
+    } else {
+        Err("Menu config not found".to_string())
+    }
+}
+
+/// Save menu config to vault
+#[tauri::command]
+pub fn save_menu_config(vault_path: String, content: String) -> Result<(), String> {
+    let menu_path = PathBuf::from(&vault_path).join(".lifeos/menu.yaml");
+    fs::write(&menu_path, content).map_err(|e| e.to_string())
+}
+
+/// Load board config from vault
+#[tauri::command]
+pub fn load_board_config(vault_path: String) -> Result<String, String> {
+    let board_path = PathBuf::from(&vault_path).join(".lifeos/board.yaml");
+    if board_path.exists() {
+        fs::read_to_string(&board_path).map_err(|e| e.to_string())
+    } else {
+        Err("Board config not found".to_string())
+    }
+}
+
+/// Save board config to vault
+#[tauri::command]
+pub fn save_board_config(vault_path: String, content: String) -> Result<(), String> {
+    let board_path = PathBuf::from(&vault_path).join(".lifeos/board.yaml");
+    fs::write(&board_path, content).map_err(|e| e.to_string())
 }
 
 fn write_if_not_exists(path: &PathBuf, content: &str) -> Result<(), String> {

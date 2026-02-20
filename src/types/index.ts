@@ -64,7 +64,7 @@ export interface Project {
 }
 
 export interface KanbanColumn {
-  id: ProjectStatus;
+  id: string;
   name: string;
   color: string;
 }
@@ -255,6 +255,7 @@ export type ViewId =
   | "scheduler"
   | "life"
   | "chat"
+  | "mail"
   | "servers"
   | "settings";
 
@@ -286,4 +287,73 @@ export interface ChatMessage {
   content: string;
   thinking?: string;
   timestamp: number;
+}
+
+// ── Plugin System ───────────────────────────────────────────────────────────────
+
+export interface Plugin {
+  id: string;
+  name: string;
+  icon: string;
+  component: ViewId;
+  enabled: boolean;
+  builtin: boolean;
+  description?: string;
+}
+
+export interface PluginGroup {
+  id: string;
+  name: string;
+  icon?: string;
+  order: number;
+  collapsed: boolean;
+  pluginIds: string[];
+}
+
+export interface MenuConfig {
+  groups: PluginGroup[];
+  plugins: Plugin[];
+}
+
+// ── Email ──────────────────────────────────────────────────────────────────────
+
+export interface EmailAccount {
+  id: string;
+  name: string;
+  email: string;
+  imapHost: string;
+  imapPort: number;
+  username: string;
+  authType: "password" | "oauth2";
+  // 密码只存储引用，实际密码从系统 keychain 获取
+  passwordRef?: string;
+  folders: string[];
+  lastSync?: string;
+  enabled: boolean;
+}
+
+export interface Email {
+  id: string;
+  accountId: string;
+  folder: string;
+  uid: number;
+  subject: string;
+  from: string;
+  fromName: string;
+  to: string;
+  date: string;
+  preview: string;
+  bodyText?: string;
+  bodyHtml?: string;
+  isRead: boolean;
+  isStarred: boolean;
+  hasAttachments: boolean;
+  attachments: EmailAttachment[];
+}
+
+export interface EmailAttachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  url?: string;
 }
