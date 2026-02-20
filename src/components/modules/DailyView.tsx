@@ -250,37 +250,42 @@ export default function DailyView() {
           </div>
 
           {/* Calendar */}
-          <div className="panel" style={{ padding: 20 }}>
+          <div className="panel" style={{ padding: 24 }}>
             {/* Month nav */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <button
                 className="btn btn-ghost"
                 onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
+                style={{ padding: "8px 14px", fontSize: 13 }}
               >
-                &lt; 上月
+                ← 上月
               </button>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--accent)", letterSpacing: 2 }}>
+              <span style={{ fontFamily: "var(--font-disp)", fontSize: 20, color: "var(--accent)", letterSpacing: 3 }}>
                 {format(calMonth, "yyyy年MM月", { locale: zhCN })}
               </span>
               <button
                 className="btn btn-ghost"
                 onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
+                style={{ padding: "8px 14px", fontSize: 13 }}
               >
-                下月 &gt;
+                下月 →
               </button>
             </div>
 
             {/* Weekday headers */}
-            <div className="cal-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, textAlign: "center" }}>
-              {["日", "一", "二", "三", "四", "五", "六"].map((d) => (
-                <div key={d} style={{ fontSize: 11, color: "var(--text-dim)", padding: "4px 0", fontFamily: "var(--font-mono)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, textAlign: "center", marginBottom: 12 }}>
+              {["日", "一", "二", "三", "四", "五", "六"].map((d, i) => (
+                <div key={d} style={{
+                  fontSize: 12, color: i === 0 || i === 6 ? "var(--accent4)" : "var(--text-dim)",
+                  padding: "10px 0", fontFamily: "var(--font-mono)", fontWeight: 600
+                }}>
                   {d}
                 </div>
               ))}
 
               {/* Empty cells for padding */}
               {Array.from({ length: startPad }).map((_, i) => (
-                <div key={`pad-${i}`} className="cal-day other-month" />
+                <div key={`pad-${i}`} style={{ height: 52 }} />
               ))}
 
               {/* Days */}
@@ -294,32 +299,46 @@ export default function DailyView() {
                 return (
                   <div
                     key={dateStr}
-                    className={[
-                      "cal-day",
-                      isToday && "today",
-                      hasData && "has-data",
-                      isSelected && "selected",
-                      !inMonth && "other-month",
-                    ].filter(Boolean).join(" ")}
                     onClick={() => hasData && loadDate(dateStr)}
                     style={{
-                      padding: "8px 4px", cursor: hasData ? "pointer" : "default",
-                      borderRadius: "var(--radius-sm)", textAlign: "center",
-                      fontSize: 13, position: "relative",
-                      transition: "all 0.15s",
+                      height: 52, cursor: hasData ? "pointer" : "default",
+                      borderRadius: 12, textAlign: "center",
+                      fontSize: 14, position: "relative",
+                      transition: "all 0.2s",
+                      background: isSelected ? "var(--accent)" : isToday ? "rgba(0,200,255,0.08)" : "transparent",
+                      color: isSelected ? "#fff" : !inMonth ? "var(--text-dim)" : "var(--text)",
+                      fontWeight: isToday ? 600 : 400,
+                      border: isToday && !isSelected ? "1px solid var(--accent)" : "1px solid transparent",
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    {day.getDate()}
+                    <div>{day.getDate()}</div>
                     {hasData && (
                       <div style={{
-                        width: 4, height: 4, borderRadius: "50%",
-                        background: "var(--accent3)", margin: "2px auto 0",
-                        boxShadow: "0 0 4px var(--accent3)",
+                        width: 5, height: 5, borderRadius: "50%",
+                        background: isSelected ? "#fff" : "var(--accent3)",
+                        marginTop: 2,
                       }} />
                     )}
                   </div>
                 );
               })}
+            </div>
+
+            {/* Legend */}
+            <div style={{ display: "flex", gap: 20, justifyContent: "center", marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-dim)" }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: "var(--accent)" }} />
+                已选择
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-dim)" }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: "rgba(0,200,255,0.08)", border: "1px solid var(--accent)" }} />
+                今日
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-dim)" }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent3)" }} />
+                有记录
+              </div>
             </div>
           </div>
 

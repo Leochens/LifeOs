@@ -13,7 +13,8 @@ export function useVaultLoader() {
     if (!vaultPath) return;
     setLoading(true);
     try {
-      await Promise.all([
+      // Use allSettled so one failing loader doesn't break the rest
+      const results = await Promise.allSettled([
         loadToday(vaultPath, setTodayNote),
         loadProjects(vaultPath, setProjects),
         loadDiary(vaultPath, setDiaryEntries),
@@ -21,6 +22,12 @@ export function useVaultLoader() {
         loadGoals(vaultPath, setGoals),
         loadHabits(vaultPath, setHabits),
       ]);
+      results.forEach((r, i) => {
+        if (r.status === "rejected") {
+          const names = ["today", "projects", "diary", "decisions", "goals", "habits"];
+          console.warn(`Failed to load ${names[i]}:`, r.reason);
+        }
+      });
     } finally {
       setLoading(false);
     }

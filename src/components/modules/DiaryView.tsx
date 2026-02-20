@@ -29,6 +29,7 @@ export default function DiaryView() {
     try {
       const fm = {
         date: editing.date,
+        title: editing.title || "",
         mood: editing.mood,
         energy: editing.energy,
         tags: editing.tags.join(", "),
@@ -178,6 +179,22 @@ export default function DiaryView() {
                 {m}
               </button>
             ))}
+          </div>
+
+          {/* Title editor */}
+          <div style={{ marginBottom: 16 }}>
+            <input
+              className="input"
+              value={editing?.title ?? current?.title ?? ""}
+              onChange={(e) => editing && setEditing({ ...editing, title: e.target.value })}
+              onFocus={() => !editing && setEditing({ ...current! })}
+              placeholder="输入日记标题..."
+              style={{
+                fontSize: 18, fontWeight: 600,
+                background: "transparent", border: "none",
+                padding: "8px 0", width: "100%",
+              }}
+            />
           </div>
 
           {/* Content editor */}

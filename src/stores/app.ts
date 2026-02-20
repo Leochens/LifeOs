@@ -75,6 +75,12 @@ interface AppState {
   scheduledTasks: ScheduledTask[];
   setScheduledTasks: (t: ScheduledTask[]) => void;
 
+  // Claude Code settings
+  claudeCodeEnabled: boolean;
+  setClaudeCodeEnabled: (e: boolean) => void;
+  claudeCodePath: string;
+  setClaudeCodePath: (p: string) => void;
+
   // UI
   isLoading: boolean;
   setLoading: (v: boolean) => void;
@@ -142,6 +148,11 @@ export const useStore = create<AppState>((set) => ({
 
   scheduledTasks: [],
   setScheduledTasks: (scheduledTasks) => set({ scheduledTasks }),
+
+  claudeCodeEnabled: true,
+  setClaudeCodeEnabled: (claudeCodeEnabled) => set({ claudeCodeEnabled }),
+  claudeCodePath: "claude",
+  setClaudeCodePath: (claudeCodePath) => set({ claudeCodePath }),
 
   isLoading: false,
   setLoading: (isLoading) => set({ isLoading }),

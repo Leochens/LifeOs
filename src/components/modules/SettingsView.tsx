@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
-import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder } from "@/services/tauri";
-import { Settings, FolderOpen, Moon, Sun, Info } from "lucide-react";
+import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder, runShellCommand } from "@/services/tauri";
+import { Settings, FolderOpen, Moon, Sun, Info, Bot, CheckCircle, XCircle, Loader } from "lucide-react";
 
 export default function SettingsView() {
   const vaultPath = useStore((s) => s.vaultPath);
   const setVaultPathStore = useStore((s) => s.setVaultPath);
   const theme = useStore((s) => s.theme);
   const setTheme = useStore((s) => s.setTheme);
+  const claudeCodeEnabled = useStore((s) => s.claudeCodeEnabled);
+  const setClaudeCodeEnabled = useStore((s) => s.setClaudeCodeEnabled);
+  const claudeCodePath = useStore((s) => s.claudeCodePath);
+  const setClaudeCodePath = useStore((s) => s.setClaudeCodePath);
 
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
@@ -138,6 +142,53 @@ export default function SettingsView() {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Claude Code */}
+      <div>
+        <div className="label" style={{ marginBottom: 12 }}>Claude Code AI</div>
+        <div className="panel-inner" style={{ padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Bot size={16} style={{ color: "var(--accent2)" }} />
+              <span style={{ fontSize: 14, color: "var(--text)" }}>启用 Claude Code</span>
+            </div>
+            <div className="toggle-wrap" onClick={() => setClaudeCodeEnabled(!claudeCodeEnabled)}>
+              <button className={`toggle ${claudeCodeEnabled ? "on" : ""}`} />
+              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                {claudeCodeEnabled ? "启用" : "禁用"}
+              </span>
+            </div>
+          </div>
+
+          {claudeCodeEnabled && (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 6 }}>CLI 路径</label>
+                <input
+                  className="input"
+                  value={claudeCodePath}
+                  onChange={(e) => setClaudeCodePath(e.target.value)}
+                  placeholder="claude"
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ padding: 12, background: "var(--panel2)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 4 }}>连接状态</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <CheckCircle size={14} style={{ color: "var(--accent3)" }} />
+                    <span style={{ fontSize: 13 }}>就绪</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                  Claude Code 用于 AI 聊天和决策分析功能
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

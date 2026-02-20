@@ -53,11 +53,16 @@ export default function SkillsView() {
 
   async function load() {
     try {
+      console.log("Loading skills...");
       const paths = await getSkillPaths();
+      console.log("Got paths:", paths);
       setSkillPaths(paths);
       const files = await listSkillFiles(paths.map((p) => p.path));
+      console.log("Got files:", files.length);
       setSkills(files);
+      console.log("Skills updated, total:", files.length);
     } catch (e: unknown) {
+      console.error("Failed to load skills:", e);
       setError(String(e));
     }
   }
@@ -108,12 +113,16 @@ export default function SkillsView() {
     const fullPath = newDir.replace(/\/$/, "") + "/" + filename;
     setError("");
     try {
+      console.log("Creating skill:", fullPath);
       await writeFile(fullPath, DEFAULT_TEMPLATE);
+      console.log("File created, reloading...");
       setShowNew(false);
       setNewName("");
       setNewDir("");
       await load();
+      console.log("Reload complete");
     } catch (e: unknown) {
+      console.error("Failed to create skill:", e);
       setError(String(e));
     }
   }
@@ -212,26 +221,33 @@ export default function SkillsView() {
                           "transparent";
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: 13,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {s.name}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: "var(--text-dim)",
-                        flexShrink: 0,
-                        marginLeft: 8,
-                      }}
-                    >
-                      {formatSize(s.size)}
-                    </span>
+                    <div style={{ flex: 1, overflow: "hidden" }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 500,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {s.title || s.name}
+                      </div>
+                      {s.description && (
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: "var(--text-dim)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            marginTop: 2,
+                          }}
+                        >
+                          {s.description}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -283,7 +299,7 @@ export default function SkillsView() {
                   }}
                 >
                   <span style={{ fontSize: 16, fontWeight: 600 }}>
-                    {activeSkill.name}
+                    {activeSkill.title || activeSkill.name}
                   </span>
                   <span
                     className="tag"

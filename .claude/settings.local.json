@@ -10,7 +10,25 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:docs.rs)",
       "Bash(grep:*)",
-      "Bash(npm run tauri build:*)"
+      "Bash(npm run tauri build:*)",
+      "Bash(npm run build:mac)",
+      "WebFetch(domain:docs.openchat.ai)",
+      "WebFetch(domain:platform.minimaxi.com)",
+      "Bash(npx:*)",
+      "WebFetch(domain:openclaw.dev)",
+      "WebFetch(domain:docs.openclaw.ai)",
+      "Bash(ln:*)",
+      "Bash(ln -sf ../antigravity/skills/slack-gif-creator slack-gif-creator)",
+      "Bash(openclaw gateway restart)",
+      "Bash(openclaw models list:*)",
+      "Bash(python3:*)",
+      "Bash(openclaw models set:*)",
+      "Bash(openclaw doctor:*)",
+      "Bash(openclaw:*)",
+      "Bash(openssl rand:*)",
+      "Bash(cargo check:*)",
+      "WebFetch(domain:bundlephobia.com)",
+      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)"
     ]
   }
 }

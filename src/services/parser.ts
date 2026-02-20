@@ -127,10 +127,12 @@ export function parseDiaryEntry(
   modified: string
 ): DiaryEntry {
   const dateFromPath = path.match(/(\d{4}-\d{2}-\d{2})/)?.[1] ?? "";
+  // Prefer frontmatter title, fallback to content heading, then date
+  const title = fm.title?.trim() || extractTitle(content) || dateFromPath;
   return {
     path,
     date: fm.date ?? dateFromPath,
-    title: extractTitle(content) ?? dateFromPath,
+    title,
     mood: fm.mood ?? "😊",
     weather: fm.weather,
     energy: fm.energy ?? "medium",

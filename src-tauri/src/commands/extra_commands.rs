@@ -21,6 +21,8 @@ pub struct GitRepo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SkillFile {
     pub name: String,
+    pub title: String,
+    pub description: String,
     pub path: String,
     pub ide: String,
     pub content: String,
@@ -191,8 +193,45 @@ pub fn list_skill_files(paths: Vec<String>) -> Result<Vec<SkillFile>, String> {
                 "Other".to_string()
             };
 
+            // Extract title and description from content
+            let mut title = String::new();
+            let mut description = String::new();
+
+            // Check for YAML frontmatter
+            if content.starts_with("---") {
+                if let Some(end_idx) = content[3..].find("---") {
+                    let frontmatter = &content[3..end_idx + 3];
+                    for line in frontmatter.lines() {
+                        if line.starts_with("title:") {
+                            title = line.replace("title:", "").trim().to_string();
+                        } else if line.starts_with("description:") {
+                            description = line.replace("description:", "").trim().to_string();
+                        }
+                    }
+                }
+            }
+
+            // If no frontmatter title, try to find first # heading
+            if title.is_empty() {
+                if let Some(idx) = content.find("# ") {
+                    let rest = &content[idx + 2..];
+                    if let Some(end) = rest.find('\n') {
+                        title = rest[..end].trim().to_string();
+                    } else {
+                        title = rest.trim().to_string();
+                    }
+                }
+            }
+
+            // If still no title, use filename without extension
+            if title.is_empty() {
+                title = name.replace(".md", "").replace(".txt", "").replace(".json", "");
+            }
+
             skills.push(SkillFile {
                 name,
+                title,
+                description,
                 path: file_path,
                 ide,
                 content,
@@ -209,10 +248,11 @@ pub fn list_skill_files(paths: Vec<String>) -> Result<Vec<SkillFile>, String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn run_shell_command(command: String, args: Vec<String>) -> Result<String, String> {
-    let output = Command::new(&command)
+pub async fn run_shell_command(command: String, args: Vec<String>) -> Result<String, String> {
+    let output = tokio::process::Command::new(&command)
         .args(&args)
         .output()
+        .await
         .map_err(|e| format!("Failed to run '{}': {e}", command))?;
 
     if output.status.success() {

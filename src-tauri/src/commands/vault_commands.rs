@@ -39,6 +39,7 @@ pub fn init_vault(path: String) -> Result<(), String> {
 
     let dirs = [
         ".life-os",
+        ".lifeos/servers",
         "daily/tasks",
         "daily/habits",
         "projects/active",

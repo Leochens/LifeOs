@@ -7,6 +7,9 @@ import KanbanView from "@/components/modules/KanbanView";
 import PlanningView from "@/components/modules/PlanningView";
 import DiaryView from "@/components/modules/DiaryView";
 import DecisionsView from "@/components/modules/DecisionsView";
+import LifeView from "@/components/modules/LifeView";
+import ChatView from "@/components/modules/ChatView";
+import ServersView from "@/components/modules/ServersView";
 import ConnectorsView from "@/components/modules/ConnectorsView";
 import StickyNotesView from "@/components/modules/StickyNotesView";
 import SkillsView from "@/components/modules/SkillsView";
@@ -21,6 +24,9 @@ const VIEWS = {
   planning:    PlanningView,
   diary:       DiaryView,
   decisions:   DecisionsView,
+  life:        LifeView,
+  chat:        ChatView,
+  servers:     ServersView,
   connectors:  ConnectorsView,
   stickynotes: StickyNotesView,
   skills:      SkillsView,

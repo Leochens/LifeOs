@@ -158,22 +158,20 @@ function DecisionCard({ decision }: { decision: Decision }) {
   const runAnalysis = async () => {
     setAnalyzing(true);
     setClaudeError(null);
-    const prompt = `请分析以下决策，给出专业的利弊分析和建议：
+    // Extract key info to keep prompt concise
+    const pros = decision.content.includes("支持理由")
+      ? decision.content.split("支持理由")[1]?.split("反对理由")[0] || ""
+      : "";
+    const cons = decision.content.includes("反对理由")
+      ? decision.content.split("反对理由")[1]?.split("最终决定")[0] || ""
+      : "";
 
-决策标题：${decision.title}
-重要性：${WEIGHT_LABELS[decision.weight]}
-状态：${STATUS_LABELS[decision.status].label}
+    const prompt = `分析这个决策。标题：${decision.title}，重要性：${WEIGHT_LABELS[decision.weight]}。
 
-${decision.content}
+支持理由：${pros.slice(0, 200)}
+反对理由：${cons.slice(0, 200)}
 
-请从以下角度分析：
-1. 核心权衡点
-2. 支持理由的合理性
-3. 反对理由的合理性
-4. 最终建议
-5. 需要考虑的风险
-
-请用简洁的中文回答。`;
+请用 3-4 句话给出建议。`;
 
     try {
       const result = await runShellCommand("claude", ["-p", prompt]);
@@ -181,10 +179,15 @@ ${decision.content}
       setShowAnalysis(true);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes("Failed to run") || errMsg.includes("not found")) {
+      console.error("Claude analysis error:", errMsg);
+      if (errMsg.includes("Failed to run") || errMsg.includes("not found") || errMsg.includes("ENOENT")) {
         setClaudeError("需要安装 Claude CLI。请运行：npm install -g @anthropic-ai/claude-code");
+      } else if (errMsg.includes("Session") || errMsg.includes("session")) {
+        setClaudeError("无法在嵌套会话中运行。请直接在终端中运行此应用。");
+      } else if (errMsg.length > 100) {
+        setClaudeError("分析失败: " + errMsg.slice(0, 100) + "...");
       } else {
-        setClaudeError(errMsg.slice(0, 200));
+        setClaudeError(errMsg);
       }
     } finally {
       setAnalyzing(false);

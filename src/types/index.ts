@@ -158,6 +158,8 @@ export interface StickyNote {
 
 export interface Skill {
   name: string;
+  title: string;
+  description: string;
   path: string;
   ide: string;
   content: string;
@@ -191,6 +193,48 @@ export interface ScheduledTask {
   enabled: boolean;
 }
 
+// ── Server Management ───────────────────────────────────────────────────────
+
+export interface ServerInfo {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  authType: "password" | "key" | "both";
+  password?: string;
+  privateKeyPath?: string;
+  publicKeyPath?: string;
+  notes: string;
+  tags: string[];
+  created: string;
+  updated: string;
+}
+
+// ── Life Data (Apple Health & Screen Time) ─────────────────────────────────
+
+export interface LifeData {
+  screenTime?: ScreenTimeData;
+  healthData?: HealthData;
+}
+
+export interface ScreenTimeData {
+  totalMinutes: number;
+  byCategory: Record<string, number>;
+  byApp: Record<string, number>;
+  pickupCount: number;
+  date: string;
+}
+
+export interface HealthData {
+  steps: number;
+  activeMinutes: number;
+  calories: number;
+  sleepHours: number;
+  heartRate?: number;
+  date: string;
+}
+
 // ── Theme ──────────────────────────────────────────────────────────────────
 
 export type Theme = "dark" | "light";
@@ -209,10 +253,37 @@ export type ViewId =
   | "skills"
   | "gitscanner"
   | "scheduler"
+  | "life"
+  | "chat"
+  | "servers"
   | "settings";
 
 export interface AppConfig {
   vaultPath: string;
   theme: Theme;
   accentColor: string;
+  // Claude Code settings
+  claudeCodePath: string;
+  claudeCodeEnabled: boolean;
+  // User preferences
+  defaultView: ViewId;
+  showScreenTime: boolean;
+  showHealthData: boolean;
+}
+
+export interface UserSettings {
+  claudeCodePath: string;
+  claudeCodeEnabled: boolean;
+  defaultView: ViewId;
+  showScreenTime: boolean;
+  showHealthData: boolean;
+  recentChats: ChatMessage[];
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  thinking?: string;
+  timestamp: number;
 }
