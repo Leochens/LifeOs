@@ -1,0 +1,10 @@
+{
+  "id": "finance",
+  "name": "财务",
+  "icon": "Wallet",
+  "description": "家庭财务管理和记账模块",
+  "dataDirectory": "finance",
+  "configFile": ".lifeos/finance.yaml",
+  "builtin": false,
+  "version": "1.0.0"
+}

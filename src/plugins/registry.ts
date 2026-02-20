@@ -17,6 +17,8 @@ import SkillsView from "@/components/modules/SkillsView";
 import GitScannerView from "@/components/modules/GitScannerView";
 import SchedulerView from "@/components/modules/SchedulerView";
 import SettingsView from "@/components/modules/SettingsView";
+import FinanceView from "@/components/modules/finance/FinanceView";
+import SubscriptionsView from "@/components/modules/subscriptions/SubscriptionsView";
 
 import type { ComponentType } from "react";
 
@@ -40,6 +42,8 @@ export const PLUGIN_REGISTRY: Record<string, PluginComponent> = {
   skills: SkillsView,
   gitscanner: GitScannerView,
   scheduler: SchedulerView,
+  finance: FinanceView,
+  subscriptions: SubscriptionsView,
   settings: SettingsView,
 };
 

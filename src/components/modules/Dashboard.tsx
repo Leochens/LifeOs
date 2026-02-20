@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useStore } from "@/stores/app";
 import { writeFile } from "@/services/tauri";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import type { HabitStore } from "@/types";
 
@@ -9,6 +9,7 @@ export default function Dashboard() {
   const todayNote = useStore((s) => s.todayNote);
   const projects = useStore((s) => s.projects);
   const diaryEntries = useStore((s) => s.diaryEntries);
+  const stickyNotes = useStore((s) => s.stickyNotes);
   const decisions = useStore((s) => s.decisions);
   const vaultPath = useStore((s) => s.vaultPath);
   const [habits, setHabits] = useState(useStore.getState().habits);
@@ -53,6 +54,83 @@ export default function Dashboard() {
     await writeFile(`${vaultPath}/daily/habits/habits.yaml`, yaml);
     setHabits(updated);
   };
+
+  // Heatmap data: activity per day over the last 365 days
+  const heatmapData = useMemo(() => {
+    const now = new Date();
+    const map: Record<string, number> = {};
+
+    // Count diary entries by date
+    for (const entry of diaryEntries) {
+      if (entry.date) {
+        map[entry.date] = (map[entry.date] || 0) + 1;
+      }
+    }
+
+    // Count todayNote tasks by date (today)
+    if (todayNote && todayNote.tasks.length > 0) {
+      map[todayNote.date] = (map[todayNote.date] || 0) + todayNote.tasks.length;
+    }
+
+    // Count project updates by date
+    for (const p of projects) {
+      if (p.updated) {
+        const d = p.updated.slice(0, 10);
+        map[d] = (map[d] || 0) + 1;
+      }
+    }
+
+    // Count sticky notes by created date
+    for (const s of stickyNotes) {
+      if (s.created) {
+        const d = s.created.slice(0, 10);
+        map[d] = (map[d] || 0) + 1;
+      }
+    }
+
+    // Build 365-day grid
+    const days: { date: string; level: number }[] = [];
+    for (let i = 364; i >= 0; i--) {
+      const d = format(subDays(now, i), "yyyy-MM-dd");
+      const count = map[d] || 0;
+      const level = count === 0 ? 0 : count <= 1 ? 1 : count <= 3 ? 2 : count <= 5 ? 3 : 4;
+      days.push({ date: d, level });
+    }
+    return days;
+  }, [diaryEntries, todayNote, projects, stickyNotes]);
+
+  // Arrange heatmap into weeks (columns), starting from Sunday
+  const heatmapWeeks = useMemo(() => {
+    const weeks: { date: string; level: number }[][] = [];
+    let currentWeek: { date: string; level: number }[] = [];
+
+    // First day: pad with empty cells to align to weekday
+    const firstDate = new Date(heatmapData[0].date);
+    const dayOfWeek = firstDate.getDay(); // 0=Sun
+    for (let i = 0; i < dayOfWeek; i++) {
+      currentWeek.push({ date: "", level: -1 });
+    }
+
+    for (const day of heatmapData) {
+      currentWeek.push(day);
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+    }
+    if (currentWeek.length > 0) {
+      weeks.push(currentWeek);
+    }
+    return weeks;
+  }, [heatmapData]);
+
+  const heatmapColors = [
+    "var(--panel2)",
+    "rgba(0, 200, 255, 0.2)",
+    "rgba(0, 200, 255, 0.4)",
+    "rgba(0, 200, 255, 0.7)",
+    "rgba(0, 200, 255, 1.0)",
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -192,6 +270,39 @@ export default function Dashboard() {
               {activeProjects.length === 0 && (
                 <div style={{ color: "var(--text-dim)", fontSize: 13 }}>暂无活跃项目</div>
               )}
+            </div>
+          </div>
+
+          {/* Activity Heatmap */}
+          <div className="panel" style={{ padding: 20 }}>
+            <SectionLabel dot="var(--accent)">活跃度</SectionLabel>
+            <div style={{ marginTop: 12, overflowX: "auto" }}>
+              <div style={{ display: "flex", gap: 2, minWidth: "fit-content" }}>
+                {heatmapWeeks.map((week, wi) => (
+                  <div key={wi} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {week.map((day, di) => (
+                      <div
+                        key={di}
+                        title={day.date ? `${day.date}: ${day.level === 0 ? "无活动" : `活跃度 ${day.level}`}` : ""}
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 2,
+                          background: day.level < 0 ? "transparent" : heatmapColors[day.level],
+                          transition: "background 0.15s",
+                        }}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, justifyContent: "flex-end" }}>
+                <span style={{ fontSize: 10, color: "var(--text-dim)" }}>少</span>
+                {heatmapColors.map((c, i) => (
+                  <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />
+                ))}
+                <span style={{ fontSize: 10, color: "var(--text-dim)" }}>多</span>
+              </div>
             </div>
           </div>
         </div>

@@ -1,0 +1,9 @@
+{
+  "id": "subscriptions",
+  "name": "订阅",
+  "icon": "CreditCard",
+  "description": "软件订阅管理，追踪订阅支出",
+  "dataDirectory": "subscriptions",
+  "builtin": false,
+  "version": "1.0.0"
+}

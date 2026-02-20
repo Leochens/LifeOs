@@ -9,9 +9,12 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  useDroppable,
+  useDraggable,
   type DragEndEvent,
+  DragOverlay,
 } from "@dnd-kit/core";
-import { Plus, ChevronLeft } from "lucide-react";
+import { Plus, ChevronLeft, Calendar, Flag } from "lucide-react";
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
   { id: "backlog", name: "待规划", color: "#888" },
@@ -26,6 +29,23 @@ const PRIORITY_COLORS: Record<Priority, string> = {
 const PRIORITY_LABELS: Record<Priority, string> = {
   urgent: "紧急", high: "高", medium: "中", low: "低",
 };
+
+// Task type with priority and dueDate
+interface Task {
+  id: string;
+  text: string;
+  done: boolean;
+  status: string;
+  priority?: Priority;
+  dueDate?: string;
+}
+
+// Count uncompleted todos from markdown content
+function countPendingTodos(content: string): number {
+  if (!content) return 0;
+  const matches = content.match(/^-\s*\[\s\]/gm);
+  return matches ? matches.length : 0;
+}
 
 // Parse board config from YAML
 function parseBoardConfig(content: string): KanbanColumn[] {
@@ -112,10 +132,6 @@ export default function KanbanView() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  // 按项目分组 - 这里我们需要从项目内容中解析出任务
-  // 由于当前项目是 markdown 文件，我们需要读取内容来获取任务列表
-  // 为了简化，这里暂时显示项目的元信息
-
   const openProjectBoard = (project: Project) => {
     setSelectedProject(project);
   };
@@ -155,6 +171,7 @@ export default function KanbanView() {
   return (
     <ProjectList
       projects={projects}
+      columns={columns}
       onSelectProject={openProjectBoard}
       onCreateProject={async (title, priority, tags) => {
         if (!title.trim() || !vaultPath) return;
@@ -180,10 +197,12 @@ export default function KanbanView() {
 
 function ProjectList({
   projects,
+  columns,
   onSelectProject,
   onCreateProject,
 }: {
   projects: Project[];
+  columns: KanbanColumn[];
   onSelectProject: (p: Project) => void;
   onCreateProject: (title: string, priority: Priority, tags: string) => void;
 }) {
@@ -323,86 +342,232 @@ function ProjectList({
 
       {/* Project cards grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
-        {projects.map((project) => (
-          <div
-            key={project.path}
-            onClick={() => onSelectProject(project)}
-            style={{
-              background: "var(--panel2)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius)",
-              padding: 16,
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent)";
-              e.currentTarget.style.transform = "translateY(-2px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border)";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, flex: 1, lineHeight: 1.4 }}>{project.title}</div>
-              <span
-                style={{
-                  fontSize: 10,
-                  padding: "2px 8px",
-                  borderRadius: 10,
-                  background: `${statusColors[project.status]}18`,
-                  color: statusColors[project.status],
-                  fontWeight: 500,
-                  whiteSpace: "nowrap",
-                  marginLeft: 8,
-                }}
-              >
-                {statusLabels[project.status]}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              {project.tags.slice(0, 3).map((tag) => (
-                <span key={tag} className="tag" style={{ fontSize: 10 }}>
-                  {tag}
+        {projects.map((project) => {
+          const pendingTodos = countPendingTodos(project.content);
+          return (
+            <div
+              key={project.path}
+              onClick={() => onSelectProject(project)}
+              style={{
+                background: "var(--panel2)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                padding: 16,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--accent)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, flex: 1, lineHeight: 1.4 }}>{project.title}</div>
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: "2px 8px",
+                    borderRadius: 10,
+                    background: `${statusColors[project.status]}18`,
+                    color: statusColors[project.status],
+                    fontWeight: 500,
+                    whiteSpace: "nowrap",
+                    marginLeft: 8,
+                  }}
+                >
+                  {statusLabels[project.status]}
                 </span>
-              ))}
-              {project.due && (
-                <span style={{ fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
-                  {project.due}
-                </span>
-              )}
-            </div>
+              </div>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span
-                style={{
-                  fontSize: 10,
-                  color: PRIORITY_COLORS[project.priority],
-                  padding: "2px 8px",
-                  borderRadius: 10,
-                  background: `${PRIORITY_COLORS[project.priority]}15`,
-                  border: `1px solid ${PRIORITY_COLORS[project.priority]}30`,
-                  fontWeight: 500,
-                }}
-              >
-                {PRIORITY_LABELS[project.priority]}
-              </span>
-              {project.progress > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div className="progress-track" style={{ width: 60, height: 3 }}>
-                    <div className="progress-fill" style={{ width: `${project.progress}%` }} />
-                  </div>
-                  <span style={{ fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
-                    {project.progress}%
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                {project.tags.slice(0, 3).map((tag) => (
+                  <span key={tag} className="tag" style={{ fontSize: 10 }}>
+                    {tag}
                   </span>
+                ))}
+                {project.due && (
+                  <span style={{ fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                    {project.due}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-dim)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {columns.length} 面板
+                  </span>
+                  {pendingTodos > 0 && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: "var(--accent)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {pendingTodos} 待办
+                    </span>
+                  )}
                 </div>
-              )}
+                {project.progress > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div className="progress-track" style={{ width: 60, height: 3 }}>
+                      <div className="progress-fill" style={{ width: `${project.progress}%` }} />
+                    </div>
+                    <span style={{ fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                      {project.progress}%
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Droppable Column Wrapper
+// ─────────────────────────────────────────────────────────────────────────────
+
+function DroppableColumn({
+  id,
+  children,
+  style,
+}: {
+  id: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        outline: isOver ? "2px solid var(--accent)" : "none",
+        outlineOffset: -2,
+        transition: "outline 0.15s",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Draggable Task Card
+// ─────────────────────────────────────────────────────────────────────────────
+
+function DraggableTaskCard({
+  task,
+  onToggle,
+}: {
+  task: Task;
+  onToggle: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+  });
+
+  const dragStyle: React.CSSProperties = transform
+    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
+    : {};
+
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.done;
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      style={{
+        background: "var(--panel2)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-sm)",
+        padding: "10px 12px",
+        cursor: isDragging ? "grabbing" : "grab",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        opacity: isDragging ? 0.5 : 1,
+        ...dragStyle,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+        <input
+          type="checkbox"
+          checked={task.done}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          style={{ marginTop: 3, accentColor: "var(--accent)" }}
+        />
+        <span
+          style={{
+            fontSize: 13,
+            flex: 1,
+            textDecoration: task.done ? "line-through" : "none",
+            color: task.done ? "var(--text-dim)" : "var(--text)",
+          }}
+        >
+          {task.text}
+        </span>
+      </div>
+      {(task.priority || task.dueDate) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 24 }}>
+          {task.priority && (
+            <span
+              style={{
+                fontSize: 10,
+                padding: "1px 6px",
+                borderRadius: 8,
+                background: `${PRIORITY_COLORS[task.priority]}18`,
+                color: PRIORITY_COLORS[task.priority],
+                fontWeight: 500,
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+              }}
+            >
+              <Flag size={9} />
+              {PRIORITY_LABELS[task.priority]}
+            </span>
+          )}
+          {task.dueDate && (
+            <span
+              style={{
+                fontSize: 10,
+                padding: "1px 6px",
+                borderRadius: 8,
+                background: isOverdue ? "rgba(255,80,80,0.15)" : "rgba(255,255,255,0.06)",
+                color: isOverdue ? "#ff5050" : "var(--text-dim)",
+                fontFamily: "var(--font-mono)",
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+              }}
+            >
+              <Calendar size={9} />
+              {task.dueDate}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -436,15 +601,12 @@ function ProjectBoard({
   addColumn: () => void;
   sensors: ReturnType<typeof useSensors>;
 }) {
-  // 这里我们从项目内容中解析任务
-  // 简化版本：直接从项目文件中读取内容
-  const [tasks, setTasks] = useState<{ id: string; text: string; done: boolean; status: string }[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
 
   useEffect(() => {
-    // 模拟从项目内容解析任务
-    // 实际应该解析 markdown 中的任务列表
     const lines = project.content.split("\n");
-    const parsedTasks: { id: string; text: string; done: boolean; status: string }[] = [];
+    const parsedTasks: Task[] = [];
     let inTasks = false;
 
     for (const line of lines) {
@@ -459,7 +621,7 @@ function ProjectBoard({
           id: `task-${parsedTasks.length}`,
           text,
           done,
-          status: project.status, // 暂时使用项目状态
+          status: project.status,
         });
       }
       if (inTasks && line.startsWith("## ") && !line.includes("任务")) {
@@ -470,7 +632,7 @@ function ProjectBoard({
   }, [project]);
 
   const tasksByStatus = useMemo(() => {
-    const map: Record<string, typeof tasks> = {};
+    const map: Record<string, Task[]> = {};
     for (const col of columns) {
       map[col.id] = [];
     }
@@ -484,11 +646,12 @@ function ProjectBoard({
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t))
     );
-    // TODO: 保存回文件
   };
 
   const [newTaskCol, setNewTaskCol] = useState<string | null>(null);
   const [newTaskText, setNewTaskText] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<Priority | "">("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
 
   const addTask = (colId: string) => {
     if (!newTaskText.trim()) return;
@@ -499,14 +662,22 @@ function ProjectBoard({
         text: newTaskText.trim(),
         done: false,
         status: colId,
+        priority: newTaskPriority || undefined,
+        dueDate: newTaskDueDate || undefined,
       },
     ]);
     setNewTaskCol(null);
     setNewTaskText("");
-    // TODO: 保存回文件
+    setNewTaskPriority("");
+    setNewTaskDueDate("");
+  };
+
+  const handleDragStart = (event: { active: { id: string | number } }) => {
+    setDragActiveId(String(event.active.id));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    setDragActiveId(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -515,15 +686,27 @@ function ProjectBoard({
     if (!task) return;
 
     const overId = over.id as string;
+    // over could be a column or another task
     const targetCol = columns.find((c) => c.id === overId);
-
-    if (targetCol && task.status !== targetCol.id) {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, status: targetCol.id } : t))
-      );
-      // TODO: 保存回文件
+    if (targetCol) {
+      // Dropped on a column
+      if (task.status !== targetCol.id) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, status: targetCol.id } : t))
+        );
+      }
+    } else {
+      // Dropped on another task - find which column that task belongs to
+      const overTask = tasks.find((t) => t.id === overId);
+      if (overTask && task.status !== overTask.status) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, status: overTask.status } : t))
+        );
+      }
     }
   };
+
+  const draggedTask = dragActiveId ? tasks.find((t) => t.id === dragActiveId) : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -562,12 +745,14 @@ function ProjectBoard({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns.length},1fr)`, gap: 14, alignItems: "start" }}>
           {columns.map((col) => (
-            <div
+            <DroppableColumn
               key={col.id}
+              id={col.id}
               style={{
                 borderRadius: "var(--radius)",
                 overflow: "hidden",
@@ -611,40 +796,11 @@ function ProjectBoard({
                 }}
               >
                 {(tasksByStatus[col.id] || []).map((task) => (
-                  <div
+                  <DraggableTaskCard
                     key={task.id}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", task.id);
-                    }}
-                    style={{
-                      background: "var(--panel2)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius-sm)",
-                      padding: "10px 12px",
-                      cursor: "grab",
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 8,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={task.done}
-                      onChange={() => toggleTask(task.id)}
-                      style={{ marginTop: 3, accentColor: "var(--accent)" }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 13,
-                        flex: 1,
-                        textDecoration: task.done ? "line-through" : "none",
-                        color: task.done ? "var(--text-dim)" : "var(--text)",
-                      }}
-                    >
-                      {task.text}
-                    </span>
-                  </div>
+                    task={task}
+                    onToggle={() => toggleTask(task.id)}
+                  />
                 ))}
 
                 {newTaskCol === col.id ? (
@@ -670,8 +826,37 @@ function ProjectBoard({
                         if (e.key === "Escape") {
                           setNewTaskCol(null);
                           setNewTaskText("");
+                          setNewTaskPriority("");
+                          setNewTaskDueDate("");
                         }
                       }}
+                    />
+                    <div style={{ display: "flex", gap: 3 }}>
+                      {(["low", "medium", "high", "urgent"] as Priority[]).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setNewTaskPriority(newTaskPriority === p ? "" : p)}
+                          style={{
+                            flex: 1,
+                            padding: "4px 0",
+                            fontSize: 10,
+                            cursor: "pointer",
+                            borderRadius: "var(--radius-sm)",
+                            background: newTaskPriority === p ? `${PRIORITY_COLORS[p]}22` : "transparent",
+                            color: newTaskPriority === p ? PRIORITY_COLORS[p] : "var(--text-dim)",
+                            border: `1px solid ${newTaskPriority === p ? `${PRIORITY_COLORS[p]}55` : "var(--border)"}`,
+                          }}
+                        >
+                          {PRIORITY_LABELS[p]}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="date"
+                      className="input"
+                      value={newTaskDueDate}
+                      onChange={(e) => setNewTaskDueDate(e.target.value)}
+                      style={{ fontSize: 11, padding: "4px 8px" }}
                     />
                     <div style={{ display: "flex", gap: 6 }}>
                       <button
@@ -687,6 +872,8 @@ function ProjectBoard({
                         onClick={() => {
                           setNewTaskCol(null);
                           setNewTaskText("");
+                          setNewTaskPriority("");
+                          setNewTaskDueDate("");
                         }}
                       >
                         取消
@@ -720,7 +907,7 @@ function ProjectBoard({
                   </button>
                 )}
               </div>
-            </div>
+            </DroppableColumn>
           ))}
 
           {/* Add column button */}
@@ -751,6 +938,83 @@ function ProjectBoard({
             <span style={{ fontSize: 13 }}>新建面板</span>
           </div>
         </div>
+
+        <DragOverlay>
+          {draggedTask ? (
+            <div
+              style={{
+                background: "var(--panel2)",
+                border: "1px solid var(--accent)",
+                borderRadius: "var(--radius-sm)",
+                padding: "10px 12px",
+                cursor: "grabbing",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={draggedTask.done}
+                  readOnly
+                  style={{ marginTop: 3, accentColor: "var(--accent)" }}
+                />
+                <span
+                  style={{
+                    fontSize: 13,
+                    flex: 1,
+                    textDecoration: draggedTask.done ? "line-through" : "none",
+                    color: draggedTask.done ? "var(--text-dim)" : "var(--text)",
+                  }}
+                >
+                  {draggedTask.text}
+                </span>
+              </div>
+              {(draggedTask.priority || draggedTask.dueDate) && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 24 }}>
+                  {draggedTask.priority && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        padding: "1px 6px",
+                        borderRadius: 8,
+                        background: `${PRIORITY_COLORS[draggedTask.priority]}18`,
+                        color: PRIORITY_COLORS[draggedTask.priority],
+                        fontWeight: 500,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 3,
+                      }}
+                    >
+                      <Flag size={9} />
+                      {PRIORITY_LABELS[draggedTask.priority]}
+                    </span>
+                  )}
+                  {draggedTask.dueDate && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        padding: "1px 6px",
+                        borderRadius: 8,
+                        background: "rgba(255,255,255,0.06)",
+                        color: "var(--text-dim)",
+                        fontFamily: "var(--font-mono)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 3,
+                      }}
+                    >
+                      <Calendar size={9} />
+                      {draggedTask.dueDate}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {/* Add Column Modal */}

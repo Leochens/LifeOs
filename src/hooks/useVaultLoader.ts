@@ -3,10 +3,10 @@ import { useStore } from "@/stores/app";
 import * as tauri from "@/services/tauri";
 import * as parser from "@/services/parser";
 import { format } from "date-fns";
-import type { HabitStore, DayNote, Project, DiaryEntry, Decision, Goal } from "@/types";
+import type { HabitStore, DayNote, Project, DiaryEntry, Decision, Goal, FinancePerson, FinanceRecord, Subscription } from "@/types";
 
 export function useVaultLoader() {
-  const { vaultPath, setTodayNote, setProjects, setDiaryEntries, setDecisions, setGoals, setHabits, setLoading, loadMenuConfigFromVault } =
+  const { vaultPath, setTodayNote, setProjects, setDiaryEntries, setDecisions, setGoals, setHabits, setFinancePersons, setFinanceRecords, setSubscriptions, setLoading, loadMenuConfigFromVault } =
     useStore();
 
   const loadAll = useCallback(async () => {
@@ -24,10 +24,12 @@ export function useVaultLoader() {
         loadDecisions(vaultPath, setDecisions),
         loadGoals(vaultPath, setGoals),
         loadHabits(vaultPath, setHabits),
+        loadFinanceData(vaultPath, setFinancePersons, setFinanceRecords),
+        loadSubscriptions(vaultPath, setSubscriptions),
       ]);
       results.forEach((r, i) => {
         if (r.status === "rejected") {
-          const names = ["today", "projects", "diary", "decisions", "goals", "habits"];
+          const names = ["today", "projects", "diary", "decisions", "goals", "habits", "finance", "subscriptions"];
           console.warn(`Failed to load ${names[i]}:`, r.reason);
         }
       });
@@ -129,6 +131,82 @@ async function loadHabits(
     setHabits(habits);
   } catch {
     setHabits({ habits: [], checkins: {} });
+  }
+}
+
+async function loadFinanceData(
+  vault: string,
+  setFinancePersons: (p: FinancePerson[]) => void,
+  setFinanceRecords: (r: FinanceRecord[]) => void
+) {
+  try {
+    const personNotes = await tauri.listNotes(`${vault}/finance`, false);
+    const persons: FinancePerson[] = personNotes
+      .filter((n) => n.frontmatter.name)
+      .map((n) => ({
+        id: n.frontmatter.id ?? n.filename.replace(".md", ""),
+        name: n.frontmatter.name ?? "",
+        role: n.frontmatter.role ?? "",
+        created: n.frontmatter.created ?? "",
+        updated: n.frontmatter.updated ?? "",
+        path: n.path,
+      }));
+    setFinancePersons(persons);
+
+    const records: FinanceRecord[] = [];
+    for (const person of persons) {
+      const slug = person.id;
+      try {
+        const recNotes = await tauri.listNotes(`${vault}/finance/records/${slug}`, false);
+        for (const rn of recNotes) {
+          records.push({
+            person: rn.frontmatter.person ?? person.name,
+            date: rn.frontmatter.date ?? rn.filename.replace(".md", ""),
+            liquid: parseFloat(rn.frontmatter.liquid ?? "0"),
+            fixed: parseFloat(rn.frontmatter.fixed ?? "0"),
+            investment: parseFloat(rn.frontmatter.investment ?? "0"),
+            receivable: parseFloat(rn.frontmatter.receivable ?? "0"),
+            debt: parseFloat(rn.frontmatter.debt ?? "0"),
+            path: rn.path,
+          });
+        }
+      } catch {
+        // records dir may not exist yet
+      }
+    }
+    setFinanceRecords(records);
+  } catch {
+    setFinancePersons([]);
+    setFinanceRecords([]);
+  }
+}
+
+async function loadSubscriptions(
+  vault: string,
+  setSubscriptions: (s: Subscription[]) => void
+) {
+  try {
+    const notes = await tauri.listNotes(`${vault}/subscriptions`, false);
+    const subs: Subscription[] = notes
+      .filter((n) => n.frontmatter.name)
+      .map((n) => ({
+        id: n.frontmatter.id ?? n.filename.replace(".md", ""),
+        name: n.frontmatter.name ?? "",
+        amount: parseFloat(n.frontmatter.amount ?? "0"),
+        currency: n.frontmatter.currency ?? "CNY",
+        cycle: (n.frontmatter.cycle as Subscription["cycle"]) ?? "monthly",
+        startDate: n.frontmatter.startDate ?? "",
+        renewalDate: n.frontmatter.renewalDate ?? "",
+        paymentMethod: n.frontmatter.paymentMethod ?? "",
+        appType: (n.frontmatter.appType as Subscription["appType"]) ?? "saas",
+        tags: n.frontmatter.tags ? n.frontmatter.tags.split(",").map((t: string) => t.trim()) : [],
+        enabled: n.frontmatter.enabled !== "false",
+        notes: n.content,
+        path: n.path,
+      }));
+    setSubscriptions(subs);
+  } catch {
+    setSubscriptions([]);
   }
 }
 

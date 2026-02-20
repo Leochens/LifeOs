@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useStore } from "@/stores/app";
 import { writeNote, listNotes, imapSync } from "@/services/tauri";
 import type { EmailAccount } from "@/types";
@@ -14,6 +14,29 @@ export default function MailView() {
   const [selectedAccount, setSelectedAccount] = useState<EmailAccount | null>(null);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<EmailAccount | null>(null);
+
+  // Context menu state
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; account: EmailAccount } | null>(null);
+
+  // Close context menu on click outside or Escape
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const handleClick = () => setCtxMenu(null);
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") setCtxMenu(null); };
+    window.addEventListener("click", handleClick);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      window.removeEventListener("click", handleClick);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [ctxMenu]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, account: EmailAccount) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY, account });
+  }, []);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -42,6 +65,7 @@ export default function MailView() {
             imapHost: n.frontmatter.imapHost || "",
             imapPort: parseInt(n.frontmatter.imapPort) || 993,
             username: n.frontmatter.username || "",
+            password: n.frontmatter.password || "",
             authType: (n.frontmatter.authType as "password" | "oauth2") || "password",
             folders: n.frontmatter.folders ? n.frontmatter.folders.split(",") : [],
             lastSync: n.frontmatter.lastSync,
@@ -85,6 +109,7 @@ export default function MailView() {
       imapHost: formImapHost,
       imapPort: formImapPort,
       username: formUsername,
+      password: formPassword,
       authType: "password",
       folders: formFolders,
       enabled: "true",
@@ -134,17 +159,24 @@ export default function MailView() {
     console.log("Starting IMAP sync for:", account.email);
 
     try {
-      // Get IMAP settings from account (stored in frontmatter)
-      const imapHost = (account as any).imapHost || "imap.example.com";
-      const imapPort = (account as any).imapPort || 993;
+      // Get IMAP settings from account
+      const imapHost = account.imapHost || "imap.example.com";
+      const imapPort = account.imapPort || 993;
+      const password = account.password || "";
+
+      console.log("IMAP settings:", { email: account.email, imapHost, imapPort, hasPassword: !!password });
+
+      if (!password) {
+        alert("请先在账户设置中填写密码");
+        setSyncing(false);
+        return;
+      }
 
       // Sync emails from INBOX
-      console.log("Calling IMAP sync with:", { email: account.email, imapHost, imapPort });
-
       const emails = await imapSync(
         {
           email: account.email,
-          password: (account as any).password || "",
+          password: password,
           imapHost,
           imapPort,
         },
@@ -167,6 +199,80 @@ export default function MailView() {
       }
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleToggleEnabled = async (account: EmailAccount) => {
+    if (!vaultPath) return;
+    const slug = account.name.toLowerCase().replace(/\s+/g, "-");
+    const path = `${vaultPath}/${EMAILS_DIR}/${slug}.md`;
+    const fm: Record<string, string> = {
+      id: account.id,
+      name: account.name,
+      email: account.email,
+      imapHost: account.imapHost,
+      imapPort: String(account.imapPort),
+      username: account.username,
+      authType: account.authType,
+      folders: account.folders.join(","),
+      enabled: String(!account.enabled),
+      lastSync: account.lastSync || "",
+    };
+    // Preserve password if it exists
+    if (account.password) {
+      fm.password = account.password;
+    }
+    const content = `# ${account.name}\n\n## 账户信息\n- 邮箱: ${account.email}\n- IMAP: ${account.imapHost}:${account.imapPort}\n- 用户名: ${account.username}\n`;
+    try {
+      await writeNote(path, fm, content);
+      await loadAccounts();
+    } catch (e) {
+      console.error("Failed to toggle account:", e);
+    }
+  };
+
+  const handleStartEdit = (account: EmailAccount) => {
+    setEditingAccount(account);
+    setFormName(account.name);
+    setFormEmail(account.email);
+    setFormImapHost(account.imapHost);
+    setFormImapPort(String(account.imapPort));
+    setFormUsername(account.username);
+    setFormPassword("");
+    setFormFolders(account.folders.join(","));
+    setShowAccountForm(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!vaultPath || !editingAccount || !formName.trim() || !formEmail.trim()) return;
+    const slug = formName.toLowerCase().replace(/\s+/g, "-");
+    const path = `${vaultPath}/${EMAILS_DIR}/${slug}.md`;
+    // Only update password if provided
+    const password = formPassword || (editingAccount as any).password || "";
+    const fm: Record<string, string> = {
+      id: editingAccount.id,
+      name: formName,
+      email: formEmail,
+      imapHost: formImapHost,
+      imapPort: formImapPort,
+      username: formUsername,
+      authType: "password",
+      folders: formFolders,
+      enabled: String(editingAccount.enabled),
+    };
+    if (password) {
+      fm.password = password;
+    }
+    const content = `# ${formName}\n\n## 账户信息\n- 邮箱: ${formEmail}\n- IMAP: ${formImapHost}:${formImapPort}\n- 用户名: ${formUsername}\n`;
+    try {
+      await writeNote(path, fm, content);
+      await loadAccounts();
+      setShowAccountForm(false);
+      setEditingAccount(null);
+      resetForm();
+    } catch (e) {
+      console.error("Failed to save account:", e);
+      alert("保存失败: " + e);
     }
   };
 
@@ -203,6 +309,7 @@ export default function MailView() {
               <div
                 key={account.id}
                 onClick={() => setSelectedAccount(account)}
+                onContextMenu={(e) => handleContextMenu(e, account)}
                 style={{
                   padding: 12,
                   borderRadius: "var(--radius-sm)",
@@ -237,7 +344,7 @@ export default function MailView() {
       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         {showAccountForm ? (
           <div className="panel" style={{ padding: 24, maxWidth: 500 }}>
-            <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 16 }}>添加邮箱账户</div>
+            <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 16 }}>{editingAccount ? "编辑邮箱账户" : "添加邮箱账户"}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>账户名称</label>
@@ -313,8 +420,8 @@ export default function MailView() {
                 />
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <button className="btn btn-primary" onClick={handleSaveAccount}>保存</button>
-                <button className="btn btn-ghost" onClick={() => { setShowAccountForm(false); resetForm(); }}>取消</button>
+                <button className="btn btn-primary" onClick={editingAccount ? handleSaveEdit : handleSaveAccount}>保存</button>
+                <button className="btn btn-ghost" onClick={() => { setShowAccountForm(false); setEditingAccount(null); resetForm(); }}>取消</button>
               </div>
             </div>
           </div>
@@ -379,6 +486,48 @@ export default function MailView() {
           </div>
         )}
       </div>
+
+      {/* Context Menu */}
+      {ctxMenu && (
+        <div
+          style={{
+            position: "fixed",
+            top: ctxMenu.y,
+            left: ctxMenu.x,
+            zIndex: 9999,
+            background: "var(--panel)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            padding: "4px 0",
+            minWidth: 160,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {[
+            { label: "编辑信息", action: () => handleStartEdit(ctxMenu.account) },
+            { label: "同步邮件", action: () => handleSync(ctxMenu.account) },
+            { label: ctxMenu.account.enabled ? "禁用账户" : "启用账户", action: () => handleToggleEnabled(ctxMenu.account) },
+            { label: "删除账户", action: () => handleDeleteAccount(ctxMenu.account), danger: true },
+          ].map((item, i) => (
+            <div
+              key={i}
+              onClick={() => { item.action(); setCtxMenu(null); }}
+              style={{
+                padding: "8px 16px",
+                fontSize: 13,
+                cursor: "pointer",
+                color: (item as any).danger ? "var(--accent4)" : "var(--text)",
+                transition: "background 0.1s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--panel2)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              {item.label}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -17,6 +17,9 @@ import type {
   MenuConfig,
   EmailAccount,
   Email,
+  FinancePerson,
+  FinanceRecord,
+  Subscription,
 } from "@/types";
 
 // Parse YAML string to MenuConfig
@@ -162,7 +165,7 @@ const DEFAULT_MENU_CONFIG: MenuConfig = {
       name: "生活",
       order: 2,
       collapsed: false,
-      pluginIds: ["life", "chat", "mail"],
+      pluginIds: ["life", "chat", "mail", "finance", "subscriptions"],
     },
     {
       id: "tools",
@@ -191,6 +194,8 @@ const DEFAULT_MENU_CONFIG: MenuConfig = {
     { id: "skills", name: "Skills", icon: "Wrench", component: "skills", enabled: true, builtin: false },
     { id: "gitscanner", name: "Git 仓库", icon: "GitBranch", component: "gitscanner", enabled: true, builtin: false },
     { id: "scheduler", name: "定时任务", icon: "Clock", component: "scheduler", enabled: true, builtin: false },
+    { id: "finance", name: "财务", icon: "Wallet", component: "finance", enabled: true, builtin: false },
+    { id: "subscriptions", name: "订阅", icon: "CreditCard", component: "subscriptions", enabled: true, builtin: false },
     // 设置 - 必选
     { id: "settings", name: "设置", icon: "Settings", component: "settings", enabled: true, builtin: true },
   ],
@@ -275,6 +280,16 @@ interface AppState {
   setEmailAccounts: (accounts: EmailAccount[]) => void;
   emails: Email[];
   setEmails: (emails: Email[]) => void;
+
+  // Finance
+  financePersons: FinancePerson[];
+  setFinancePersons: (persons: FinancePerson[]) => void;
+  financeRecords: FinanceRecord[];
+  setFinanceRecords: (records: FinanceRecord[]) => void;
+
+  // Subscriptions
+  subscriptions: Subscription[];
+  setSubscriptions: (subs: Subscription[]) => void;
 
   // UI
   isLoading: boolean;
@@ -396,7 +411,37 @@ export const useStore = create<AppState>((set) => ({
       const yaml = await loadMenuConfig(state.vaultPath);
       const parsed = parseMenuConfigYaml(yaml);
       if (parsed) {
-        set({ menuConfig: parsed });
+        // Merge new plugins from DEFAULT_MENU_CONFIG if not present
+        const defaultConfig = DEFAULT_MENU_CONFIG;
+        const mergedPlugins = [...parsed.plugins];
+
+        for (const defaultPlugin of defaultConfig.plugins) {
+          if (!parsed.plugins.find(p => p.id === defaultPlugin.id)) {
+            // Add new plugin with enabled: true
+            mergedPlugins.push({ ...defaultPlugin, enabled: true });
+          }
+        }
+
+        // Merge new groups from DEFAULT_MENU_CONFIG and ensure all plugins are in some group
+        const mergedGroups = [...parsed.groups];
+
+        for (const defaultGroup of defaultConfig.groups) {
+          const existingGroup = parsed.groups.find(g => g.id === defaultGroup.id);
+          if (!existingGroup) {
+            // Add new group
+            mergedGroups.push({ ...defaultGroup });
+          } else {
+            // Ensure plugins from default group are in existing group
+            const groupIdx = mergedGroups.findIndex(g => g.id === defaultGroup.id);
+            for (const pluginId of defaultGroup.pluginIds) {
+              if (!mergedGroups[groupIdx].pluginIds.includes(pluginId)) {
+                mergedGroups[groupIdx].pluginIds.push(pluginId);
+              }
+            }
+          }
+        }
+
+        set({ menuConfig: { plugins: mergedPlugins, groups: mergedGroups } });
       }
     } catch (e) {
       // If loading fails, use default config
@@ -409,6 +454,16 @@ export const useStore = create<AppState>((set) => ({
   setEmailAccounts: (emailAccounts) => set({ emailAccounts }),
   emails: [],
   setEmails: (emails) => set({ emails }),
+
+  // Finance
+  financePersons: [],
+  setFinancePersons: (financePersons) => set({ financePersons }),
+  financeRecords: [],
+  setFinanceRecords: (financeRecords) => set({ financeRecords }),
+
+  // Subscriptions
+  subscriptions: [],
+  setSubscriptions: (subscriptions) => set({ subscriptions }),
 
   isLoading: false,
   setLoading: (isLoading) => set({ isLoading }),

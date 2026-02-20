@@ -257,6 +257,8 @@ export type ViewId =
   | "chat"
   | "mail"
   | "servers"
+  | "finance"
+  | "subscriptions"
   | "settings";
 
 export interface AppConfig {
@@ -324,6 +326,7 @@ export interface EmailAccount {
   imapHost: string;
   imapPort: number;
   username: string;
+  password?: string; // 密码存储在 vault 中（简化实现）
   authType: "password" | "oauth2";
   // 密码只存储引用，实际密码从系统 keychain 获取
   passwordRef?: string;
@@ -356,4 +359,46 @@ export interface EmailAttachment {
   mimeType: string;
   size: number;
   url?: string;
+}
+
+// ── Finance ──────────────────────────────────────────────────────────────────
+
+export interface FinancePerson {
+  id: string;
+  name: string;
+  role: string;         // e.g. "爸爸", "妈妈"
+  created: string;
+  updated: string;
+  path: string;
+}
+
+export interface FinanceRecord {
+  person: string;
+  date: string;
+  liquid: number;       // 流动资金
+  fixed: number;        // 固定资产
+  investment: number;   // 投资理财
+  receivable: number;   // 应收款
+  debt: number;         // 负债
+  path: string;
+}
+
+// ── Subscriptions ────────────────────────────────────────────────────────────
+
+export type AppType = "mobile" | "desktop" | "saas";
+
+export interface Subscription {
+  id: string;
+  name: string;
+  amount: number;
+  currency: string;
+  cycle: "monthly" | "yearly" | "weekly";
+  startDate: string;
+  renewalDate: string;
+  paymentMethod: string;
+  appType: AppType;
+  tags: string[];
+  enabled: boolean;
+  notes: string;
+  path: string;
 }
