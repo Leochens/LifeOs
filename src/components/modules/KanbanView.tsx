@@ -78,7 +78,6 @@ export default function KanbanView() {
   // 项目列表 vs 看板视图
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [columns, setColumns] = useState<KanbanColumn[]>(DEFAULT_COLUMNS);
-  const [activeId, setActiveId] = useState<string | null>(null);
 
   // Add column modal
   const [showAddCol, setShowAddCol] = useState(false);
@@ -148,8 +147,6 @@ export default function KanbanView() {
           setNewColColor("#00c8ff");
         }}
         sensors={sensors}
-        activeId={activeId}
-        setActiveId={setActiveId}
       />
     );
   }
@@ -426,8 +423,6 @@ function ProjectBoard({
   setNewColColor,
   addColumn,
   sensors,
-  activeId,
-  setActiveId,
 }: {
   project: Project;
   columns: KanbanColumn[];
@@ -440,8 +435,6 @@ function ProjectBoard({
   setNewColColor: (v: string) => void;
   addColumn: () => void;
   sensors: ReturnType<typeof useSensors>;
-  activeId: string | null;
-  setActiveId: (v: string | null) => void;
 }) {
   // 这里我们从项目内容中解析任务
   // 简化版本：直接从项目文件中读取内容
@@ -514,7 +507,6 @@ function ProjectBoard({
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -570,7 +562,6 @@ function ProjectBoard({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
-        onDragStart={(e) => setActiveId(e.active.id as string)}
         onDragEnd={handleDragEnd}
       >
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns.length},1fr)`, gap: 14, alignItems: "start" }}>
@@ -625,7 +616,6 @@ function ProjectBoard({
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData("text/plain", task.id);
-                      setActiveId(task.id);
                     }}
                     style={{
                       background: "var(--panel2)",
