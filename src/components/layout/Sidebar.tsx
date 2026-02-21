@@ -50,10 +50,10 @@ export default function Sidebar() {
       <button
         key={plugin.id}
         onClick={() => setView(plugin.component as ViewId)}
-        className={`flex items-center gap-2.5 px-3 py-2 w-full text-left text-xs transition-all duration-150 ${
+        className={`flex items-center gap-2.5 px-3 py-2 w-full text-left text-xs transition-all duration-200 cursor-pointer ${
           active
-            ? "bg-accent/10 border border-accent/25 text-accent"
-            : "bg-transparent border border-transparent text-text-dim hover:text-text"
+            ? "bg-accent/15 border border-accent/30 text-accent scale-[0.98]"
+            : "bg-transparent border border-transparent text-text-dim hover:text-text hover:bg-hover hover:scale-[0.99]"
         }`}
         style={{ borderRadius: "var(--radius-sm)" }}
       >
@@ -71,10 +71,10 @@ export default function Sidebar() {
       <div className="mb-1">
         <button
           onClick={() => toggleGroup(group.id)}
-          className="flex items-center gap-1.5 w-full px-2.5 py-1.5 bg-transparent border-none text-text-dim text-[11px] font-medium tracking-wide cursor-pointer uppercase"
+          className="flex items-center gap-1.5 w-full px-2.5 py-1.5 bg-transparent border-none text-text-dim text-[11px] font-medium tracking-wide cursor-pointer uppercase transition-colors duration-150 hover:text-text"
         >
           <span
-            className="text-[8px] transition-transform duration-150"
+            className="text-[8px] transition-transform duration-200 ease-out"
             style={{ transform: collapsed ? "rotate(0deg)" : "rotate(90deg)" }}
           >
             ▶
@@ -82,13 +82,15 @@ export default function Sidebar() {
           <span className="flex-1 text-left">{group.name}</span>
           <span className="opacity-50 text-[10px]">{plugins.length}</span>
         </button>
-        {!collapsed && (
-          <div className="flex flex-col gap-0.5 pl-1">
-            {plugins.map((plugin) => (
-              <NavButton key={plugin.id} plugin={plugin} />
-            ))}
-          </div>
-        )}
+        <div
+          className={`flex flex-col gap-0.5 pl-1 overflow-hidden transition-all duration-200 ease-out ${
+            collapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100"
+          }`}
+        >
+          {plugins.map((plugin) => (
+            <NavButton key={plugin.id} plugin={plugin} />
+          ))}
+        </div>
       </div>
     );
   };
@@ -126,10 +128,10 @@ export default function Sidebar() {
       <div className="pt-2 border-t border-border flex flex-col gap-1">
         <button
           onClick={() => setView("settings")}
-          className={`flex items-center gap-2.5 px-3 py-2 w-full text-left text-xs transition-all duration-150 ${
+          className={`flex items-center gap-2.5 px-3 py-2 w-full text-left text-xs transition-all duration-200 cursor-pointer ${
             settingsActive
-              ? "bg-accent/10 border border-accent/25 text-accent"
-              : "bg-transparent border border-transparent text-text-dim hover:text-text"
+              ? "bg-accent/15 border border-accent/30 text-accent scale-[0.98]"
+              : "bg-transparent border border-transparent text-text-dim hover:text-text hover:bg-hover hover:scale-[0.99]"
           }`}
           style={{ borderRadius: "var(--radius-sm)" }}
         >

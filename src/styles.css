@@ -166,7 +166,8 @@ body {
 .progress-fill {
   height: 100%; border-radius: 4px;
   background: linear-gradient(to right, var(--accent), var(--accent2));
-  transition: width 0.6s ease;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
 }
 
 /* ─── Animations ─────────────────────────────────────────────────────────── */
@@ -175,6 +176,39 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-up { animation: fadeUp 0.25s ease both; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+
+@keyframes progressFill {
+  from { width: 0; }
+  to { width: var(--target-width, 100%); }
+}
+.animate-progress {
+  animation: progressFill 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes checkPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.animate-check {
+  animation: checkPop 0.3s ease-out;
+}
+
+@keyframes heatmapPop {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-heatmap {
+  animation: heatmapPop 0.2s ease-out both;
+}
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -403,11 +437,12 @@ textarea.input { resize: vertical; line-height: 1.8; }
   padding: 20px 24px;
   position: relative;
   overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 .stat-card:hover {
-  border-color: var(--border2);
-  box-shadow: var(--shadow-card);
+  border-color: var(--accent);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--accent);
+  background: var(--panel2);
 }
 .stat-card-icon {
   font-size: 28px;

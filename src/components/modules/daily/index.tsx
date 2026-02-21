@@ -5,6 +5,7 @@ import { serializeDayNote } from "@/services/parser";
 import type { TaskItem, DayNote } from "@/types";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import { Check, X, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 
 function parseTasksFromContent(content: string): TaskItem[] {
   const lines = content.split("\n");
@@ -172,8 +173,8 @@ export default function DailyView() {
               onChange={(e) => setNewTask(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTask()}
             />
-            <button className="btn btn-primary whitespace-nowrap">
-              + 添加
+            <button className="btn btn-primary whitespace-nowrap flex items-center gap-1.5" onClick={addTask}>
+              <Plus size={14} /> 添加
             </button>
           </div>
 
@@ -256,19 +257,19 @@ export default function DailyView() {
             {/* Month nav */}
             <div className="flex justify-between items-center mb-6">
               <button
-                className="btn btn-ghost px-3.5 text-sm"
+                className="btn btn-ghost px-3.5 text-sm flex items-center gap-1.5 hover:bg-accent/5"
                 onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
               >
-                ← 上月
+                <ChevronLeft size={16} /> 上月
               </button>
               <span className="font-disp text-xl text-accent tracking-widest">
                 {format(calMonth, "yyyy年MM月", { locale: zhCN })}
               </span>
               <button
-                className="btn btn-ghost px-3.5 text-sm"
+                className="btn btn-ghost px-3.5 text-sm flex items-center gap-1.5 hover:bg-accent/5"
                 onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
               >
-                下月 →
+                下月 <ChevronRight size={16} />
               </button>
             </div>
 
@@ -347,12 +348,12 @@ export default function DailyView() {
                   {selectedNote.tasks.map((task) => (
                     <div
                       key={task.id}
-                      className="flex items-center gap-2.5 px-3 py-2.25 bg-panel-2 border border-border rounded-sm"
+                      className="flex items-center gap-2.5 px-3 py-2.25 bg-panel-2 border border-border rounded-sm transition-colors hover:border-accent/20"
                     >
-                      <div className={`w-5 h-5 rounded-sm flex-shrink-0 flex items-center justify-center text-xs ${
-                        task.done ? "bg-accent3 text-black" : "bg-transparent border border-border"
+                      <div className={`w-5 h-5 rounded-sm flex-shrink-0 flex items-center justify-center ${
+                        task.done ? "bg-accent3 text-black shadow-[0_0_8px_var(--accent3)]" : "bg-transparent border border-border"
                       }`}>
-                        {task.done && "✓"}
+                        {task.done && <Check size={12} strokeWidth={3} />}
                       </div>
                       <span className={`flex-1 text-sm ${task.done ? "line-through text-text-dim" : "text-text"}`}>
                         {task.text}
@@ -382,28 +383,28 @@ function TaskRow({ task, onToggle, onDelete }: {
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2.25 bg-panel-2 border border-border rounded-sm transition-opacity duration-200">
+    <div className="flex items-center gap-2.5 px-3 py-2.25 bg-panel-2 border border-border rounded-sm transition-all duration-200 hover:border-accent/30 hover:shadow-sm">
       <button
         onClick={() => onToggle(task.id)}
-        className={`w-5 h-5 rounded-sm flex-shrink-0 flex items-center justify-center text-xs cursor-pointer transition-all duration-150 ${
+        className={`w-5 h-5 rounded-sm flex-shrink-0 flex items-center justify-center cursor-pointer transition-all duration-150 hover:scale-110 ${
           task.done
             ? "bg-accent3 text-black shadow-[0_0_8px_var(--accent3)]"
-            : "bg-transparent border border-border text-transparent"
+            : "bg-transparent border border-border text-transparent hover:border-accent/50"
         }`}
       >
-        ✓
+        <Check size={12} strokeWidth={3} />
       </button>
-      <span className={`flex-1 text-sm ${task.done ? "line-through text-text-dim" : "text-text"}`}>
+      <span className={`flex-1 text-sm transition-colors ${task.done ? "line-through text-text-dim" : "text-text"}`}>
         {task.text}
       </span>
       {task.tags.map((tag) => (
         <span key={tag} className="tag text-[10px]">#{tag}</span>
       ))}
       <button
-        className="btn-icon px-1.5 py-0.5 text-xs opacity-40 hover:opacity-100"
+        className="w-6 h-6 flex items-center justify-center text-text-dim hover:text-red-400 hover:bg-red-400/10 rounded-sm transition-all duration-150 opacity-40 hover:opacity-100"
         onClick={() => onDelete(task.id)}
       >
-        ✕
+        <X size={14} />
       </button>
     </div>
   );

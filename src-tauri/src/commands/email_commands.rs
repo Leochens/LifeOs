@@ -120,9 +120,9 @@ fn imap_sync_with_crate(
     let start = total.saturating_sub(fetch_count) + 1;
     let range = format!("{}:{}", start, total);
 
-    // Fetch envelope + full body (RFC822)
+    // Fetch envelope + full body (BODY[] returns complete message)
     let messages = session
-        .fetch(&range, "(UID FLAGS ENVELOPE RFC822)")
+        .fetch(&range, "(UID FLAGS ENVELOPE BODY[])")
         .map_err(|e| format!("拉取邮件失败: {}", e))?;
 
     let mut emails = Vec::new();

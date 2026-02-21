@@ -69,7 +69,7 @@ async function loadProjects(
   vault: string,
   setProjects: (p: Project[]) => void
 ) {
-  const notes = await fs.listNotes(`${vault}/projects`, true);
+  const notes = await fs.listNotes(`${vault}/projects`, false); // Read direct children
   const projects = notes
     .filter((n) => !n.filename.startsWith("_"))
     .map((n) => parser.parseProject(n.path, n.frontmatter, n.content));

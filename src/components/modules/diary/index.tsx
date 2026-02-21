@@ -4,8 +4,18 @@ import { writeNote } from "@/services/fs";
 import { useVaultLoader } from "@/hooks/useVaultLoader";
 import type { DiaryEntry } from "@/types";
 import { format } from "date-fns";
+import { Moon, Frown, Meh, Smile, Zap, Target, Brain, Heart, Plus } from "lucide-react";
 
-const MOODS = ["😴", "😔", "😐", "😊", "🔥", "🎯", "🤔", "😌"];
+const MOODS: { emoji: string; icon: React.ReactNode; label: string }[] = [
+  { emoji: "😴", icon: <Moon size={18} />, label: "疲惫" },
+  { emoji: "😔", icon: <Frown size={18} />, label: "低落" },
+  { emoji: "😐", icon: <Meh size={18} />, label: "平静" },
+  { emoji: "😊", icon: <Smile size={18} />, label: "开心" },
+  { emoji: "🔥", icon: <Zap size={18} />, label: "充沛" },
+  { emoji: "🎯", icon: <Target size={18} />, label: "专注" },
+  { emoji: "🤔", icon: <Brain size={18} />, label: "思考" },
+  { emoji: "😌", icon: <Heart size={18} />, label: "满足" },
+];
 
 export default function DiaryView() {
   const diaryEntries = useStore((s) => s.diaryEntries);
@@ -78,10 +88,10 @@ export default function DiaryView() {
             onChange={(e) => setNewDate(e.target.value)}
           />
           <button
-            className="btn btn-primary whitespace-nowrap text-xs px-3 py-1.5"
+            className="btn btn-primary whitespace-nowrap text-xs px-3 py-1.5 flex items-center gap-1"
             onClick={() => newEntry()}
           >
-            + 新建
+            <Plus size={12} /> 新建
           </button>
         </div>
 
@@ -99,7 +109,7 @@ export default function DiaryView() {
               <div
                 key={e.path}
                 onClick={() => open(e)}
-                className="px-3 py-2 cursor-pointer rounded-sm mb-0.5 transition-all duration-150"
+                className="px-3 py-2 cursor-pointer rounded-sm mb-0.5 transition-all duration-200 hover:bg-white/5 hover:border-accent/10"
                 style={{
                   background: active?.path === e.path ? "rgba(0,200,255,0.08)" : "transparent",
                   border: `1px solid ${active?.path === e.path ? "rgba(0,200,255,0.25)" : "transparent"}`,
@@ -109,7 +119,7 @@ export default function DiaryView() {
                   <span className="font-mono text-[10px] text-text-dim tracking-widest">
                     {e.path.split("/").pop()?.replace(".md", "") ?? ""}
                   </span>
-                  <span className="text-base">{e.mood}</span>
+                  <span className="text-accent">{MOODS.find(m => m.emoji === e.mood)?.icon || e.mood}</span>
                 </div>
                 <div className="text-sm mt-0.75 overflow-hidden text-ellipsis whitespace-nowrap">
                   {e.title || "(无标题)"}
@@ -146,17 +156,17 @@ export default function DiaryView() {
             <span className="text-xs text-text-dim mr-1">心情：</span>
             {MOODS.map((m) => (
               <button
-                key={m}
-                onClick={() => editing && setEditing({ ...editing, mood: m })}
-                className="text-lg px-2 py-1 rounded-sm cursor-pointer transition-all duration-150"
+                key={m.emoji}
+                onClick={() => editing && setEditing({ ...editing, mood: m.emoji })}
+                className="p-2 rounded-sm cursor-pointer transition-all duration-200 hover:scale-110"
+                title={m.label}
                 style={{
-                  background: editing?.mood === m ? "rgba(0,200,255,0.15)" : "transparent",
-                  border: `1px solid ${editing?.mood === m ? "rgba(0,200,255,0.4)" : "transparent"}`,
-                  opacity: editing?.mood === m ? 1 : 0.45,
-                  transform: editing?.mood === m ? "scale(1.2)" : "scale(1)",
+                  background: editing?.mood === m.emoji ? "rgba(0,200,255,0.15)" : "transparent",
+                  border: `1px solid ${editing?.mood === m.emoji ? "rgba(0,200,255,0.4)" : "transparent"}`,
+                  color: editing?.mood === m.emoji ? "var(--accent)" : "var(--text-dim)",
                 }}
               >
-                {m}
+                {m.icon}
               </button>
             ))}
           </div>

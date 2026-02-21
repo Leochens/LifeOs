@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
 import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder, regenerateSkills } from "@/services/fs";
-import { Settings, FolderOpen, Info, Bot, CheckCircle, RefreshCw } from "lucide-react";
+import { Settings, FolderOpen, Info, Bot, CheckCircle, RefreshCw, FolderSearch } from "lucide-react";
 import MenuManager from "./MenuManager";
 import ThemeCustomizer from "./ThemeCustomizer";
 
@@ -82,7 +82,7 @@ export default function SettingsView() {
       {/* Vault Path */}
       <div>
         <div className="label mb-3">Vault 路径</div>
-        <div className="panel-inner p-5">
+        <div className="panel-inner p-5 transition-all duration-200 hover:border-accent/20">
           <div className="flex items-center gap-2.5 mb-3.5">
             <FolderOpen size={16} className="text-accent flex-shrink-0" />
             <code className="text-sm text-text bg-accent/5 px-2.5 py-1 rounded-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -90,17 +90,18 @@ export default function SettingsView() {
             </code>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button className="btn btn-ghost" onClick={handlePickFolder}>
+            <button className="btn btn-ghost hover:bg-accent/5" onClick={handlePickFolder}>
               修改路径
             </button>
-            <button className="btn btn-ghost" onClick={handleOpenFinder} disabled={!vaultPath}>
+            <button className="btn btn-ghost hover:bg-accent/5" onClick={handleOpenFinder} disabled={!vaultPath}>
+              <FolderSearch size={14} className="mr-1.5" />
               在 Finder 中打开
             </button>
           </div>
 
           {/* Pending path confirmation */}
           {pendingPath && (
-            <div className="scale-in mt-4 p-4 bg-accent/5 rounded-sm border border-border-2">
+            <div className="scale-in mt-4 p-4 bg-accent/5 rounded-sm border border-accent/20 transition-all duration-200">
               <div className="text-sm text-text-mid mb-2">
                 新路径：<span className="text-accent">{pendingPath}</span>
               </div>
@@ -108,13 +109,13 @@ export default function SettingsView() {
                 选择如何切换到新路径：
               </div>
               <div className="flex gap-2 flex-wrap">
-                <button className="btn btn-primary" onClick={handleMigrate} disabled={migrating}>
+                <button className="btn btn-primary hover:shadow-lg hover:shadow-accent/20" onClick={handleMigrate} disabled={migrating}>
                   {migrating ? "迁移中..." : "迁移数据"}
                 </button>
-                <button className="btn btn-ghost" onClick={handleSwitchOnly}>
+                <button className="btn btn-ghost hover:bg-accent/5" onClick={handleSwitchOnly}>
                   只切换路径
                 </button>
-                <button className="btn btn-ghost" onClick={handleCancel}>
+                <button className="btn btn-ghost hover:bg-red-500/10 hover:text-red-400" onClick={handleCancel}>
                   取消
                 </button>
               </div>
@@ -126,7 +127,7 @@ export default function SettingsView() {
       {/* Appearance */}
       <div>
         <div className="label mb-3">外观</div>
-        <div className="panel-inner p-5">
+        <div className="panel-inner p-5 transition-all duration-200 hover:border-accent/20">
           <ThemeCustomizer />
         </div>
       </div>
@@ -134,7 +135,7 @@ export default function SettingsView() {
       {/* Claude Code */}
       <div>
         <div className="label mb-3">Claude Code AI</div>
-        <div className="panel-inner p-5">
+        <div className="panel-inner p-5 transition-all duration-200 hover:border-accent/20">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <Bot size={16} className="text-accent-2" />
@@ -180,12 +181,12 @@ export default function SettingsView() {
       {/* Skills Management */}
       <div>
         <div className="label mb-3">AI Skills</div>
-        <div className="panel-inner p-5">
+        <div className="panel-inner p-5 transition-all duration-200 hover:border-accent/20">
           <div className="text-sm text-text-dim mb-3">
             重新生成 AI 斜杠命令技能文档，用于 /看板、/日记 等 AI 助手命令。
           </div>
           <button
-            className="btn btn-ghost flex items-center gap-2"
+            className="btn btn-ghost flex items-center gap-2 hover:bg-accent/10 hover:text-accent transition-all duration-200"
             onClick={handleRegenerateSkills}
             disabled={!vaultPath || regeneratingSkills}
           >
@@ -198,7 +199,7 @@ export default function SettingsView() {
       {/* Menu Management */}
       <div>
         <div className="label mb-3">菜单管理</div>
-        <div className="panel-inner p-5">
+        <div className="panel-inner p-5 transition-all duration-200 hover:border-accent/20">
           <MenuManager />
         </div>
       </div>
@@ -206,7 +207,7 @@ export default function SettingsView() {
       {/* About */}
       <div>
         <div className="label mb-3">关于</div>
-        <div className="panel-inner p-5">
+        <div className="panel-inner p-5 transition-all duration-200 hover:border-accent/20">
           <div className="flex items-center gap-2.5 mb-3">
             <Info size={16} className="text-accent-2" />
             <span className="text-sm text-text">Life OS</span>

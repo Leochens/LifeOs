@@ -206,8 +206,8 @@ export default function NotesView() {
             </div>
             <button
               onClick={() => setSelectedFolder(null)}
-              className={`flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-sm)] border-none cursor-pointer text-sm text-left w-full transition-colors ${
-                selectedFolder === null ? "bg-cyan-500/10 text-accent" : "text-text-dim hover:bg-white/5"
+              className={`flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-sm)] border-none cursor-pointer text-sm text-left w-full transition-all duration-200 ${
+                selectedFolder === null ? "bg-cyan-500/10 text-accent" : "text-text-dim hover:bg-white/5 hover:translate-x-0.5"
               }`}
             >
               <Folder size={14} />
@@ -218,8 +218,8 @@ export default function NotesView() {
               <button
                 key={folder}
                 onClick={() => setSelectedFolder(folder)}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-sm)] border-none cursor-pointer text-sm text-left w-full transition-all ${
-                  selectedFolder === folder ? "bg-cyan-500/10 text-accent" : "text-text-dim hover:bg-white/5"
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-sm)] border-none cursor-pointer text-sm text-left w-full transition-all duration-200 ${
+                  selectedFolder === folder ? "bg-cyan-500/10 text-accent" : "text-text-dim hover:bg-white/5 hover:translate-x-0.5"
                 }`}
               >
                 <Folder size={14} />
@@ -239,7 +239,7 @@ export default function NotesView() {
               <div
                 key={note.id}
                 onClick={() => setSelectedNote(note)}
-                className="bg-panel2 border border-border rounded-[var(--radius)] p-3.5 cursor-pointer transition-all hover:border-accent hover:-translate-y-0.5 flex flex-col gap-2"
+                className="bg-panel2 border border-border rounded-[var(--radius)] p-3.5 cursor-pointer transition-all duration-200 hover:border-accent hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/5 flex flex-col gap-2 group"
               >
                 <div className="text-sm font-semibold text-text overflow-hidden text-ellipsis whitespace-nowrap">
                   {note.name}
@@ -260,7 +260,7 @@ export default function NotesView() {
               <button
                 onClick={loadMore}
                 disabled={loadingMore}
-                className="col-span-full p-4 bg-transparent border border-dashed border-border rounded-[var(--radius)] text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:cursor-wait"
+                className="col-span-full p-4 bg-transparent border border-dashed border-border rounded-[var(--radius)] text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:border-accent hover:bg-accent/5 cursor-pointer disabled:cursor-wait"
               >
                 {loadingMore ? (
                   <>

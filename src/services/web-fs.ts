@@ -449,7 +449,11 @@ export const deleteLaunchdTask = async (_id: string): Promise<void> => {
 };
 
 // Apple Notes
-export const getAppleNotes = async (): Promise<any> => {
+export const getAppleNotes = async (
+  _query?: string,
+  _offset?: number,
+  _limit?: number
+): Promise<any> => {
   throw new Error("Apple Notes are not available in web mode");
 };
 

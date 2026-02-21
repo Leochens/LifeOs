@@ -4,6 +4,7 @@ import { writeFile } from "@/services/fs";
 import { format, subDays } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import type { HabitStore } from "@/types";
+import { ClipboardList, Rocket, BookOpen, Scale, CheckCircle, FolderKanban, ChevronRight, Check } from "lucide-react";
 
 export default function Dashboard() {
   const todayNote = useStore((s) => s.todayNote);
@@ -133,7 +134,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 fade-in">
       {/* Date Hero + Greeting */}
       <div className="mb-1">
         <div className="flex items-baseline gap-4 mb-1">
@@ -150,19 +151,27 @@ export default function Dashboard() {
       </div>
 
       {/* Main layout: left 2/3 + right 1/3 */}
-      <div className="grid grid-cols-[2fr_1fr] gap-4 items-start">
+      <div className="grid grid-cols-[2fr_1fr] gap-5 items-start">
         {/* Left column */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {/* Stats 2x2 */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="stat-card cursor-pointer" onClick={() => setView("daily")}>
-              <div className="text-3xl mb-2.5">📋</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div
+              className="stat-card cursor-pointer group hover:scale-[1.02] hover:-translate-y-0.5"
+              onClick={() => setView("daily")}
+            >
+              <div className="text-3xl mb-2.5 text-accent group-hover:drop-shadow-[0_0_8px_var(--accent)] transition-all duration-300">
+                <ClipboardList size={28} strokeWidth={1.5} />
+              </div>
               <div className="stat-card-value text-accent">{pendingTasks}</div>
               <div className="stat-card-label">待完成任务</div>
               {todayNote && totalTasks > 0 && (
                 <div className="mt-2">
                   <div className="progress-track">
-                    <div className="progress-fill" style={{ width: `${completionRate * 100}%` }} />
+                    <div
+                      className="progress-fill animate-progress"
+                      style={{ "--target-width": `${completionRate * 100}%` } as React.CSSProperties}
+                    />
                   </div>
                   <div className="text-[10px] text-text-dim mt-1 text-right">
                     {doneTasks}/{totalTasks}
@@ -170,29 +179,44 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <div className="stat-card cursor-pointer" onClick={() => setView("kanban")}>
-              <div className="text-3xl mb-2.5">🚀</div>
+            <div
+              className="stat-card cursor-pointer group hover:scale-[1.02] hover:-translate-y-0.5"
+              onClick={() => setView("kanban")}
+            >
+              <div className="text-3xl mb-2.5 text-accent-2 group-hover:drop-shadow-[0_0_8px_var(--accent-2)] transition-all duration-300">
+                <Rocket size={28} strokeWidth={1.5} />
+              </div>
               <div className="stat-card-value text-accent-2">{activeProjects.length}</div>
               <div className="stat-card-label">进行项目</div>
             </div>
-            <div className="stat-card cursor-pointer" onClick={() => setView("diary")}>
-              <div className="text-3xl mb-2.5">📝</div>
+            <div
+              className="stat-card cursor-pointer group hover:scale-[1.02] hover:-translate-y-0.5"
+              onClick={() => setView("diary")}
+            >
+              <div className="text-3xl mb-2.5 text-accent-3 group-hover:drop-shadow-[0_0_8px_var(--accent-3)] transition-all duration-300">
+                <BookOpen size={28} strokeWidth={1.5} />
+              </div>
               <div className="stat-card-value text-accent-3">{diaryEntries.length}</div>
               <div className="stat-card-label">日记条数</div>
             </div>
-            <div className="stat-card cursor-pointer" onClick={() => setView("decisions")}>
-              <div className="text-3xl mb-2.5">⚖️</div>
+            <div
+              className="stat-card cursor-pointer group hover:scale-[1.02] hover:-translate-y-0.5"
+              onClick={() => setView("decisions")}
+            >
+              <div className="text-3xl mb-2.5 text-accent-5 group-hover:drop-shadow-[0_0_8px_var(--accent-5)] transition-all duration-300">
+                <Scale size={28} strokeWidth={1.5} />
+              </div>
               <div className="stat-card-value text-accent-5">{pendingDecisions}</div>
               <div className="stat-card-label">待决策</div>
             </div>
           </div>
 
           {/* Today's tasks */}
-          <div className="panel p-5">
+          <div className="panel p-5 fade-in" style={{ animationDelay: "0.1s" }}>
             <div className="flex justify-between items-center mb-3">
               <SectionLabel dot="var(--accent3)">今日任务</SectionLabel>
-              <button className="btn-ghost text-[11px] px-2 py-0.75" onClick={() => setView("daily")}>
-                查看全部 →
+              <button className="btn-ghost text-[11px] px-2 py-0.75 flex items-center gap-1" onClick={() => setView("daily")}>
+                查看全部 <ChevronRight size={12} />
               </button>
             </div>
             {todayNote?.tasks.length === 0 && (
@@ -200,8 +224,17 @@ export default function Dashboard() {
             )}
             <div className="flex flex-col gap-1.5">
               {todayNote?.tasks.slice(0, 8).map((task) => (
-                <div key={task.id} className={`flex items-center gap-2.5 px-2.5 py-1.75 rounded-sm bg-panel-2 border border-border ${task.done ? "opacity-50" : ""}`}>
-                  <span className="text-sm">{task.done ? "✅" : "⬜"}</span>
+                <div
+                  key={task.id}
+                  className={`flex items-center gap-2.5 px-2.5 py-1.75 rounded-sm bg-panel-2 border border-border transition-all duration-200 hover:scale-[1.01] ${task.done ? "opacity-50" : "hover:border-accent3/30"}`}
+                >
+                  <span className="text-sm">
+                    {task.done ? (
+                      <CheckCircle size={16} className="text-accent3" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-sm border border-border" />
+                    )}
+                  </span>
                   <span className={`text-sm flex-1 ${task.done ? "line-through text-text-dim" : "text-text"}`}>
                     {task.text}
                   </span>
@@ -216,19 +249,26 @@ export default function Dashboard() {
             </div>
             {(todayNote?.tasks.length ?? 0) > 8 && (
               <button className="btn btn-ghost mt-2.5 w-full justify-center" onClick={() => setView("daily")}>
-                查看全部 →
+                查看全部 <ChevronRight size={14} />
               </button>
             )}
           </div>
 
           {/* Active projects */}
-          <div className="panel p-5">
+          <div className="panel p-5 fade-in" style={{ animationDelay: "0.2s" }}>
             <SectionLabel dot="var(--accent)">活跃项目</SectionLabel>
             <div className="mt-2.5 flex flex-col gap-2">
               {activeProjects.slice(0, 3).map((p) => (
-                <div key={p.path} className="p-3 bg-panel-2 border border-border rounded-sm cursor-pointer" onClick={() => setView("kanban")}>
+                <div
+                  key={p.path}
+                  className="p-3 bg-panel-2 border border-border rounded-sm cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:border-accent"
+                  onClick={() => setView("kanban")}
+                >
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">{p.title}</span>
+                    <span className="text-sm font-medium flex items-center gap-2">
+                      <FolderKanban size={14} className="text-accent-2" />
+                      {p.title}
+                    </span>
                     <div className="flex items-center gap-2">
                       <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest ${
                         p.priority === "high" ? "bg-accent2/15 text-accent2" :
@@ -241,7 +281,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="progress-track">
-                    <div className="progress-fill" style={{ width: `${p.progress}%` }} />
+                    <div
+                      className="progress-fill animate-progress"
+                      style={{ "--target-width": `${p.progress}%` } as React.CSSProperties}
+                    />
                   </div>
                   <div className="text-[10px] text-text-dim mt-1.5 font-mono">
                     更新于 {p.updated}
@@ -255,7 +298,7 @@ export default function Dashboard() {
           </div>
 
           {/* Activity Heatmap */}
-          <div className="panel p-5">
+          <div className="panel p-5 fade-in" style={{ animationDelay: "0.3s" }}>
             <SectionLabel dot="var(--accent)">活跃度</SectionLabel>
             <div className="mt-3 overflow-x-auto">
               <div className="flex gap-0.5 min-w-fit">
@@ -265,8 +308,11 @@ export default function Dashboard() {
                       <div
                         key={di}
                         title={day.date ? `${day.date}: ${day.level === 0 ? "无活动" : `活跃度 ${day.level}`}` : ""}
-                        className="w-2.5 h-2.5 rounded-[2px] transition-colors duration-150"
-                        style={{ background: day.level < 0 ? "transparent" : heatmapColors[day.level] }}
+                        className="w-2.5 h-2.5 rounded-[2px] transition-colors duration-150 hover:scale-125 animate-heatmap"
+                        style={{
+                          background: day.level < 0 ? "transparent" : heatmapColors[day.level],
+                          animationDelay: `${0.3 + (wi * 0.01) + (di * 0.002)}s`
+                        }}
                       />
                     ))}
                   </div>
@@ -284,9 +330,9 @@ export default function Dashboard() {
         </div>
 
         {/* Right column */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {/* Habits with checkin */}
-          <div className="panel p-5">
+          <div className="panel p-5 fade-in" style={{ animationDelay: "0.15s" }}>
             <SectionLabel dot="var(--accent2)">今日习惯</SectionLabel>
             <div className="mt-2.5 flex flex-col gap-2">
               {habits?.habits.map((h) => {
@@ -295,16 +341,18 @@ export default function Dashboard() {
                   <div
                     key={h.id}
                     onClick={() => toggleHabit(h.id)}
-                    className={`flex items-center gap-3 p-2.5 rounded-sm cursor-pointer transition-all duration-150 ${
-                      done ? "bg-accent3/5 border border-accent3/20" : "bg-panel-2 border border-border"
+                    className={`flex items-center gap-3 p-2.5 rounded-sm cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                      done ? "bg-accent3/5 border border-accent3/20" : "bg-panel-2 border border-border hover:border-accent3/30"
                     }`}
                   >
                     <span className="text-xl">{h.icon}</span>
                     <span className={`text-sm flex-1 ${done ? "text-accent3" : "text-text"}`}>{h.name}</span>
-                    <div className={`w-6 h-6 rounded-sm flex items-center justify-center text-sm font-bold transition-all duration-150 ${
-                      done ? "bg-accent3 text-black shadow-[0_0_10px_var(--accent3)]" : "bg-border text-transparent"
-                    }`}>
-                      ✓
+                    <div
+                      className={`w-6 h-6 rounded-sm flex items-center justify-center text-sm font-bold transition-all duration-200 animate-check ${
+                        done ? "bg-accent3 text-black shadow-[0_0_10px_var(--accent3)] scale-100" : "bg-border text-transparent"
+                      }`}
+                    >
+                      <Check size={14} strokeWidth={3} />
                     </div>
                   </div>
                 );
@@ -323,12 +371,14 @@ export default function Dashboard() {
           </div>
 
           {/* Recent diary */}
-          <div className="panel p-5">
+          <div className="panel p-5 fade-in" style={{ animationDelay: "0.25s" }}>
             <SectionLabel dot="var(--accent5)">最近日记</SectionLabel>
             <div className="mt-2.5 flex flex-col gap-2">
               {diaryEntries.slice(0, 3).map((e) => (
-                <div key={e.path} className="flex items-center gap-3 p-2.5 bg-panel-2 border border-border rounded-sm cursor-pointer transition-colors duration-150 hover:border-accent5/30"
-                onClick={() => setView("diary")}
+                <div
+                  key={e.path}
+                  className="flex items-center gap-3 p-2.5 bg-panel-2 border border-border rounded-sm cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:border-accent5"
+                  onClick={() => setView("diary")}
                 >
                   <span className="text-2xl leading-none">{e.mood}</span>
                   <div className="flex-1 overflow-hidden">

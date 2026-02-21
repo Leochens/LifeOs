@@ -140,7 +140,8 @@ export interface ConnectorConfig {
 
 // ── Sticky Notes ───────────────────────────────────────────────────────────
 
-export type StickyColor = "yellow" | "pink" | "blue" | "green" | "orange";
+export type StickyColorPreset = "yellow" | "pink" | "blue" | "green" | "orange" | "purple" | "cyan" | "red" | "lime" | "indigo" | "rose" | "amber";
+export type StickyColor = StickyColorPreset | string; // 预设颜色或自定义 hex 颜色
 
 export interface StickyNote {
   id: string;

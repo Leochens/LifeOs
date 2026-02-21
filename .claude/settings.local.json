@@ -45,7 +45,23 @@
       "WebFetch(domain:dev.to)",
       "WebFetch(domain:blog.logrocket.com)",
       "WebFetch(domain:grafana.com)",
-      "Bash(npm run dev)"
+      "Bash(npm run dev)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:1420/ 2>/dev/null || echo \"not_running\")",
+      "Bash(npm install -g playwright && npx playwright install chromium)",
+      "Bash(chmod +x ~/.local/bin/chrome-connect && echo $PATH | grep -q \".local/bin\" && echo \"PATH 已包含 ~/.local/bin\" || echo '请将 export PATH=\"$HOME/.local/bin:$PATH\" 添加到 ~/.zshrc')",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\" && chrome-connect --help 2>&1 || node ~/.local/bin/chrome-connect)",
+      "Bash(npm root -g)",
+      "Bash(~/.local/bin/chrome-connect 2>&1 | head -20)",
+      "Bash(node /Users/leochens/.claude/skills/browser-agent/scripts/browser-agent.js --action=list)",
+      "Bash(NODE_PATH=/Applications/ServBay/package/node/22/22.19.0/lib/node_modules node /Users/leochens/.claude/skills/browser-agent/scripts/browser-agent.js --action=list)",
+      "Bash(open -a \"Google Chrome\" --args --remote-debugging-port=9222)",
+      "Bash(lsof -i :9222 2>/dev/null || echo \"端口 9222 没有在监听\")",
+      "Bash(lsof -i :9222 2>/dev/null || curl -s http://127.0.0.1:9222/json/version 2>/dev/null || echo \"Chrome 调试端口未响应\")",
+      "Bash(NODE_PATH=/Applications/ServBay/package/node/22/22.19.0/lib/node_modules node /tmp/playwright-bilibili.js)",
+      "Bash(NODE_PATH=/Applications/ServBay/package/node/22/22.19.0/lib/node_modules node /tmp/playwright-local.js 2>&1)",
+      "Bash(NODE_PATH=/Applications/ServBay/package/node/22/22.19.0/lib/node_modules node /tmp/playwright-select-dir.js 2>&1)",
+      "Bash(NODE_PATH=/Applications/ServBay/package/node/22/22.19.0/lib/node_modules node /tmp/playwright-screenshot.js 2>&1)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

@@ -132,13 +132,20 @@ export const getAppleNotes = (
   query?: string,
   offset?: number,
   limit?: number
-) => tauri.getAppleNotes(query, offset, limit);
+) =>
+  isTauri()
+    ? tauri.getAppleNotes(query, offset, limit)
+    : webFs.getAppleNotes(query, offset, limit);
 
 export const createAppleNote = (folder: string, title: string, body: string) =>
-  tauri.createAppleNote(folder, title, body);
+  isTauri()
+    ? tauri.createAppleNote(folder, title, body)
+    : webFs.createAppleNote(folder, title, body);
 
 export const updateAppleNote = (noteId: string, body: string) =>
-  tauri.updateAppleNote(noteId, body);
+  isTauri()
+    ? tauri.updateAppleNote(noteId, body)
+    : webFs.updateAppleNote(noteId, body);
 
 // Re-export Apple Note types from tauri
 export type { AppleNote, AppleNotesResult } from "./tauri";

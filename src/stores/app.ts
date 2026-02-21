@@ -144,17 +144,22 @@ function menuConfigToYaml(config: MenuConfig): string {
 }
 
 // Settings YAML helpers
-function settingsToYaml(theme: string, claudeCodeEnabled: boolean, claudeCodePath: string): string {
-  return `theme: ${theme}\nclaudeCodeEnabled: ${claudeCodeEnabled}\nclaudeCodePath: ${claudeCodePath}\n`;
+function settingsToYaml(theme: string, claudeCodeEnabled: boolean, claudeCodePath: string, defaultProject?: string): string {
+  let yaml = `theme: ${theme}\nclaudeCodeEnabled: ${claudeCodeEnabled}\nclaudeCodePath: ${claudeCodePath}\n`;
+  if (defaultProject) {
+    yaml += `defaultProject: ${defaultProject}\n`;
+  }
+  return yaml;
 }
 
-function parseSettingsYaml(yaml: string): { theme?: string; claudeCodeEnabled?: boolean; claudeCodePath?: string } {
+function parseSettingsYaml(yaml: string): { theme?: string; claudeCodeEnabled?: boolean; claudeCodePath?: string; defaultProject?: string } {
   const result: any = {};
   for (const line of yaml.split("\n")) {
     const trimmed = line.trim();
     if (trimmed.startsWith("theme:")) result.theme = trimmed.replace("theme:", "").trim();
     if (trimmed.startsWith("claudeCodeEnabled:")) result.claudeCodeEnabled = trimmed.replace("claudeCodeEnabled:", "").trim() === "true";
     if (trimmed.startsWith("claudeCodePath:")) result.claudeCodePath = trimmed.replace("claudeCodePath:", "").trim();
+    if (trimmed.startsWith("defaultProject:")) result.defaultProject = trimmed.replace("defaultProject:", "").trim();
   }
   return result;
 }
@@ -284,6 +289,10 @@ interface AppState {
   claudeCodePath: string;
   setClaudeCodePath: (p: string) => void;
 
+  // Kanban default project
+  defaultProject: string | null;
+  setDefaultProject: (p: string | null) => void;
+
   // Menu / Plugin System
   menuConfig: MenuConfig;
   setMenuConfig: (config: MenuConfig) => void;
@@ -404,6 +413,18 @@ export const useStore = create<AppState>((set) => ({
     }
   },
 
+  // Kanban default project
+  defaultProject: null,
+  setDefaultProject: (defaultProject) => {
+    set({ defaultProject });
+    // Auto-save settings
+    const state = useStore.getState();
+    if (state.vaultPath) {
+      const yaml = settingsToYaml(state.theme, state.claudeCodeEnabled, state.claudeCodePath, defaultProject || undefined);
+      saveAppSettings(state.vaultPath, yaml).catch(console.error);
+    }
+  },
+
   // Menu / Plugin System
   menuConfig: DEFAULT_MENU_CONFIG,
   setMenuConfig: (menuConfig) => set({ menuConfig }),
@@ -502,6 +523,7 @@ export const useStore = create<AppState>((set) => ({
       }
       if (settings.claudeCodeEnabled !== undefined) set({ claudeCodeEnabled: settings.claudeCodeEnabled });
       if (settings.claudeCodePath) set({ claudeCodePath: settings.claudeCodePath });
+      if (settings.defaultProject) set({ defaultProject: settings.defaultProject });
     } catch (e) {
       console.log("No settings file found, using defaults");
     }

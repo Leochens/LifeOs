@@ -1,16 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/stores/app";
 import { readFile, writeFile } from "@/services/fs";
-import type { StickyNote, StickyColor } from "@/types";
-import { Plus, LayoutGrid, Maximize } from "lucide-react";
+import type { StickyNote, StickyColor, StickyColorPreset } from "@/types";
+import { Plus, LayoutGrid, Maximize, Palette } from "lucide-react";
 
-const COLORS: StickyColor[] = ["yellow", "pink", "blue", "green", "orange"];
-const COLOR_HEX: Record<StickyColor, string> = {
+const PRESET_COLORS: StickyColor[] = ["yellow", "pink", "blue", "green", "orange", "purple", "cyan", "red", "lime", "indigo", "rose", "amber"];
+const PRESET_COLOR_HEX: Record<StickyColorPreset, string> = {
   yellow: "#fef08a",
   pink: "#fbcfe8",
   blue: "#bae6fd",
   green: "#bbf7d0",
   orange: "#fed7aa",
+  purple: "#e9d5ff",
+  cyan: "#a5f3fc",
+  red: "#fecaca",
+  lime: "#d9f99d",
+  indigo: "#c7d2fe",
+  rose: "#fecdd3",
+  amber: "#fde68a",
 };
 
 export default function StickyNotesView() {
@@ -19,6 +26,8 @@ export default function StickyNotesView() {
   const [panY, setPanY] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [selectedColor, setSelectedColor] = useState<StickyColor>("yellow");
+  const [customColor, setCustomColor] = useState("#ff6b6b");
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [draggingCanvas, setDraggingCanvas] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -182,25 +191,88 @@ export default function StickyNotesView() {
     if (note) upsertStickyNote({ ...note, content });
   }, [stickyNotes, upsertStickyNote]);
 
+  // Check if color is a preset
+  const isPresetColor = (color: StickyColor): color is StickyColorPreset => {
+    return PRESET_COLORS.includes(color as StickyColorPreset);
+  };
+
+  // Get note style with custom color support
+  const getNoteStyle = (color: StickyColor) => {
+    if (isPresetColor(color)) {
+      return {};
+    }
+    return { backgroundColor: color };
+  };
+
   return (
-    <div className="flex flex-col gap-3 h-full">
+    <div className="flex flex-col gap-3 h-full relative">
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <button className="btn btn-primary px-3.5 py-1.5" onClick={createNote}>
           <Plus size={14} /> 新建
         </button>
 
-        {COLORS.map((c) => (
+        {PRESET_COLORS.map((c) => (
           <button
             key={c}
             onClick={() => setSelectedColor(c)}
             className="w-7 h-7 rounded-full cursor-pointer transition-colors duration-150 flex-shrink-0"
             style={{
               border: selectedColor === c ? "2px solid var(--text)" : "2px solid transparent",
-              background: COLOR_HEX[c],
+              background: PRESET_COLOR_HEX[c as StickyColorPreset],
             }}
           />
         ))}
+
+        {/* Custom color picker */}
+        <div className="relative">
+          <button
+            onClick={() => setShowColorPicker(!showColorPicker)}
+            className="w-7 h-7 rounded-full cursor-pointer transition-colors duration-150 flex-shrink-0 flex items-center justify-center"
+            style={{
+              border: !PRESET_COLORS.includes(selectedColor as StickyColorPreset) ? "2px solid var(--text)" : "2px solid transparent",
+              background: !PRESET_COLORS.includes(selectedColor as StickyColorPreset) ? selectedColor : "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)",
+            }}
+          >
+            <Palette size={14} className="text-black/50" />
+          </button>
+
+          {showColorPicker && (
+            <div className="absolute top-full left-0 mt-2 p-3 bg-bg-secondary rounded-lg shadow-xl border border-border z-50">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-text-dim">自定义颜色</label>
+                <input
+                  type="color"
+                  value={customColor}
+                  onChange={(e) => {
+                    setCustomColor(e.target.value);
+                    setSelectedColor(e.target.value);
+                  }}
+                  className="w-32 h-10 cursor-pointer rounded border border-border"
+                />
+                <input
+                  type="text"
+                  value={customColor}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+                      setCustomColor(val);
+                      setSelectedColor(val);
+                    }
+                  }}
+                  className="px-2 py-1 text-sm bg-bg border border-border rounded"
+                  placeholder="#ff6b6b"
+                />
+                <button
+                  onClick={() => setShowColorPicker(false)}
+                  className="btn btn-ghost text-xs py-1 mt-1"
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="flex-1" />
 
@@ -224,7 +296,6 @@ export default function StickyNotesView() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
         onDoubleClick={handleDoubleClick}
       >
         <div
@@ -236,7 +307,7 @@ export default function StickyNotesView() {
           {stickyNotes.map((note) => (
             <div
               key={note.id}
-              className={`sticky-note ${note.color}`}
+              className={`sticky-note ${isPresetColor(note.color) ? note.color : ""}`}
               style={{
                 left: note.x,
                 top: note.y,
@@ -244,6 +315,7 @@ export default function StickyNotesView() {
                 minHeight: note.height,
                 transform: `rotate(${note.rotation}deg)`,
                 transition: draggingNote === note.id ? "none" : "left 0.3s, top 0.3s",
+                ...getNoteStyle(note.color),
               }}
               onMouseDown={(e) => handleNoteDragStart(e, note.id)}
             >
@@ -265,6 +337,19 @@ export default function StickyNotesView() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Zoom Slider */}
+      <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-bg-secondary px-3 py-2 rounded-lg shadow-lg border border-border">
+        <span className="text-xs text-text-dim">{Math.round(zoom * 100)}%</span>
+        <input
+          type="range"
+          min="30"
+          max="300"
+          value={zoom * 100}
+          onChange={(e) => setZoom(Number(e.target.value) / 100)}
+          className="w-24 h-2 bg-bg rounded-lg appearance-none cursor-pointer"
+        />
       </div>
     </div>
   );
