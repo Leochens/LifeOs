@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useStore } from "@/stores/app";
-import * as tauri from "@/services/tauri";
+import * as fs from "@/services/fs";
 import * as parser from "@/services/parser";
 import { format } from "date-fns";
 import type { HabitStore, DayNote, Project, DiaryEntry, Decision, Goal, FinancePerson, FinanceRecord, FinanceSubItem, Subscription } from "@/types";
@@ -49,18 +49,18 @@ async function loadToday(
   const today = format(new Date(), "yyyy-MM-dd");
   const path = `${vault}/daily/tasks/${today}.md`;
 
-  const exists = await tauri.fileExists(path);
+  const exists = await fs.fileExists(path);
   if (!exists) {
     // Create today's file from template
     const templatePath = `${vault}/diary/templates/daily.md`;
-    const templateExists = await tauri.fileExists(templatePath);
+    const templateExists = await fs.fileExists(templatePath);
     const content = templateExists
-      ? (await tauri.readFile(templatePath)).replace("{{date}}", today).replace("{{content}}", "")
+      ? (await fs.readFile(templatePath)).replace("{{date}}", today).replace("{{content}}", "")
       : `---\ndate: ${today}\nenergy: high\nmood: 😊\n---\n\n## 今日任务\n\n- [ ] \n\n## 今日笔记\n\n`;
-    await tauri.writeFile(path, content);
+    await fs.writeFile(path, content);
   }
 
-  const note = await tauri.readNote(path);
+  const note = await fs.readNote(path);
   const day = parser.parseDayNote(path, note.frontmatter, note.content);
   setTodayNote(day);
 }
@@ -69,7 +69,7 @@ async function loadProjects(
   vault: string,
   setProjects: (p: Project[]) => void
 ) {
-  const notes = await tauri.listNotes(`${vault}/projects`, true);
+  const notes = await fs.listNotes(`${vault}/projects`, true);
   const projects = notes
     .filter((n) => !n.filename.startsWith("_"))
     .map((n) => parser.parseProject(n.path, n.frontmatter, n.content));
@@ -80,7 +80,7 @@ async function loadDiary(
   vault: string,
   setDiaryEntries: (e: DiaryEntry[]) => void
 ) {
-  const notes = await tauri.listNotes(`${vault}/diary`, true);
+  const notes = await fs.listNotes(`${vault}/diary`, true);
   const entries = notes
     .filter((n) => n.filename.match(/^\d{4}-\d{2}-\d{2}(-\d{4})?\.md$/))
     .map((n) =>
@@ -93,7 +93,7 @@ async function loadDecisions(
   vault: string,
   setDecisions: (d: Decision[]) => void
 ) {
-  const notes = await tauri.listNotes(`${vault}/decisions`, false);
+  const notes = await fs.listNotes(`${vault}/decisions`, false);
   const decisions = notes.map((n) =>
     parser.parseDecision(n.path, n.frontmatter, n.content)
   );
@@ -104,7 +104,7 @@ async function loadGoals(
   vault: string,
   setGoals: (g: Goal[]) => void
 ) {
-  const notes = await tauri.listNotes(`${vault}/planning/goals`, false);
+  const notes = await fs.listNotes(`${vault}/planning/goals`, false);
   const goals: Goal[] = notes.map((n) => ({
     path: n.path,
     title: n.frontmatter.title ?? n.filename.replace(".md", ""),
@@ -127,7 +127,7 @@ async function loadHabits(
   setHabits: (h: HabitStore) => void
 ) {
   try {
-    const raw = await tauri.readFile(`${vault}/daily/habits/habits.yaml`);
+    const raw = await fs.readFile(`${vault}/daily/habits/habits.yaml`);
     const habits = parseHabitsYaml(raw);
     setHabits(habits);
   } catch {
@@ -141,7 +141,7 @@ async function loadFinanceData(
   setFinanceRecords: (r: FinanceRecord[]) => void
 ) {
   try {
-    const personNotes = await tauri.listNotes(`${vault}/finance`, false);
+    const personNotes = await fs.listNotes(`${vault}/finance`, false);
     const persons: FinancePerson[] = personNotes
       .filter((n) => n.frontmatter.name)
       .map((n) => ({
@@ -185,7 +185,7 @@ async function loadFinanceData(
     for (const person of persons) {
       const slug = person.id;
       try {
-        const recNotes = await tauri.listNotes(`${vault}/finance/records/${slug}`, false);
+        const recNotes = await fs.listNotes(`${vault}/finance/records/${slug}`, false);
         for (const rn of recNotes) {
           records.push({
             person: rn.frontmatter.person ?? person.name,
@@ -214,7 +214,7 @@ async function loadSubscriptions(
   setSubscriptions: (s: Subscription[]) => void
 ) {
   try {
-    const notes = await tauri.listNotes(`${vault}/subscriptions`, false);
+    const notes = await fs.listNotes(`${vault}/subscriptions`, false);
     const subs: Subscription[] = notes
       .filter((n) => n.frontmatter.name)
       .map((n) => ({

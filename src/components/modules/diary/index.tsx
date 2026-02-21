@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote } from "@/services/tauri";
+import { writeNote } from "@/services/fs";
 import { useVaultLoader } from "@/hooks/useVaultLoader";
 import type { DiaryEntry } from "@/types";
 import { format } from "date-fns";

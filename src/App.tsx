@@ -1,9 +1,12 @@
 import { useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { getVaultPath } from "@/services/tauri";
+import { getVaultPath } from "@/services/fs";
 import { useVaultLoader } from "@/hooks/useVaultLoader";
 import SetupScreen from "@/components/layout/SetupScreen";
 import Shell from "@/components/layout/Shell";
+import { isTauri } from "@/services/env";
+import { loadDirectoryHandle } from "@/services/web-fs-store";
+import { setDirectoryHandle } from "@/services/web-fs";
 
 export default function App() {
   const { vaultPath, setVaultPath } = useStore();
@@ -11,9 +14,20 @@ export default function App() {
 
   // On mount: check if vault is already configured
   useEffect(() => {
-    getVaultPath().then((p) => {
-      if (p) setVaultPath(p);
-    });
+    if (isTauri()) {
+      // Tauri: 从后端获取已保存的路径
+      getVaultPath().then((p) => {
+        if (p) setVaultPath(p);
+      });
+    } else {
+      // Web: 从 IndexedDB 恢复目录句柄
+      loadDirectoryHandle().then((handle) => {
+        if (handle) {
+          setDirectoryHandle(handle);
+          setVaultPath(handle.name);
+        }
+      });
+    }
   }, []);
 
   // When vault is set, load everything

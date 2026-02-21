@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
-import { scanGitRepos, pickVaultFolder, openInFinder } from "@/services/tauri";
+import { scanGitRepos, pickVaultFolder, openInFinder } from "@/services/fs";
 
 export default function GitScannerView() {
   const gitRepos = useStore((s) => s.gitRepos);

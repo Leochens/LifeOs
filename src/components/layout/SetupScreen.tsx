@@ -1,20 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { pickVaultFolder, initVault } from "@/services/tauri";
+import { pickVaultFolder, initVault } from "@/services/fs";
+import { isTauri, isWeb } from "@/services/env";
+import { isFileSystemAccessSupported, getGlobalDirectoryHandle } from "@/services/web-fs";
+import { saveDirectoryHandle } from "@/services/web-fs-store";
 
 export default function SetupScreen() {
   const setVaultPath = useStore((s) => s.setVaultPath);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [browserSupported, setBrowserSupported] = useState(true);
+
+  useEffect(() => {
+    // Check browser support in web mode
+    if (isWeb()) {
+      setBrowserSupported(isFileSystemAccessSupported());
+    }
+  }, []);
 
   const handlePick = async () => {
     setError("");
-    const folder = await pickVaultFolder();
-    if (!folder) return;
-
-    setLoading(true);
     try {
+      const folder = await pickVaultFolder();
+      if (!folder) return;
+
+      setLoading(true);
       await initVault(folder);
+
+      // Web 环境：保存到 IndexedDB
+      if (isWeb()) {
+        const handle = getGlobalDirectoryHandle();
+        if (handle) {
+          await saveDirectoryHandle(handle);
+        }
+      }
+
       setVaultPath(folder);
     } catch (e) {
       setError(String(e));
@@ -27,12 +47,20 @@ export default function SetupScreen() {
     <div className="relative z-10 flex flex-col items-center justify-center h-screen gap-8">
       {/* Logo */}
       <div className="text-center">
-        <div className="font-disp text-6xl tracking-[12px] text-accent leading-none" style={{ textShadow: "var(--glow)" }}>
+        <div
+          className="font-disp text-6xl tracking-[12px] text-accent leading-none"
+          style={{ textShadow: "var(--glow)" }}
+        >
           LIFE OS
         </div>
         <div className="font-mono text-xs text-text-dim tracking-widest mt-2">
           PERSONAL OPERATING SYSTEM
         </div>
+        {isWeb() && (
+          <div className="font-mono text-[10px] text-accent/60 tracking-wider mt-1">
+            WEB MODE
+          </div>
+        )}
       </div>
 
       {/* Setup card */}
@@ -41,18 +69,41 @@ export default function SetupScreen() {
         <h2 className="text-lg mb-2">选择你的 Vault 目录</h2>
         <p className="text-text-mid text-sm leading-relaxed mb-7">
           Vault 是你所有数据的家。选择一个文件夹，Life OS 会在里面创建结构化的目录。
-          <br />
-          推荐放在 <code className="text-accent text-[11px]">iCloud Drive</code> 或
-          <code className="text-accent text-[11px]"> Dropbox</code> 下以实现跨设备同步。
+          {isTauri() && (
+            <>
+              <br />
+              推荐放在{" "}
+              <code className="text-accent text-[11px]">iCloud Drive</code> 或
+              <code className="text-accent text-[11px]"> Dropbox</code>{" "}
+              下以实现跨设备同步。
+            </>
+          )}
         </p>
+
+        {!browserSupported && (
+          <div className="mb-6 px-3.5 py-3 bg-accent4/10 border border-accent4/30 rounded-sm text-accent4 text-xs text-left">
+            <div className="font-medium mb-1">⚠️ 浏览器不支持</div>
+            <div>
+              您的浏览器不支持 File System Access API。请使用{" "}
+              <strong>Chrome</strong>、<strong>Edge</strong> 或其他基于
+              Chromium 的浏览器。
+            </div>
+          </div>
+        )}
 
         <button
           className="btn btn-primary w-full justify-center py-3 px-6 text-[15px]"
           onClick={handlePick}
-          disabled={loading}
+          disabled={loading || !browserSupported}
         >
           {loading ? "正在初始化..." : "📂 选择文件夹"}
         </button>
+
+        {isWeb() && browserSupported && (
+          <p className="mt-3 text-text-dim text-[11px]">
+            点击后，浏览器会请求访问所选目录的权限
+          </p>
+        )}
 
         {error && (
           <div className="mt-4 px-3.5 py-2.5 bg-accent4/10 border border-accent4/30 rounded-sm text-accent4 text-xs">
@@ -61,10 +112,22 @@ export default function SetupScreen() {
         )}
 
         <div className="mt-6 text-[11px] text-text-dim leading-8">
-          ✦ 所有数据存储为 Markdown 文件<br />
-          ✦ 完全离线，数据永远属于你<br />
-          ✦ 支持任何编辑器直接编辑
+          ✦ 所有数据存储为 Markdown 文件
+          <br />
+          ✦ 完全离线，数据永远属于你
+          <br />✦ 支持任何编辑器直接编辑
         </div>
+
+        {isWeb() && (
+          <div className="mt-6 pt-4 border-t border-white/10 text-[10px] text-text-dim">
+            <p className="mb-1">💡 网页版提示：</p>
+            <ul className="text-left space-y-1 opacity-80">
+              <li>• 数据存储在本地，不会上传到服务器</li>
+              <li>• 每次打开需要重新选择目录</li>
+              <li>• 建议使用 Chrome 或 Edge 浏览器</li>
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

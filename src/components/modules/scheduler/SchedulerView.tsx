@@ -4,7 +4,7 @@ import {
   createLaunchdTask,
   listLaunchdTasks,
   deleteLaunchdTask,
-} from "@/services/tauri";
+} from "@/services/fs";
 import type { ScheduledTask } from "@/types";
 
 function formatInterval(seconds: number): string {

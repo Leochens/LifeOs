@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, readNote, listDir } from "@/services/tauri";
+import { writeNote, readNote, listDir } from "@/services/fs";
 import { serializeDayNote } from "@/services/parser";
 import type { TaskItem, DayNote } from "@/types";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth } from "date-fns";

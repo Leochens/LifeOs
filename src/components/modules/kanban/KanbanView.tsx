@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, loadBoardConfig, saveBoardConfig } from "@/services/tauri";
+import { writeNote, loadBoardConfig, saveBoardConfig } from "@/services/fs";
 import type { Project, KanbanColumn, Priority } from "@/types";
 import { format } from "date-fns";
 import {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
-import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder, regenerateSkills } from "@/services/tauri";
+import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder, regenerateSkills } from "@/services/fs";
 import { Settings, FolderOpen, Info, Bot, CheckCircle, RefreshCw } from "lucide-react";
 import MenuManager from "./MenuManager";
 import ThemeCustomizer from "./ThemeCustomizer";

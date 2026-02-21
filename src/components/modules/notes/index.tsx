@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAppleNotes, createAppleNote, updateAppleNote, type AppleNote, type AppleNotesResult } from "@/services/tauri";
+import { getAppleNotes, createAppleNote, updateAppleNote, type AppleNote, type AppleNotesResult } from "@/services/fs";
 import { RefreshCw, Folder, FileText, X, Search, ChevronDown, Plus, Save } from "lucide-react";
 
 const PAGE_SIZE = 20;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/stores/app";
-import { readFile, writeFile } from "@/services/tauri";
+import { readFile, writeFile } from "@/services/fs";
 import type { StickyNote, StickyColor } from "@/types";
 import { Plus, LayoutGrid, Maximize } from "lucide-react";
 

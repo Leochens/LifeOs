@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { readFile, writeFile, createDirAll } from "@/services/tauri";
+import { readFile, writeFile, createDirAll } from "@/services/fs";
 import { format, parseISO } from "date-fns";
 
 interface GithubUser {

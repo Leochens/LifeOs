@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, readNote, deleteFile } from "@/services/tauri";
+import { writeNote, readNote, deleteFile } from "@/services/fs";
 import type { Goal, GoalType, Priority } from "@/types";
 
 const TYPE_LABELS: Record<GoalType, string> = { annual: "年度目标", quarterly: "季度目标", monthly: "月度目标" };

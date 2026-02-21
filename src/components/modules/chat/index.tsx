@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { runShellCommand } from "@/services/tauri";
+import { runShellCommand } from "@/services/fs";
 import type { ChatMessage } from "@/types";
 
 export default function ChatView() {

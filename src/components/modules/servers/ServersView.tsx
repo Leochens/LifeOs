@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, listNotes, deleteFile } from "@/services/tauri";
+import { writeNote, listNotes, deleteFile } from "@/services/fs";
 import type { ServerInfo } from "@/types";
 import { format } from "date-fns";
 

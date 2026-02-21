@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { saveMenuConfig, loadMenuConfig, saveAppSettings, loadAppSettings } from "@/services/tauri";
+import { saveMenuConfig, loadMenuConfig, saveAppSettings, loadAppSettings } from "@/services/fs";
 import type {
   ViewId,
   DayNote,

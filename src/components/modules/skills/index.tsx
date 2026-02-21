@@ -5,7 +5,7 @@ import {
   listSkillFiles,
   writeFile,
   openInFinder,
-} from "@/services/tauri";
+} from "@/services/fs";
 import type { Skill, SkillPath } from "@/types";
 
 const IDE_COLORS: Record<string, string> = {

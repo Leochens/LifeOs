@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, listNotes, imapSync, getCachedEmails, deleteFile, sendEmail } from "@/services/tauri";
-import type { EmailMessage, SendEmailRequest } from "@/services/tauri";
+import { writeNote, listNotes, imapSync, getCachedEmails, deleteFile, sendEmail } from "@/services/fs";
+import type { EmailMessage, SendEmailRequest } from "@/services/fs";
 import type { EmailAccount } from "@/types";
 import { HelpCircle, Send, ChevronDown, ChevronRight, Inbox, Mail, Star, Trash2, Archive, RefreshCw } from "lucide-react";
 

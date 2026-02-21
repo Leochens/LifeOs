@@ -44,7 +44,8 @@
       "WebFetch(domain:www.libraries.io)",
       "WebFetch(domain:dev.to)",
       "WebFetch(domain:blog.logrocket.com)",
-      "WebFetch(domain:grafana.com)"
+      "WebFetch(domain:grafana.com)",
+      "Bash(npm run dev)"
     ]
   }
 }

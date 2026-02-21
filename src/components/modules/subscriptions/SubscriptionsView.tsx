@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, listNotes, deleteFile, createDirAll } from "@/services/tauri";
+import { writeNote, listNotes, deleteFile, createDirAll } from "@/services/fs";
 import { format } from "date-fns";
 import {
   CreditCard,

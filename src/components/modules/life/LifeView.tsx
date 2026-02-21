@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { runShortcut } from "@/services/tauri";
+import { runShortcut } from "@/services/fs";
 import type { ScreenTimeData, HealthData } from "@/types";
 import { format } from "date-fns";
 

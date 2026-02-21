@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, runShellCommand } from "@/services/tauri";
+import { writeNote, runShellCommand } from "@/services/fs";
 import { useVaultLoader } from "@/hooks/useVaultLoader";
 import type { Decision, DecisionWeight } from "@/types";
 import { format } from "date-fns";

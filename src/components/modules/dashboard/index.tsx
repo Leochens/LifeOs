@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useStore } from "@/stores/app";
-import { writeFile } from "@/services/tauri";
+import { writeFile } from "@/services/fs";
 import { format, subDays } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import type { HabitStore } from "@/types";
