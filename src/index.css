@@ -2,73 +2,158 @@
 
 /* ─── Design tokens (Dark theme — default) ───────────────────────────────── */
 :root {
+  /* Base colors */
   --bg:        #060810;
   --panel:     #0b0f1a;
   --panel2:    #0f1420;
+  --panel3:    #141a2a;
+
+  /* Border colors */
   --border:    rgba(0, 200, 255, 0.1);
   --border2:   rgba(0, 200, 255, 0.2);
+  --border3:   rgba(0, 200, 255, 0.3);
+
+  /* Accent colors */
   --accent:    #00c8ff;
   --accent2:   #7b61ff;
   --accent3:   #00ffa3;
   --accent4:   #ff6b6b;
   --accent5:   #ffb347;
+
+  /* Primary/Secondary */
+  --primary:   #00c8ff;
+  --secondary: #7b61ff;
+
+  /* Text colors */
   --text:      #e2eaf5;
   --text-dim:  #5a6a82;
   --text-mid:  #8a9ab5;
+
+  /* Semantic colors */
+  --success:   #00ffa3;
+  --warning:   #ffb347;
+  --error:     #ff6b6b;
+  --info:      #00c8ff;
+
+  /* Glow effects */
   --glow:      0 0 20px rgba(0, 200, 255, 0.25);
   --glow2:     0 0 20px rgba(123, 97, 255, 0.25);
+  --glow3:     0 0 20px rgba(0, 255, 163, 0.25);
+
+  /* Radius */
   --radius:    10px;
   --radius-sm: 6px;
+  --radius-xs: 4px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
 
+  /* Fonts */
   --font-sans: "Noto Sans SC", sans-serif;
   --font-mono: "Space Mono", monospace;
   --font-disp: "Bebas Neue", sans-serif;
 
+  /* Shadows */
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md:   0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
   --shadow-card: 0 4px 20px rgba(0,0,0,0.4);
   --shadow-float: 0 8px 32px rgba(0,0,0,0.6);
 
+  /* Animations */
+  --duration-fast:   100ms;
+  --duration-normal: 200ms;
+  --duration-slow:   300ms;
+  --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+
   color-scheme: dark;
-  transition: background 0.3s, color 0.3s;
+  transition: background var(--duration-slow) var(--ease-out),
+              color var(--duration-slow) var(--ease-out);
 }
 
 /* ─── Light theme ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
+  /* Base colors */
   --bg:        #fafbfc;
   --panel:     #ffffff;
   --panel2:    #f4f5f7;
+  --panel3:    #eaeef3;
+
+  /* Border colors */
   --border:    rgba(27, 31, 36, 0.08);
   --border2:   rgba(27, 31, 36, 0.15);
+  --border3:   rgba(27, 31, 36, 0.25);
+
+  /* Accent colors */
   --accent:    #0969da;
   --accent2:   #8250df;
   --accent3:   #1a7f37;
   --accent4:   #cf222e;
   --accent5:   #bf8700;
+
+  /* Primary/Secondary */
+  --primary:   #0969da;
+  --secondary: #8250df;
+
+  /* Text colors */
   --text:      #1f2328;
   --text-dim:  #656d76;
   --text-mid:  #57606a;
+
+  /* Semantic colors */
+  --success:   #1a7f37;
+  --warning:   #bf8700;
+  --error:     #cf222e;
+  --info:      #0969da;
+
+  /* Glow effects */
   --glow:      0 0 20px rgba(9, 105, 218, 0.1);
   --glow2:     0 0 20px rgba(130, 80, 223, 0.1);
+  --glow3:     0 0 20px rgba(26, 127, 55, 0.1);
+
+  /* Shadows - lighter in light mode */
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-md:   0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.02);
   --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
   --shadow-float: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+
   color-scheme: light;
 }
 
 /* ─── Tailwind Theme Configuration ────────────────────────────────────────── */
 @theme {
-  /* Colors */
+  /* Colors - Base */
   --color-bg: var(--bg);
   --color-panel: var(--panel);
   --color-panel-2: var(--panel2);
+  --color-panel-3: var(--panel3);
+
+  /* Colors - Border */
   --color-border: var(--border);
   --color-border-2: var(--border2);
+  --color-border-3: var(--border3);
+
+  /* Colors - Accent */
   --color-accent: var(--accent);
   --color-accent-2: var(--accent2);
   --color-accent-3: var(--accent3);
   --color-accent-4: var(--accent4);
   --color-accent-5: var(--accent5);
+
+  /* Colors - Primary/Secondary */
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+
+  /* Colors - Text */
   --color-text: var(--text);
   --color-text-dim: var(--text-dim);
   --color-text-mid: var(--text-mid);
+
+  /* Colors - Semantic */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
 
   /* Fonts */
   --font-sans: var(--font-sans);
@@ -76,10 +161,16 @@
   --font-disp: var(--font-disp);
 
   /* Border Radius */
-  --radius-lg: var(--radius);
+  --radius-xs: var(--radius-xs);
   --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
 
   /* Shadows */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
   --shadow-card: var(--shadow-card);
   --shadow-float: var(--shadow-float);
 

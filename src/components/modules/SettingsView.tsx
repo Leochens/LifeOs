@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useStore } from "@/stores/app";
 import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder, regenerateSkills } from "@/services/tauri";
-import { Settings, FolderOpen, Moon, Sun, Info, Bot, CheckCircle, RefreshCw } from "lucide-react";
+import { Settings, FolderOpen, Info, Bot, CheckCircle, RefreshCw } from "lucide-react";
 import MenuManager from "./Settings/MenuManager";
+import ThemeCustomizer from "./Settings/ThemeCustomizer";
 
 export default function SettingsView() {
   const vaultPath = useStore((s) => s.vaultPath);
   const setVaultPathStore = useStore((s) => s.setVaultPath);
-  const theme = useStore((s) => s.theme);
-  const setTheme = useStore((s) => s.setTheme);
   const claudeCodeEnabled = useStore((s) => s.claudeCodeEnabled);
   const setClaudeCodeEnabled = useStore((s) => s.setClaudeCodeEnabled);
   const claudeCodePath = useStore((s) => s.claudeCodePath);
@@ -128,20 +127,7 @@ export default function SettingsView() {
       <div>
         <div className="label mb-3">外观</div>
         <div className="panel-inner p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              {theme === "dark" ? <Moon size={16} className="text-accent" /> : <Sun size={16} className="text-accent5" />}
-              <span className="text-sm text-text">
-                {theme === "dark" ? "深色模式" : "浅色模式"}
-              </span>
-            </div>
-            <div className="toggle-wrap cursor-pointer" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              <button className={`toggle ${theme === "light" ? "on" : ""}`} />
-              <span className="text-xs text-text-dim">
-                {theme === "light" ? "浅色" : "深色"}
-              </span>
-            </div>
-          </div>
+          <ThemeCustomizer />
         </div>
       </div>
 
