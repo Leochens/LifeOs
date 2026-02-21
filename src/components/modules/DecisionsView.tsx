@@ -48,7 +48,22 @@ export default function DecisionsView() {
     };
 
     const background = newContent.trim() || "描述这个决策的背景...";
-    const content = `## 背景\n\n${background}\n\n## 支持理由\n\n- \n\n## 反对理由\n\n- \n\n## 最终决定\n\n_待定_\n`;
+    const content = `## 背景
+
+${background}
+
+## 支持理由
+
+-
+
+## 反对理由
+
+-
+
+## 最终决定
+
+_待定_
+`;
     await writeNote(path, fm, content);
     await loadAll();
     setCreating(false);
@@ -58,45 +73,40 @@ export default function DecisionsView() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 900 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)" }}>
+    <div className="flex flex-col gap-5 max-w-[900px]">
+      <div className="flex items-center justify-between">
+        <div className="font-disp text-[28px] tracking-widest text-accent">
           重大决策
         </div>
         <button className="btn btn-primary" onClick={() => setCreating(true)}>+ 记录新决策</button>
       </div>
 
       {creating && (
-        <div className="panel" style={{ padding: 20 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="panel p-5">
+          <div className="flex flex-col gap-3.5">
             <div>
-              <div style={{ fontSize: 13, color: "var(--text-mid)", marginBottom: 6 }}>决策标题</div>
+              <div className="text-sm text-text-mid mb-1.5">决策标题</div>
               <input
-                className="input"
+                className="input w-full"
                 autoFocus
                 placeholder="用一句话描述这个决策..."
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Escape") setCreating(false); }}
-                style={{ width: "100%" }}
               />
             </div>
             <div>
-              <div style={{ fontSize: 13, color: "var(--text-mid)", marginBottom: 6 }}>重要性</div>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div className="text-sm text-text-mid mb-1.5">重要性</div>
+              <div className="flex gap-1.5">
                 {WEIGHT_OPTIONS.map((w) => (
                   <button
                     key={w.value}
                     onClick={() => setNewWeight(w.value)}
+                    className="px-3.5 py-1.25 rounded-full text-xs cursor-pointer transition-colors duration-150"
                     style={{
-                      padding: "5px 14px",
-                      borderRadius: 20,
-                      fontSize: 12,
                       border: `1px solid ${newWeight === w.value ? w.color : "var(--border)"}`,
                       background: newWeight === w.value ? `${w.color}18` : "transparent",
                       color: newWeight === w.value ? w.color : "var(--text-dim)",
-                      cursor: "pointer",
-                      transition: "all 0.15s",
                     }}
                   >
                     {w.label}
@@ -105,17 +115,16 @@ export default function DecisionsView() {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 13, color: "var(--text-mid)", marginBottom: 6 }}>背景描述</div>
+              <div className="text-sm text-text-mid mb-1.5">背景描述</div>
               <textarea
-                className="input"
+                className="input w-full resize-y"
                 placeholder="简要描述这个决策的背景和上下文..."
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
                 rows={3}
-                style={{ width: "100%", resize: "vertical" }}
               />
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               <button className="btn btn-primary" onClick={createDecision}>创建</button>
               <button className="btn btn-ghost" onClick={() => { setCreating(false); setNewTitle(""); setNewWeight("medium"); setNewContent(""); }}>取消</button>
             </div>
@@ -126,10 +135,10 @@ export default function DecisionsView() {
       {decisions.map((d) => <DecisionCard key={d.path} decision={d} />)}
 
       {decisions.length === 0 && !creating && (
-        <div className="panel" style={{ padding: 40, textAlign: "center", color: "var(--text-dim)" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>⊙</div>
+        <div className="panel p-10 text-center text-text-dim">
+          <div className="text-4xl mb-3">⊙</div>
           <div>还没有记录任何决策</div>
-          <div style={{ fontSize: 12, marginTop: 8 }}>重大决策值得被认真对待和记录</div>
+          <div className="text-xs mt-2">重大决策值得被认真对待和记录</div>
         </div>
       )}
     </div>
@@ -195,112 +204,80 @@ function DecisionCard({ decision }: { decision: Decision }) {
   };
 
   return (
-    <div className="panel" style={{ padding: 24 }}>
-      <div style={{ display: "flex", alignItems: "start", justifyContent: "space-between", marginBottom: 16 }}>
+    <div className="panel p-6">
+      <div className="flex items-start justify-between mb-4">
         <div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{decision.title}</div>
-          <div style={{
-            fontFamily: "var(--font-mono)", fontSize: 10,
-            color: "var(--text-dim)", letterSpacing: 1,
-          }}>
+          <div className="text-base font-semibold mb-1">{decision.title}</div>
+          <div className="font-mono text-[10px] text-text-dim tracking-widest">
             {decision.created} · 重要性: {WEIGHT_LABELS[decision.weight]}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="flex items-center gap-2">
           <button
-            className="btn btn-ghost"
+            className="btn btn-ghost text-xs px-2.5 py-0.75 flex items-center gap-1"
             onClick={analyzing ? undefined : runAnalysis}
-            style={{
-              fontSize: 11,
-              padding: "3px 10px",
-              opacity: analyzing ? 0.7 : 1,
-              cursor: analyzing ? "wait" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-            }}
           >
-            <span className={analyzing ? "spin" : ""} style={{ display: "inline-block" }}>
+            <span className={analyzing ? "animate-spin" : ""}>
               {analyzing ? "⟳" : "🤖"}
             </span>
             {analyzing ? "分析中..." : "AI 分析"}
           </button>
-          <span style={{
-            fontSize: 11, padding: "3px 10px", borderRadius: 20,
-            background: `${st.color}18`, color: st.color, letterSpacing: 1,
-            border: `1px solid ${st.color}40`,
-            whiteSpace: "nowrap",
-          }}>
+          <span className="text-xs px-2.5 py-0.75 rounded-full whitespace-nowrap"
+            style={{
+              background: `${st.color}18`, color: st.color,
+              border: `1px solid ${st.color}40`,
+            }}>
             {st.label}
           </span>
         </div>
       </div>
 
       {claudeError && (
-        <div style={{ fontSize: 11, color: "var(--accent4)", marginBottom: 12, padding: "6px 10px", background: "rgba(255,107,107,0.08)", borderRadius: "var(--radius-sm)" }}>
+        <div className="text-xs text-accent4 mb-3 px-2.5 py-1.5 bg-accent4/8 rounded-sm">
           {claudeError}
         </div>
       )}
 
       {analysis && (
-        <div style={{ marginBottom: 16 }}>
+        <div className="mb-4">
           <div
             onClick={() => setShowAnalysis(!showAnalysis)}
-            style={{
-              fontSize: 12, color: "var(--accent2)", cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 6, marginBottom: showAnalysis ? 10 : 0,
-              userSelect: "none",
-            }}
+            className="text-xs text-accent2 cursor-pointer flex items-center gap-1.5 mb-2.5 select-none"
           >
-            <span style={{ transform: showAnalysis ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s", display: "inline-block" }}>
+            <span className="inline-block transition-transform duration-150" style={{ transform: showAnalysis ? "rotate(90deg)" : "rotate(0deg)" }}>
               ▶
             </span>
             🤖 AI 分析结果
           </div>
           {showAnalysis && (
-            <div style={{
-              background: "var(--panel2)",
-              borderLeft: "3px solid var(--accent2)",
-              borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
-              padding: "14px 16px",
-              fontSize: 13,
-              color: "var(--text-mid)",
-              whiteSpace: "pre-wrap",
-              lineHeight: 1.7,
-            }}>
+            <div className="bg-panel-2 border-l-[3px] border-accent2 rounded-r-sm p-3.5 text-sm text-text-mid whitespace-pre-wrap leading-relaxed">
               {analysis}
             </div>
           )}
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div style={{
-          background: "var(--panel2)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius-sm)", padding: 14,
-        }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent3)", marginBottom: 10, textTransform: "uppercase" }}>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-panel-2 border border-border rounded-sm p-3.5">
+          <div className="text-[10px] tracking-widest text-accent3 mb-2.5 uppercase">
             ✦ 支持理由
           </div>
-          <ul style={{ paddingLeft: 16 }}>
+          <ul className="pl-4">
             {pros.slice(0, 5).map((p, i) => (
-              <li key={i} style={{ fontSize: 13, color: "var(--text-mid)", marginBottom: 5, lineHeight: 1.5 }}>{p}</li>
+              <li key={i} className="text-sm text-text-mid mb-1.25 leading-relaxed">{p}</li>
             ))}
-            {pros.length === 0 && <li style={{ fontSize: 13, color: "var(--text-dim)" }}>待补充...</li>}
+            {pros.length === 0 && <li className="text-sm text-text-dim">待补充...</li>}
           </ul>
         </div>
-        <div style={{
-          background: "var(--panel2)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius-sm)", padding: 14,
-        }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent4)", marginBottom: 10, textTransform: "uppercase" }}>
+        <div className="bg-panel-2 border border-border rounded-sm p-3.5">
+          <div className="text-[10px] tracking-widest text-accent4 mb-2.5 uppercase">
             ✦ 反对理由
           </div>
-          <ul style={{ paddingLeft: 16 }}>
+          <ul className="pl-4">
             {cons.slice(0, 5).map((c, i) => (
-              <li key={i} style={{ fontSize: 13, color: "var(--text-mid)", marginBottom: 5, lineHeight: 1.5 }}>{c}</li>
+              <li key={i} className="text-sm text-text-mid mb-1.25 leading-relaxed">{c}</li>
             ))}
-            {cons.length === 0 && <li style={{ fontSize: 13, color: "var(--text-dim)" }}>待补充...</li>}
+            {cons.length === 0 && <li className="text-sm text-text-dim">待补充...</li>}
           </ul>
         </div>
       </div>

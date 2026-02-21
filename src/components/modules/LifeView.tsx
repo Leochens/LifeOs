@@ -129,14 +129,14 @@ export default function LifeView() {
   };
 
   return (
-    <div style={{ maxWidth: 900 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)" }}>
+    <div className="max-w-[900px]">
+      <div className="flex items-center justify-between mb-6">
+        <div className="font-[var(--font-disp)] text-[28px] tracking-[3px] text-accent">
           生活数据
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="flex items-center gap-3">
           {lastUpdate && (
-            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>
+            <span className="text-[11px] text-text-dim">
               更新于 {lastUpdate}
             </span>
           )}
@@ -147,59 +147,59 @@ export default function LifeView() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: "center", color: "var(--text-dim)" }}>
+        <div className="p-10 text-center text-text-dim">
           加载中...
         </div>
       ) : error ? (
-        <div className="panel" style={{ padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-          <div style={{ color: "var(--accent4)" }}>{error}</div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8 }}>
+        <div className="panel p-10 text-center">
+          <div className="text-[32px] mb-3">⚠️</div>
+          <div className="text-accent4">{error}</div>
+          <div className="text-[12px] text-text-dim mt-2">
             需要在系统设置中授予"屏幕使用时间"和"健康"数据的访问权限
           </div>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 24 }}>
+        <div className="grid gap-6">
           {/* Screen Time */}
-          <div className="panel" style={{ padding: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-              <span style={{ fontSize: 24 }}>📱</span>
+          <div className="panel p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="text-[24px]">📱</span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>屏幕使用时间</div>
-                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>今日数据</div>
+                <div className="text-[16px] font-semibold">屏幕使用时间</div>
+                <div className="text-[12px] text-text-dim">今日数据</div>
               </div>
             </div>
 
             {/* Summary cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
-              <div style={{ padding: 16, background: "var(--panel2)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                <div style={{ fontSize: 28, fontWeight: 600, color: "var(--accent)" }}>
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="p-4 bg-panel2 rounded-[var(--radius-sm)] text-center">
+                <div className="text-[28px] font-semibold text-accent">
                   {screenTime ? formatMinutes(screenTime.totalMinutes) : "--"}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>总使用时间</div>
+                <div className="text-[11px] text-text-dim mt-1">总使用时间</div>
               </div>
-              <div style={{ padding: 16, background: "var(--panel2)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                <div style={{ fontSize: 28, fontWeight: 600, color: "var(--accent3)" }}>
+              <div className="p-4 bg-panel2 rounded-[var(--radius-sm)] text-center">
+                <div className="text-[28px] font-semibold text-accent3">
                   {screenTime?.pickupCount || "--"}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>拿起次数</div>
+                <div className="text-[11px] text-text-dim mt-1">拿起次数</div>
               </div>
-              <div style={{ padding: 16, background: "var(--panel2)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                <div style={{ fontSize: 28, fontWeight: 600, color: "var(--accent2)" }}>
+              <div className="p-4 bg-panel2 rounded-[var(--radius-sm)] text-center">
+                <div className="text-[28px] font-semibold text-accent2">
                   {screenTime ? Object.keys(screenTime.byCategory).length : "--"}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>使用分类</div>
+                <div className="text-[11px] text-text-dim mt-1">使用分类</div>
               </div>
             </div>
 
             {/* By Category */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10, letterSpacing: 1 }}>按分类</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="mb-5">
+              <div className="text-[12px] text-text-dim mb-[10px] tracking-[1px]">按分类</div>
+              <div className="flex flex-col gap-2">
                 {screenTime && Object.entries(screenTime.byCategory).map(([cat, mins]) => (
-                  <div key={cat} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ width: 60, fontSize: 13 }}>{cat}</span>
-                    <div style={{ flex: 1, height: 8, background: "var(--panel2)", borderRadius: 4, overflow: "hidden" }}>
+                  <div key={cat} className="flex items-center gap-3">
+                    <span className="w-[60px] text-[13px]">{cat}</span>
+                    <div className="flex-1 h-2 bg-panel2 rounded-[4px] overflow-hidden">
                       <div
                         style={{
                           height: "100%",
@@ -209,7 +209,7 @@ export default function LifeView() {
                         }}
                       />
                     </div>
-                    <span style={{ fontSize: 12, color: "var(--text-dim)", width: 50, textAlign: "right" }}>
+                    <span className="text-[12px] text-text-dim w-[50px] text-right">
                       {formatMinutes(mins)}
                     </span>
                   </div>
@@ -219,12 +219,12 @@ export default function LifeView() {
 
             {/* By App */}
             <div>
-              <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10, letterSpacing: 1 }}>按应用</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="text-[12px] text-text-dim mb-[10px] tracking-[1px]">按应用</div>
+              <div className="flex flex-col gap-2">
                 {screenTime && Object.entries(screenTime.byApp).map(([app, mins]) => (
-                  <div key={app} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ width: 80, fontSize: 13 }}>{app}</span>
-                    <div style={{ flex: 1, height: 8, background: "var(--panel2)", borderRadius: 4, overflow: "hidden" }}>
+                  <div key={app} className="flex items-center gap-3">
+                    <span className="w-[80px] text-[13px]">{app}</span>
+                    <div className="flex-1 h-2 bg-panel2 rounded-[4px] overflow-hidden">
                       <div
                         style={{
                           height: "100%",
@@ -234,7 +234,7 @@ export default function LifeView() {
                         }}
                       />
                     </div>
-                    <span style={{ fontSize: 12, color: "var(--text-dim)", width: 50, textAlign: "right" }}>
+                    <span className="text-[12px] text-text-dim w-[50px] text-right">
                       {formatMinutes(mins)}
                     </span>
                   </div>
@@ -244,56 +244,56 @@ export default function LifeView() {
           </div>
 
           {/* Health Data */}
-          <div className="panel" style={{ padding: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-              <span style={{ fontSize: 24 }}>❤️</span>
+          <div className="panel p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="text-[24px]">❤️</span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>健康数据</div>
-                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>今日数据</div>
+                <div className="text-[16px] font-semibold">健康数据</div>
+                <div className="text-[12px] text-text-dim">今日数据</div>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-              <div style={{ padding: 16, background: "var(--panel2)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--accent3)" }}>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="p-4 bg-panel2 rounded-[var(--radius-sm)] text-center">
+                <div className="text-[24px] font-semibold text-accent3">
                   {health?.steps.toLocaleString() || "--"}
                 </div>
-                <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4 }}>步数</div>
+                <div className="text-[10px] text-text-dim mt-1">步数</div>
               </div>
-              <div style={{ padding: 16, background: "var(--panel2)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--accent)" }}>
+              <div className="p-4 bg-panel2 rounded-[var(--radius-sm)] text-center">
+                <div className="text-[24px] font-semibold text-accent">
                   {health?.activeMinutes || "--"}
                 </div>
-                <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4 }}>活动分钟</div>
+                <div className="text-[10px] text-text-dim mt-1">活动分钟</div>
               </div>
-              <div style={{ padding: 16, background: "var(--panel2)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--accent2)" }}>
+              <div className="p-4 bg-panel2 rounded-[var(--radius-sm)] text-center">
+                <div className="text-[24px] font-semibold text-accent2">
                   {health?.calories || "--"}
                 </div>
-                <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4 }}>千卡</div>
+                <div className="text-[10px] text-text-dim mt-1">千卡</div>
               </div>
-              <div style={{ padding: 16, background: "var(--panel2)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--accent4)" }}>
+              <div className="p-4 bg-panel2 rounded-[var(--radius-sm)] text-center">
+                <div className="text-[24px] font-semibold text-accent4">
                   {health?.sleepHours || "--"}
                 </div>
-                <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4 }}>睡眠小时</div>
+                <div className="text-[10px] text-text-dim mt-1">睡眠小时</div>
               </div>
             </div>
 
             {health?.heartRate && (
-              <div style={{ marginTop: 16, padding: 12, background: "var(--panel2)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <span style={{ color: "var(--accent4)" }}>♥</span>
-                <span style={{ fontSize: 14 }}>心率</span>
-                <span style={{ fontSize: 18, fontWeight: 600, color: "var(--accent)" }}>{health.heartRate}</span>
-                <span style={{ fontSize: 12, color: "var(--text-dim)" }}>BPM</span>
+              <div className="mt-4 p-3 bg-panel2 rounded-[var(--radius-sm)] flex items-center justify-center gap-2">
+                <span className="text-accent4">♥</span>
+                <span className="text-[14px]">心率</span>
+                <span className="text-[18px] font-semibold text-accent">{health.heartRate}</span>
+                <span className="text-[12px] text-text-dim">BPM</span>
               </div>
             )}
           </div>
 
           {/* Info */}
-          <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", padding: 12 }}>
+          <div className="text-[11px] text-text-dim text-center p-3">
             {shortcutsConfigured ? (
-              <span style={{ color: "var(--accent3)" }}>✓ 数据已通过 Shortcuts 实时获取</span>
+              <span className="text-accent3">✓ 数据已通过 Shortcuts 实时获取</span>
             ) : (
               <>
                 数据使用模拟值。请在 Shortcuts 应用中创建两个捷径：

@@ -324,74 +324,57 @@ export default function SubscriptionsView() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)", gap: 16 }}>
+    <div className="flex flex-col h-[calc(100vh-120px)] gap-4">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <CreditCard size={20} style={{ color: "var(--accent)" }} />
-          <span
-            style={{
-              fontFamily: "var(--font-disp)",
-              fontSize: 20,
-              letterSpacing: 2,
-              color: "var(--accent)",
-            }}
-          >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CreditCard size={20} className="text-accent" />
+          <span className="font-[var(--font-disp)] text-[20px] tracking-[2px] text-accent">
             订阅管理
           </span>
         </div>
         <button
-          className="btn btn-primary"
+          className="btn btn-primary text-[12px] py-1.5 px-3.5 flex items-center gap-1"
           onClick={openAddForm}
-          style={{ fontSize: 12, padding: "6px 14px", display: "flex", alignItems: "center", gap: 4 }}
         >
           <Plus size={14} /> 新增订阅
         </button>
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-        <div
-          className="panel"
-          style={{ padding: 16, display: "flex", flexDirection: "column", gap: 4 }}
-        >
-          <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 4 }}>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="panel p-4 flex flex-col gap-1">
+          <div className="text-[11px] text-text-dim flex items-center gap-1">
             <DollarSign size={12} /> 月度支出
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--accent)" }}>
+          <div className="text-[22px] font-bold text-accent">
             {stats.monthlyTotal.toFixed(0)}
-            <span style={{ fontSize: 12, color: "var(--text-dim)", marginLeft: 4 }}>CNY/月</span>
+            <span className="text-[12px] text-text-dim ml-1">CNY/月</span>
           </div>
         </div>
-        <div
-          className="panel"
-          style={{ padding: 16, display: "flex", flexDirection: "column", gap: 4 }}
-        >
-          <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 4 }}>
+        <div className="panel p-4 flex flex-col gap-1">
+          <div className="text-[11px] text-text-dim flex items-center gap-1">
             <Calendar size={12} /> 年度支出
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--accent2)" }}>
+          <div className="text-[22px] font-bold text-accent2">
             {stats.yearlyTotal.toFixed(0)}
-            <span style={{ fontSize: 12, color: "var(--text-dim)", marginLeft: 4 }}>CNY/年</span>
+            <span className="text-[12px] text-text-dim ml-1">CNY/年</span>
           </div>
         </div>
-        <div
-          className="panel"
-          style={{ padding: 16, display: "flex", flexDirection: "column", gap: 4 }}
-        >
-          <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 4 }}>
+        <div className="panel p-4 flex flex-col gap-1">
+          <div className="text-[11px] text-text-dim flex items-center gap-1">
             <CreditCard size={12} /> 活跃订阅
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--accent3)" }}>
+          <div className="text-[22px] font-bold text-accent3">
             {stats.activeCount}
-            <span style={{ fontSize: 12, color: "var(--text-dim)", marginLeft: 4 }}>个</span>
+            <span className="text-[12px] text-text-dim ml-1">个</span>
           </div>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12, color: "var(--text-dim)" }}>筛选:</span>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[12px] text-text-dim">筛选:</span>
         {(["all", "mobile", "desktop", "saas"] as const).map((t) => (
           <button
             key={t}
@@ -407,13 +390,12 @@ export default function SubscriptionsView() {
             {t === "all" ? "全部" : appTypeLabel(t as AppType)}
           </button>
         ))}
-        <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 12, color: "var(--text-dim)" }}>排序:</span>
+        <div className="flex-1" />
+        <span className="text-[12px] text-text-dim">排序:</span>
         <select
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value as SortKey)}
-          className="input"
-          style={{ fontSize: 11, padding: "3px 8px", width: "auto" }}
+          className="input text-[11px] py-1 px-2 w-auto"
         >
           <option value="name">名称</option>
           <option value="amount">金额</option>
@@ -423,34 +405,27 @@ export default function SubscriptionsView() {
       </div>
 
       {/* Table */}
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div className="flex-1 overflow-auto">
         {loading ? (
-          <div style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>加载中...</div>
+          <div className="text-text-dim text-center p-10">加载中...</div>
         ) : displayList.length === 0 ? (
-          <div style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>
-            <CreditCard size={40} style={{ opacity: 0.3, marginBottom: 12 }} />
+          <div className="text-text-dim text-center p-10">
+            <CreditCard size={40} className="opacity-30 mb-3" />
             <div>还没有订阅记录</div>
-            <div style={{ fontSize: 11, marginTop: 8 }}>点击 "新增订阅" 开始管理</div>
+            <div className="text-[11px] mt-2">点击 "新增订阅" 开始管理</div>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table className="w-full text-[13px] border-collapse">
             <thead>
-              <tr
-                style={{
-                  borderBottom: "1px solid var(--border)",
-                  color: "var(--text-dim)",
-                  fontSize: 11,
-                  textAlign: "left",
-                }}
-              >
-                <th style={{ padding: "8px 12px" }}>名称</th>
-                <th style={{ padding: "8px 12px" }}>月费</th>
-                <th style={{ padding: "8px 12px" }}>累计支出</th>
-                <th style={{ padding: "8px 12px" }}>续费日期</th>
-                <th style={{ padding: "8px 12px" }}>支付方式</th>
-                <th style={{ padding: "8px 12px" }}>类型</th>
-                <th style={{ padding: "8px 12px" }}>状态</th>
-                <th style={{ padding: "8px 12px", textAlign: "right" }}>操作</th>
+              <tr className="border-b border-border text-text-dim text-[11px] text-left">
+                <th className="py-2 px-3">名称</th>
+                <th className="py-2 px-3">月费</th>
+                <th className="py-2 px-3">累计支出</th>
+                <th className="py-2 px-3">续费日期</th>
+                <th className="py-2 px-3">支付方式</th>
+                <th className="py-2 px-3">类型</th>
+                <th className="py-2 px-3">状态</th>
+                <th className="py-2 px-3 text-right">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -463,28 +438,22 @@ export default function SubscriptionsView() {
                 return (
                   <tr
                     key={sub.id}
+                    className="border-b border-border"
                     style={{
-                      borderBottom: "1px solid var(--border)",
                       background: nearRenewal ? "rgba(255,180,50,0.06)" : undefined,
                       opacity: sub.enabled ? 1 : 0.5,
                     }}
                   >
                     {/* Name */}
-                    <td style={{ padding: "10px 12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 500 }}>{sub.name}</span>
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{sub.name}</span>
                         {sub.tags.length > 0 && (
-                          <div style={{ display: "flex", gap: 4 }}>
+                          <div className="flex gap-1">
                             {sub.tags.slice(0, 2).map((tag) => (
                               <span
                                 key={tag}
-                                style={{
-                                  fontSize: 10,
-                                  padding: "1px 6px",
-                                  borderRadius: 4,
-                                  background: "rgba(255,255,255,0.06)",
-                                  color: "var(--text-dim)",
-                                }}
+                                className="text-[10px] py-[1px] px-1.5 rounded-[4px] bg-white/6 text-text-dim"
                               >
                                 {tag}
                               </span>
@@ -495,14 +464,14 @@ export default function SubscriptionsView() {
                     </td>
 
                     {/* Monthly cost */}
-                    <td style={{ padding: "10px 12px", fontVariantNumeric: "tabular-nums" }}>
-                      <span style={{ fontWeight: 600 }}>
+                    <td className="py-2.5 px-3 tabular-nums">
+                      <span className="font-semibold">
                         {sub.currency === "CNY" ? "\u00a5" : "$"}
                         {monthly.toFixed(sub.cycle === "monthly" ? 0 : 1)}
                       </span>
-                      <span style={{ fontSize: 11, color: "var(--text-dim)" }}>/月</span>
+                      <span className="text-[11px] text-text-dim">/月</span>
                       {sub.cycle !== "monthly" && (
-                        <div style={{ fontSize: 10, color: "var(--text-dim)" }}>
+                        <div className="text-[10px] text-text-dim">
                           ({sub.currency === "CNY" ? "\u00a5" : "$"}
                           {sub.amount}
                           {cycleLabel(sub.cycle)})
@@ -511,46 +480,41 @@ export default function SubscriptionsView() {
                     </td>
 
                     {/* Total spent */}
-                    <td style={{ padding: "10px 12px", fontVariantNumeric: "tabular-nums" }}>
+                    <td className="py-2.5 px-3 tabular-nums">
                       {sub.currency === "CNY" ? "\u00a5" : "$"}
                       {totalSpent.toFixed(0)}
                     </td>
 
                     {/* Renewal date */}
-                    <td style={{ padding: "10px 12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-1">
                         {nearRenewal && (
                           <AlertTriangle
                             size={13}
-                            style={{ color: "var(--accent4)", flexShrink: 0 }}
+                            className="text-accent4 shrink-0"
                           />
                         )}
-                        <span style={{ color: nearRenewal ? "var(--accent4)" : undefined }}>
+                        <span className={nearRenewal ? "text-accent4" : undefined}>
                           {sub.renewalDate ? format(new Date(sub.renewalDate), "yyyy-MM-dd") : "-"}
                         </span>
                       </div>
                       {nearRenewal && (
-                        <div style={{ fontSize: 10, color: "var(--accent4)" }}>
+                        <div className="text-[10px] text-accent4">
                           {days === 0 ? "今天续费" : `${days}天后续费`}
                         </div>
                       )}
                     </td>
 
                     {/* Payment method */}
-                    <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-mid)" }}>
+                    <td className="py-2.5 px-3 text-[12px] text-text-mid">
                       {sub.paymentMethod || "-"}
                     </td>
 
                     {/* App type badge */}
-                    <td style={{ padding: "10px 12px" }}>
+                    <td className="py-2.5 px-3">
                       <span
+                        className="inline-flex items-center gap-1 text-[11px] py-0.5 px-2 rounded-[4px]"
                         style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: 11,
-                          padding: "2px 8px",
-                          borderRadius: 4,
                           background: `${appTypeColor(sub.appType)}22`,
                           color: appTypeColor(sub.appType),
                         }}
@@ -561,33 +525,26 @@ export default function SubscriptionsView() {
                     </td>
 
                     {/* Status */}
-                    <td style={{ padding: "10px 12px" }}>
+                    <td className="py-2.5 px-3">
                       <span
-                        style={{
-                          display: "inline-block",
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: sub.enabled ? "var(--accent3)" : "var(--text-dim)",
-                        }}
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ background: sub.enabled ? "var(--accent3)" : "var(--text-dim)" }}
                       />
                     </td>
 
                     {/* Actions */}
-                    <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="flex gap-1 justify-end">
                         <button
-                          className="btn btn-ghost"
+                          className="btn btn-ghost p-1"
                           onClick={() => openEditForm(sub)}
-                          style={{ padding: 4 }}
                           title="编辑"
                         >
                           <Pencil size={14} />
                         </button>
                         <button
-                          className="btn btn-ghost"
+                          className="btn btn-ghost p-1 text-accent4"
                           onClick={() => handleDelete(sub)}
-                          style={{ padding: 4, color: "var(--accent4)" }}
                           title="删除"
                         >
                           <Trash2 size={14} />
@@ -605,15 +562,7 @@ export default function SubscriptionsView() {
       {/* Add/Edit Modal */}
       {showForm && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowForm(false);
@@ -622,71 +571,53 @@ export default function SubscriptionsView() {
           }}
         >
           <div
-            className="panel"
-            style={{
-              padding: 24,
-              width: 480,
-              maxHeight: "80vh",
-              overflow: "auto",
-              borderRadius: "var(--radius)",
-            }}
+            className="panel p-6 w-[480px] max-h-[80vh] overflow-auto rounded-[var(--radius)]"
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 20,
-              }}
-            >
-              <span style={{ fontSize: 16, fontWeight: 600 }}>
+            <div className="flex items-center justify-between mb-5">
+              <span className="text-[16px] font-semibold">
                 {editingId ? "编辑订阅" : "新增订阅"}
               </span>
               <button
-                className="btn btn-ghost"
+                className="btn btn-ghost p-1"
                 onClick={() => {
                   setShowForm(false);
                   setEditingId(null);
                 }}
-                style={{ padding: 4 }}
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="flex flex-col gap-3.5">
               {/* Name */}
               <div>
                 <label style={labelStyle}>订阅名称</label>
                 <input
-                  className="input"
+                  className="input w-full"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="ChatGPT Plus"
-                  style={{ width: "100%" }}
                 />
               </div>
 
               {/* Amount + Currency + Cycle */}
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10 }}>
+              <div className="grid gap-2.5" style={{ gridTemplateColumns: "2fr 1fr 1fr" }}>
                 <div>
                   <label style={labelStyle}>金额</label>
                   <input
-                    className="input"
+                    className="input w-full"
                     type="number"
                     value={formAmount}
                     onChange={(e) => setFormAmount(e.target.value)}
                     placeholder="20"
-                    style={{ width: "100%" }}
                   />
                 </div>
                 <div>
                   <label style={labelStyle}>货币</label>
                   <select
-                    className="input"
+                    className="input w-full"
                     value={formCurrency}
                     onChange={(e) => setFormCurrency(e.target.value)}
-                    style={{ width: "100%" }}
                   >
                     <option value="CNY">CNY</option>
                     <option value="USD">USD</option>
@@ -698,10 +629,9 @@ export default function SubscriptionsView() {
                 <div>
                   <label style={labelStyle}>周期</label>
                   <select
-                    className="input"
+                    className="input w-full"
                     value={formCycle}
                     onChange={(e) => setFormCycle(e.target.value as "monthly" | "yearly" | "weekly")}
-                    style={{ width: "100%" }}
                   >
                     <option value="monthly">月付</option>
                     <option value="yearly">年付</option>
@@ -711,48 +641,44 @@ export default function SubscriptionsView() {
               </div>
 
               {/* Dates */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="grid gap-2.5" style={{ gridTemplateColumns: "1fr 1fr" }}>
                 <div>
                   <label style={labelStyle}>开始日期</label>
                   <input
-                    className="input"
+                    className="input w-full"
                     type="date"
                     value={formStartDate}
                     onChange={(e) => setFormStartDate(e.target.value)}
-                    style={{ width: "100%" }}
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>续费日期 <span style={{ fontSize: 10, color: "var(--accent)", marginLeft: 4 }}>自动计算</span></label>
+                  <label style={labelStyle}>续费日期 <span className="text-[10px] text-accent ml-1">自动计算</span></label>
                   <input
-                    className="input"
+                    className="input w-full opacity-80"
                     type="date"
                     value={formRenewalDate}
                     readOnly
-                    style={{ width: "100%", opacity: 0.8 }}
                   />
                 </div>
               </div>
 
               {/* Payment + AppType */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="grid gap-2.5" style={{ gridTemplateColumns: "1fr 1fr" }}>
                 <div>
                   <label style={labelStyle}>支付方式</label>
                   <input
-                    className="input"
+                    className="input w-full"
                     value={formPaymentMethod}
                     onChange={(e) => setFormPaymentMethod(e.target.value)}
                     placeholder="微信 / 支付宝 / 信用卡"
-                    style={{ width: "100%" }}
                   />
                 </div>
                 <div>
                   <label style={labelStyle}>应用类型</label>
                   <select
-                    className="input"
+                    className="input w-full"
                     value={formAppType}
                     onChange={(e) => setFormAppType(e.target.value as AppType)}
-                    style={{ width: "100%" }}
                   >
                     <option value="saas">SaaS</option>
                     <option value="mobile">Mobile</option>
@@ -764,15 +690,14 @@ export default function SubscriptionsView() {
               {/* Tags */}
               <div>
                 <label style={labelStyle}>
-                  <Tag size={11} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+                  <Tag size={11} className="inline align-middle mr-1" />
                   标签（逗号分隔）
                 </label>
                 <input
-                  className="input"
+                  className="input w-full"
                   value={formTags}
                   onChange={(e) => setFormTags(e.target.value)}
                   placeholder="AI, 工具, 效率"
-                  style={{ width: "100%" }}
                 />
               </div>
 
@@ -780,41 +705,33 @@ export default function SubscriptionsView() {
               <div>
                 <label style={labelStyle}>备注</label>
                 <textarea
-                  className="input"
+                  className="input w-full resize-vertical"
                   value={formNotes}
                   onChange={(e) => setFormNotes(e.target.value)}
                   placeholder="添加备注信息..."
                   rows={3}
-                  style={{ width: "100%", resize: "vertical" }}
                 />
               </div>
 
               {/* Enabled toggle */}
               <div
-                style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+                className="flex items-center gap-2 cursor-pointer"
                 onClick={() => setFormEnabled(!formEnabled)}
               >
                 <div
+                  className="w-[18px] h-[18px] rounded-[4px] border border-border flex items-center justify-center transition-all"
                   style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 4,
-                    border: "1px solid var(--border)",
                     background: formEnabled ? "var(--accent)" : "transparent",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.15s",
                   }}
                 >
-                  {formEnabled && <Check size={12} style={{ color: "#fff" }} />}
+                  {formEnabled && <Check size={12} className="text-white" />}
                 </div>
-                <span style={{ fontSize: 13 }}>启用此订阅</span>
+                <span className="text-[13px]">启用此订阅</span>
               </div>
 
               {/* Actions */}
-              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                <button className="btn btn-primary" onClick={handleSave} style={{ flex: 1 }}>
+              <div className="flex gap-2 mt-1">
+                <button className="btn btn-primary flex-1" onClick={handleSave}>
                   {editingId ? "保存修改" : "添加订阅"}
                 </button>
                 <button

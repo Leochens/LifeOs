@@ -68,39 +68,29 @@ export default function SettingsView() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 800 }}>
+    <div className="flex flex-col gap-6 max-w-[800px]">
       {/* Header */}
       <div>
-        <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)", display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="font-disp text-[28px] tracking-widest text-accent flex items-center gap-2.5">
           <Settings size={24} />
           设置
         </div>
-        <div style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 4 }}>
+        <div className="text-sm text-text-dim mt-1">
           管理 Vault 路径、外观和应用信息。
         </div>
       </div>
 
       {/* Vault Path */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>Vault 路径</div>
-        <div className="panel-inner" style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <FolderOpen size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
-            <code style={{
-              fontSize: 13,
-              color: "var(--text)",
-              background: "rgba(0,200,255,0.06)",
-              padding: "4px 10px",
-              borderRadius: 6,
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}>
+        <div className="label mb-3">Vault 路径</div>
+        <div className="panel-inner p-5">
+          <div className="flex items-center gap-2.5 mb-3.5">
+            <FolderOpen size={16} className="text-accent flex-shrink-0" />
+            <code className="text-sm text-text bg-accent/5 px-2.5 py-1 rounded-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
               {vaultPath || "未设置"}
             </code>
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="flex gap-2 flex-wrap">
             <button className="btn btn-ghost" onClick={handlePickFolder}>
               修改路径
             </button>
@@ -111,20 +101,14 @@ export default function SettingsView() {
 
           {/* Pending path confirmation */}
           {pendingPath && (
-            <div className="scale-in" style={{
-              marginTop: 16,
-              padding: 16,
-              background: "rgba(0,200,255,0.05)",
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--border2)",
-            }}>
-              <div style={{ fontSize: 13, color: "var(--text-mid)", marginBottom: 8 }}>
-                新路径：<span style={{ color: "var(--accent)" }}>{pendingPath}</span>
+            <div className="scale-in mt-4 p-4 bg-accent/5 rounded-sm border border-border-2">
+              <div className="text-sm text-text-mid mb-2">
+                新路径：<span className="text-accent">{pendingPath}</span>
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>
+              <div className="text-xs text-text-dim mb-3">
                 选择如何切换到新路径：
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="flex gap-2 flex-wrap">
                 <button className="btn btn-primary" onClick={handleMigrate} disabled={migrating}>
                   {migrating ? "迁移中..." : "迁移数据"}
                 </button>
@@ -142,18 +126,18 @@ export default function SettingsView() {
 
       {/* Appearance */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>外观</div>
-        <div className="panel-inner" style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {theme === "dark" ? <Moon size={16} style={{ color: "var(--accent)" }} /> : <Sun size={16} style={{ color: "var(--accent5)" }} />}
-              <span style={{ fontSize: 14, color: "var(--text)" }}>
+        <div className="label mb-3">外观</div>
+        <div className="panel-inner p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              {theme === "dark" ? <Moon size={16} className="text-accent" /> : <Sun size={16} className="text-accent5" />}
+              <span className="text-sm text-text">
                 {theme === "dark" ? "深色模式" : "浅色模式"}
               </span>
             </div>
-            <div className="toggle-wrap" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+            <div className="toggle-wrap cursor-pointer" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               <button className={`toggle ${theme === "light" ? "on" : ""}`} />
-              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+              <span className="text-xs text-text-dim">
                 {theme === "light" ? "浅色" : "深色"}
               </span>
             </div>
@@ -163,16 +147,16 @@ export default function SettingsView() {
 
       {/* Claude Code */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>Claude Code AI</div>
-        <div className="panel-inner" style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Bot size={16} style={{ color: "var(--accent2)" }} />
-              <span style={{ fontSize: 14, color: "var(--text)" }}>启用 Claude Code</span>
+        <div className="label mb-3">Claude Code AI</div>
+        <div className="panel-inner p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <Bot size={16} className="text-accent-2" />
+              <span className="text-sm text-text">启用 Claude Code</span>
             </div>
-            <div className="toggle-wrap" onClick={() => setClaudeCodeEnabled(!claudeCodeEnabled)}>
+            <div className="toggle-wrap cursor-pointer" onClick={() => setClaudeCodeEnabled(!claudeCodeEnabled)}>
               <button className={`toggle ${claudeCodeEnabled ? "on" : ""}`} />
-              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+              <span className="text-xs text-text-dim">
                 {claudeCodeEnabled ? "启用" : "禁用"}
               </span>
             </div>
@@ -180,26 +164,25 @@ export default function SettingsView() {
 
           {claudeCodeEnabled && (
             <>
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 6 }}>CLI 路径</label>
+              <div className="mb-3">
+                <label className="text-xs text-text-mid block mb-1.5">CLI 路径</label>
                 <input
                   className="input"
                   value={claudeCodePath}
                   onChange={(e) => setClaudeCodePath(e.target.value)}
                   placeholder="claude"
-                  style={{ width: "100%" }}
                 />
               </div>
 
-              <div style={{ padding: 12, background: "var(--panel2)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 4 }}>连接状态</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <CheckCircle size={14} style={{ color: "var(--accent3)" }} />
-                    <span style={{ fontSize: 13 }}>就绪</span>
+              <div className="p-3 bg-panel-2 rounded-sm flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="text-xs text-text-dim mb-1">连接状态</div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle size={14} className="text-accent3" />
+                    <span className="text-sm">就绪</span>
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                <div className="text-xs text-text-dim">
                   Claude Code 用于 AI 聊天和决策分析功能
                 </div>
               </div>
@@ -210,18 +193,17 @@ export default function SettingsView() {
 
       {/* Skills Management */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>AI Skills</div>
-        <div className="panel-inner" style={{ padding: 20 }}>
-          <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12 }}>
+        <div className="label mb-3">AI Skills</div>
+        <div className="panel-inner p-5">
+          <div className="text-sm text-text-dim mb-3">
             重新生成 AI 斜杠命令技能文档，用于 /看板、/日记 等 AI 助手命令。
           </div>
           <button
-            className="btn btn-ghost"
+            className="btn btn-ghost flex items-center gap-2"
             onClick={handleRegenerateSkills}
             disabled={!vaultPath || regeneratingSkills}
-            style={{ display: "flex", alignItems: "center", gap: 8 }}
           >
-            <RefreshCw size={14} className={regeneratingSkills ? "spin" : ""} />
+            <RefreshCw size={14} className={regeneratingSkills ? "animate-spin" : ""} />
             {regeneratingSkills ? "生成中..." : "重新生成 Skills"}
           </button>
         </div>
@@ -229,22 +211,22 @@ export default function SettingsView() {
 
       {/* Menu Management */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>菜单管理</div>
-        <div className="panel-inner" style={{ padding: 20 }}>
+        <div className="label mb-3">菜单管理</div>
+        <div className="panel-inner p-5">
           <MenuManager />
         </div>
       </div>
 
       {/* About */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>关于</div>
-        <div className="panel-inner" style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <Info size={16} style={{ color: "var(--accent2)" }} />
-            <span style={{ fontSize: 14, color: "var(--text)" }}>Life OS</span>
-            <span className="tag purple" style={{ marginLeft: 4 }}>v0.1.0</span>
+        <div className="label mb-3">关于</div>
+        <div className="panel-inner p-5">
+          <div className="flex items-center gap-2.5 mb-3">
+            <Info size={16} className="text-accent-2" />
+            <span className="text-sm text-text">Life OS</span>
+            <span className="tag purple ml-1">v0.1.0</span>
           </div>
-          <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.8 }}>
+          <div className="text-sm text-text-dim leading-relaxed">
             数据本地存储，完全离线。你的数据只保留在你的设备上。
           </div>
         </div>

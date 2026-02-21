@@ -6,7 +6,7 @@ import * as Icons from "@/components/icons";
 const IconRenderer = ({ name, size = 16 }: { name: string; size?: number }) => {
   const IconComponent = (Icons as Record<string, any>)[name];
   if (!IconComponent) {
-    return <span style={{ fontSize: size }}>?</span>;
+    return <span className="text-text" style={{ fontSize: size }}>?</span>;
   }
   return <IconComponent size={size} />;
 };
@@ -32,108 +32,73 @@ export default function MenuManager() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="flex flex-col gap-5">
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>菜单管理</div>
-        <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 16 }}>
+        <div className="label mb-3">菜单管理</div>
+        <div className="text-xs text-text-dim mb-4">
           管理侧边栏菜单分组和插件开关。内置插件无法关闭。
         </div>
       </div>
 
       {/* Groups and Plugins */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="flex flex-col gap-4">
         {sortedGroups.map((group) => {
           const groupPlugins = group.pluginIds
             .map((id) => plugins.find((p) => p.id === id))
             .filter((p): p is Plugin => p !== undefined);
 
           return (
-            <div key={group.id} className="panel" style={{ padding: 16 }}>
+            <div key={group.id} className="panel p-4">
               {/* Group Header */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 12,
-                  paddingBottom: 8,
-                  borderBottom: "1px solid var(--border)",
-                }}
+                className="flex items-center gap-2 mb-3 pb-2 border-b border-border"
               >
                 <button
                   onClick={() => handleToggleGroup(group.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--text)",
-                    padding: 4,
-                  }}
+                  className="bg-transparent border-none cursor-pointer text-text p-1"
                 >
                   <span
-                    style={{
-                      transform: group.collapsed ? "rotate(0deg)" : "rotate(90deg)",
-                      transition: "transform 0.15s",
-                      fontSize: 10,
-                    }}
+                    className={`text-[10px] transition-transform duration-150 ${group.collapsed ? "" : "rotate-90"}`}
                   >
                     ▶
                   </span>
                 </button>
-                <span style={{ fontWeight: 600, flex: 1 }}>{group.name}</span>
-                <span style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                <span className="font-semibold flex-1">{group.name}</span>
+                <span className="text-[11px] text-text-dim">
                   {groupPlugins.length} 个插件
                 </span>
               </div>
 
               {/* Plugin List */}
               {!group.collapsed && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="flex flex-col gap-2">
                   {groupPlugins.map((plugin) => (
                     <div
                       key={plugin.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "8px 12px",
-                        background: "var(--panel2)",
-                        borderRadius: "var(--radius-sm)",
-                      }}
+                      className="flex items-center gap-3 p-3 bg-panel2 rounded-sm"
                     >
-                      <span style={{ width: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span className="w-5 flex items-center justify-center">
                         <IconRenderer name={plugin.icon} />
                       </span>
-                      <span style={{ flex: 1, fontSize: 13 }}>{plugin.name}</span>
+                      <span className="flex-1 text-sm">{plugin.name}</span>
                       {!plugin.builtin && (
                         <button
                           onClick={() => handleTogglePlugin(plugin)}
-                          style={{
-                            width: 36,
-                            height: 20,
-                            borderRadius: 10,
-                            border: "none",
-                            background: plugin.enabled ? "var(--accent)" : "var(--border)",
-                            cursor: "pointer",
-                            position: "relative",
-                          }}
+                          className="w-9 h-5 rounded-full border-none cursor-pointer relative"
+                          style={{ background: plugin.enabled ? "var(--accent)" : "var(--border)" }}
                         >
                           <span
+                            className="absolute top-0.5 rounded-full bg-white transition-all duration-150"
                             style={{
-                              position: "absolute",
-                              top: 2,
                               left: plugin.enabled ? 18 : 2,
                               width: 16,
                               height: 16,
-                              borderRadius: "50%",
-                              background: "white",
-                              transition: "left 0.15s",
                             }}
                           />
                         </button>
                       )}
                       {plugin.builtin && (
-                        <span style={{ fontSize: 10, color: "var(--text-dim)", padding: "2px 6px", background: "var(--panel)", borderRadius: 4 }}>
+                        <span className="text-[10px] text-text-dim px-1.5 py-0.5 bg-panel rounded">
                           内置
                         </span>
                       )}
@@ -147,9 +112,9 @@ export default function MenuManager() {
       </div>
 
       {/* Quick Tips */}
-      <div className="panel" style={{ padding: 16, background: "var(--panel2)" }}>
-        <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 8 }}>💡 使用提示</div>
-        <ul style={{ fontSize: 11, color: "var(--text-dim)", paddingLeft: 16, lineHeight: 1.8 }}>
+      <div className="panel p-4 bg-panel2">
+        <div className="text-xs font-medium mb-2">💡 使用提示</div>
+        <ul className="text-[11px] text-text-dim pl-4 leading-relaxed">
           <li>点击分组名称左侧箭头可折叠/展开分组</li>
           <li>总览和设置为内置插件，无法关闭</li>
           <li>其他插件可自由开启或关闭</li>

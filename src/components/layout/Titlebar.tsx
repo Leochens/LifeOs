@@ -21,53 +21,35 @@ export default function Titlebar() {
   return (
     <header
       data-tauri-drag-region
-      style={{
-        display: "flex", alignItems: "center",
-        padding: "0 20px", height: 44,
-        borderBottom: "1px solid var(--border)",
-        background: "rgba(6,8,16,0.9)",
-        backdropFilter: "blur(12px)",
-        flexShrink: 0,
-        userSelect: "none",
-      }}
+      className="flex items-center px-5 h-11 border-b border-border bg-[rgba(6,8,16,0.9)] backdrop-blur-xl flex-shrink-0 select-none"
     >
       {/* macOS traffic lights space (titleBarStyle: Overlay) */}
-      <div style={{ width: 80 }} />
+      <div className="w-20" />
 
       {/* Logo */}
-      <div style={{
-        fontFamily: "var(--font-disp)",
-        fontSize: 20, letterSpacing: 4,
-        color: "var(--accent)", textShadow: "var(--glow)",
-        display: "flex", alignItems: "center", gap: 10,
-      }}>
+      <div className="font-disp text-xl tracking-widest text-accent flex items-center gap-2.5" style={{ textShadow: "var(--glow)" }}>
         LIFE OS
-        <span style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10, color: "var(--text-dim)", letterSpacing: 2,
-        }}>
+        <span className="font-mono text-[10px] text-text-dim tracking-widest">
           v0.1
         </span>
       </div>
 
-      <div style={{ flex: 1 }} />
+      <div className="flex-1" />
 
       {/* Status */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <div className="flex items-center gap-3.5">
         {isLoading ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-dim)" }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent5)",
-                         boxShadow: "0 0 6px var(--accent5)" }} className="pulse" />
+          <div className="flex items-center gap-1.5 text-[11px] text-text-dim">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent-5 animate-pulse" style={{ boxShadow: "0 0 6px var(--accent5)" }} />
             同步中...
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-dim)" }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent3)",
-                         boxShadow: "0 0 6px var(--accent3)" }} className="pulse" />
+          <div className="flex items-center gap-1.5 text-[11px] text-text-dim">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent-3 animate-pulse" style={{ boxShadow: "0 0 6px var(--accent3)" }} />
             在线
           </div>
         )}
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-mid)", letterSpacing: 1 }}>
+        <div className="font-mono text-xs text-text-mid tracking-widest">
           {time}
         </div>
       </div>

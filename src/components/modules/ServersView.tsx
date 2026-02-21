@@ -169,24 +169,24 @@ ${formTags}
   };
 
   return (
-    <div style={{ display: "flex", gap: 20, height: "calc(100vh - 120px)" }}>
+    <div className="flex gap-5 h-[calc(100vh-120px)]">
       {/* Server List */}
-      <div style={{ width: 300, display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontFamily: "var(--font-disp)", fontSize: 20, letterSpacing: 2, color: "var(--accent)" }}>
+      <div className="w-[300px] flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="font-disp text-xl tracking-widest text-accent">
             服务器管理
           </div>
-          <button className="btn btn-primary" onClick={() => { resetForm(); setSelected(null); setShowForm(true); }} style={{ fontSize: 12, padding: "6px 12px" }}>
+          <button className="btn btn-primary text-xs px-3 py-1.5" onClick={() => { resetForm(); setSelected(null); setShowForm(true); }}>
             + 添加
           </button>
         </div>
 
-        <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="flex-1 overflow-auto flex flex-col gap-1.5">
           {loading ? (
-            <div style={{ color: "var(--text-dim)", textAlign: "center", padding: 20 }}>加载中...</div>
+            <div className="text-text-dim text-center p-5">加载中...</div>
           ) : servers.length === 0 ? (
-            <div style={{ color: "var(--text-dim)", textAlign: "center", padding: 20 }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🖥</div>
+            <div className="text-text-dim text-center p-5">
+              <div className="text-3xl mb-2">🖥</div>
               还没有添加服务器
             </div>
           ) : (
@@ -194,23 +194,20 @@ ${formTags}
               <div
                 key={srv.id}
                 onClick={() => setSelected(srv)}
+                className="p-3 rounded-sm cursor-pointer transition-all duration-150"
                 style={{
-                  padding: 12,
-                  borderRadius: "var(--radius-sm)",
                   background: selected?.id === srv.id ? "rgba(0,200,255,0.1)" : "var(--panel)",
                   border: `1px solid ${selected?.id === srv.id ? "rgba(0,200,255,0.3)" : "var(--border)"}`,
-                  cursor: "pointer",
-                  transition: "all 0.15s",
                 }}
               >
-                <div style={{ fontWeight: 500, marginBottom: 4 }}>{srv.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                <div className="font-medium mb-1">{srv.name}</div>
+                <div className="text-xs text-text-dim font-mono">
                   {srv.username}@{srv.host}:{srv.port}
                 </div>
                 {srv.tags.length > 0 && (
-                  <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+                  <div className="flex gap-1 mt-1.5 flex-wrap">
                     {srv.tags.map((t) => (
-                      <span key={t} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: "var(--panel2)", color: "var(--text-dim)" }}>
+                      <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-panel-2 text-text-dim">
                         {t}
                       </span>
                     ))}
@@ -223,46 +220,43 @@ ${formTags}
       </div>
 
       {/* Detail / Form */}
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div className="flex-1 overflow-auto">
         {showForm ? (
-          <div className="panel" style={{ padding: 20, maxWidth: 600 }}>
-            <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 16 }}>
+          <div className="panel p-5 max-w-[600px]">
+            <div className="text-base font-medium mb-4">
               {selected ? "编辑服务器" : "添加新服务器"}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="flex flex-col gap-3">
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>服务器名称</label>
-                <input className="input" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="My Server" style={{ width: "100%" }} />
+                <label className="text-xs text-text-mid block mb-1">服务器名称</label>
+                <input className="input" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="My Server" />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+              <div className="grid grid-cols-[2fr_1fr] gap-3">
                 <div>
-                  <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>主机地址</label>
-                  <input className="input" value={formHost} onChange={(e) => setFormHost(e.target.value)} placeholder="192.168.1.100" style={{ width: "100%" }} />
+                  <label className="text-xs text-text-mid block mb-1">主机地址</label>
+                  <input className="input" value={formHost} onChange={(e) => setFormHost(e.target.value)} placeholder="192.168.1.100" />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>端口</label>
-                  <input className="input" value={formPort} onChange={(e) => setFormPort(e.target.value)} placeholder="22" style={{ width: "100%" }} />
+                  <label className="text-xs text-text-mid block mb-1">端口</label>
+                  <input className="input" value={formPort} onChange={(e) => setFormPort(e.target.value)} placeholder="22" />
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>用户名</label>
-                <input className="input" value={formUsername} onChange={(e) => setFormUsername(e.target.value)} placeholder="root" style={{ width: "100%" }} />
+                <label className="text-xs text-text-mid block mb-1">用户名</label>
+                <input className="input" value={formUsername} onChange={(e) => setFormUsername(e.target.value)} placeholder="root" />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>认证方式</label>
-                <div style={{ display: "flex", gap: 8 }}>
+                <label className="text-xs text-text-mid block mb-1">认证方式</label>
+                <div className="flex gap-2">
                   {(["key", "password", "both"] as const).map((type) => (
                     <button
                       key={type}
                       onClick={() => setFormAuthType(type)}
+                      className="px-3 py-1.5 rounded-sm cursor-pointer text-xs transition-colors"
                       style={{
-                        padding: "6px 12px",
-                        borderRadius: "var(--radius-sm)",
                         border: `1px solid ${formAuthType === type ? "var(--accent)" : "var(--border)"}`,
                         background: formAuthType === type ? "rgba(0,200,255,0.1)" : "transparent",
                         color: formAuthType === type ? "var(--accent)" : "var(--text-dim)",
-                        cursor: "pointer",
-                        fontSize: 12,
                       }}
                     >
                       {type === "key" ? "密钥" : type === "password" ? "密码" : "两者"}
@@ -273,37 +267,36 @@ ${formTags}
               {(formAuthType === "key" || formAuthType === "both") && (
                 <>
                   <div>
-                    <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>私钥路径</label>
-                    <input className="input" value={formPrivateKey} onChange={(e) => setFormPrivateKey(e.target.value)} placeholder="~/.ssh/id_rsa" style={{ width: "100%" }} />
+                    <label className="text-xs text-text-mid block mb-1">私钥路径</label>
+                    <input className="input" value={formPrivateKey} onChange={(e) => setFormPrivateKey(e.target.value)} placeholder="~/.ssh/id_rsa" />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>公钥路径</label>
-                    <input className="input" value={formPublicKey} onChange={(e) => setFormPublicKey(e.target.value)} placeholder="~/.ssh/id_rsa.pub" style={{ width: "100%" }} />
+                    <label className="text-xs text-text-mid block mb-1">公钥路径</label>
+                    <input className="input" value={formPublicKey} onChange={(e) => setFormPublicKey(e.target.value)} placeholder="~/.ssh/id_rsa.pub" />
                   </div>
                 </>
               )}
               {(formAuthType === "password" || formAuthType === "both") && (
                 <div>
-                  <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>密码</label>
-                  <input className="input" type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="••••••••" style={{ width: "100%" }} />
+                  <label className="text-xs text-text-mid block mb-1">密码</label>
+                  <input className="input" type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="••••••••" />
                 </div>
               )}
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>标签（逗号分隔）</label>
-                <input className="input" value={formTags} onChange={(e) => setFormTags(e.target.value)} placeholder="生产, Web, 数据库" style={{ width: "100%" }} />
+                <label className="text-xs text-text-mid block mb-1">标签（逗号分隔）</label>
+                <input className="input" value={formTags} onChange={(e) => setFormTags(e.target.value)} placeholder="生产, Web, 数据库" />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>备注</label>
-                <textarea className="input" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} rows={3} placeholder="其他备注信息..." style={{ width: "100%", resize: "vertical" }} />
+                <label className="text-xs text-text-mid block mb-1">备注</label>
+                <textarea className="input" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} rows={3} placeholder="其他备注信息..." />
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <div className="flex gap-2 mt-2">
                 <button className="btn btn-primary" onClick={handleCreateOrUpdate}>保存</button>
                 <button className="btn btn-ghost" onClick={() => { setShowForm(false); resetForm(); setSelected(null); }}>取消</button>
                 {selected && (
                   <button
-                    className="btn btn-ghost"
+                    className="btn btn-ghost ml-auto text-accent4"
                     onClick={() => handleDelete(selected)}
-                    style={{ marginLeft: "auto", color: "var(--accent4)" }}
                   >
                     删除
                   </button>
@@ -312,89 +305,81 @@ ${formTags}
             </div>
           </div>
         ) : selected ? (
-          <div className="panel" style={{ padding: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div className="panel p-6">
+            <div className="flex items-center justify-between mb-5">
               <div>
-                <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{selected.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                <div className="text-xl font-semibold mb-1">{selected.name}</div>
+                <div className="text-xs text-text-dim">
                   创建于 {selected.created} · 更新于 {selected.updated}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div className="flex gap-2">
                 <button className="btn btn-ghost" onClick={() => editServer(selected)}>编辑</button>
-                <button className="btn btn-ghost" onClick={() => handleDelete(selected)} style={{ color: "var(--accent4)" }}>删除</button>
+                <button className="btn btn-ghost text-accent4" onClick={() => handleDelete(selected)}>删除</button>
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: 16 }}>
-              <div className="panel2" style={{ padding: 16, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
-                <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", marginBottom: 12, textTransform: "uppercase" }}>连接信息</div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ color: "var(--text-dim)", width: 60 }}>Host:</span>
-                    <code style={{ flex: 1, fontFamily: "var(--font-mono)" }}>{selected.host}</code>
-                    <button className="btn btn-ghost" onClick={() => copyToClipboard(selected.host)} style={{ fontSize: 10, padding: "2px 8px" }}>复制</button>
+            <div className="grid gap-4">
+              <div className="panel-inner p-4 rounded-sm border border-border">
+                <div className="text-[10px] tracking-widest text-accent uppercase mb-3">连接信息</div>
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-text-dim w-[60px]">Host:</span>
+                    <code className="flex-1 font-mono">{selected.host}</code>
+                    <button className="btn btn-ghost text-[10px] px-2 py-0.5" onClick={() => copyToClipboard(selected.host)}>复制</button>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ color: "var(--text-dim)", width: 60 }}>Port:</span>
-                    <code style={{ flex: 1, fontFamily: "var(--font-mono)" }}>{selected.port}</code>
+                  <div className="flex items-center gap-2">
+                    <span className="text-text-dim w-[60px]">Port:</span>
+                    <code className="flex-1 font-mono">{selected.port}</code>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ color: "var(--text-dim)", width: 60 }}>User:</span>
-                    <code style={{ flex: 1, fontFamily: "var(--font-mono)" }}>{selected.username}</code>
-                    <button className="btn btn-ghost" onClick={() => copyToClipboard(selected.username)} style={{ fontSize: 10, padding: "2px 8px" }}>复制</button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-text-dim w-[60px]">User:</span>
+                    <code className="flex-1 font-mono">{selected.username}</code>
+                    <button className="btn btn-ghost text-[10px] px-2 py-0.5" onClick={() => copyToClipboard(selected.username)}>复制</button>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ color: "var(--text-dim)", width: 60 }}>Auth:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-text-dim w-[60px]">Auth:</span>
                     <span>{selected.authType === "key" ? "密钥" : selected.authType === "password" ? "密码" : "密钥+密码"}</span>
                   </div>
                 </div>
               </div>
 
               {selected.privateKeyPath && (
-                <div className="panel2" style={{ padding: 16, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent3)", marginBottom: 8, textTransform: "uppercase" }}>密钥路径</div>
-                  <div style={{ fontSize: 13, fontFamily: "var(--font-mono)", color: "var(--text-mid)" }}>
+                <div className="panel-inner p-4 rounded-sm border border-border">
+                  <div className="text-[10px] tracking-widest text-accent3 uppercase mb-2">密钥路径</div>
+                  <div className="text-sm font-mono text-text-mid">
                     {selected.privateKeyPath}
                   </div>
                 </div>
               )}
 
               {selected.notes && (
-                <div className="panel2" style={{ padding: 16, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent2)", marginBottom: 8, textTransform: "uppercase" }}>备注</div>
-                  <div style={{ fontSize: 13, color: "var(--text-mid)", whiteSpace: "pre-wrap" }}>{selected.notes}</div>
+                <div className="panel-inner p-4 rounded-sm border border-border">
+                  <div className="text-[10px] tracking-widest text-accent2 uppercase mb-2">备注</div>
+                  <div className="text-sm text-text-mid whitespace-pre-wrap">{selected.notes}</div>
                 </div>
               )}
 
               {selected.tags.length > 0 && (
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div className="flex gap-1.5 flex-wrap">
                   {selected.tags.map((t) => (
-                    <span key={t} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "var(--panel2)", color: "var(--text-mid)", border: "1px solid var(--border)" }}>
+                    <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-panel-2 text-text-mid border border-border">
                       {t}
                     </span>
                   ))}
                 </div>
               )}
 
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase" }}>快速连接命令</div>
-                <code style={{
-                  display: "block",
-                  padding: 12,
-                  background: "var(--panel2)",
-                  borderRadius: "var(--radius-sm)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 12,
-                  color: "var(--accent)",
-                }}>
+              <div className="mt-4">
+                <div className="text-[10px] tracking-widest text-text-dim uppercase mb-2">快速连接命令</div>
+                <code className="block p-3 bg-panel-2 rounded-sm font-mono text-xs text-accent">
                   ssh -i {selected.privateKeyPath || "~/.ssh/id_rsa"} -p {selected.port} {selected.username}@{selected.host}
                 </code>
               </div>
             </div>
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-dim)" }}>
+          <div className="flex items-center justify-center h-full text-text-dim">
             选择一个服务器查看详情，或点击"添加"创建新服务器
           </div>
         )}

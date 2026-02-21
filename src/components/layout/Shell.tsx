@@ -33,28 +33,14 @@ export default function Shell() {
   // 如果组件不存在，显示占位符
   if (!ViewComponent) {
     return (
-      <div style={{
-        position: "relative", zIndex: 1,
-        display: "flex", flexDirection: "column",
-        height: "100vh", overflow: "hidden",
-      }}>
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div className="relative z-10 flex flex-col h-screen overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
           <Sidebar />
-          <main style={{
-            flex: 1, overflow: "auto",
-            padding: "20px 24px",
-          }}>
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              color: "var(--text-dim)",
-            }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
-              <div style={{ fontSize: 16 }}>插件未启用或不存在</div>
-              <div style={{ fontSize: 12, marginTop: 8 }}>
+          <main className="flex-1 overflow-auto p-5">
+            <div className="flex flex-col items-center justify-center h-full text-text-dim">
+              <div className="text-5xl mb-4">⚙️</div>
+              <div className="text-base">插件未启用或不存在</div>
+              <div className="text-xs mt-2">
                 当前视图: {currentView}
               </div>
             </div>
@@ -65,17 +51,10 @@ export default function Shell() {
   }
 
   return (
-    <div style={{
-      position: "relative", zIndex: 1,
-      display: "flex", flexDirection: "column",
-      height: "100vh", overflow: "hidden",
-    }}>
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+    <div className="relative z-10 flex flex-col h-screen overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main style={{
-          flex: 1, overflow: "auto",
-          padding: "20px 24px",
-        }}>
+        <main className="flex-1 overflow-auto p-5">
           <div className="fade-up" key={currentView}>
             <ViewComponent />
           </div>

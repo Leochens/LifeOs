@@ -24,43 +24,30 @@ export default function SetupScreen() {
   };
 
   return (
-    <div style={{
-      position: "relative", zIndex: 1,
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      height: "100vh", gap: 32,
-    }}>
+    <div className="relative z-10 flex flex-col items-center justify-center h-screen gap-8">
       {/* Logo */}
-      <div style={{ textAlign: "center" }}>
-        <div style={{
-          fontFamily: "var(--font-disp)", fontSize: 64,
-          letterSpacing: 12, color: "var(--accent)",
-          textShadow: "var(--glow)", lineHeight: 1,
-        }}>
+      <div className="text-center">
+        <div className="font-disp text-6xl tracking-[12px] text-accent leading-none" style={{ textShadow: "var(--glow)" }}>
           LIFE OS
         </div>
-        <div style={{
-          fontFamily: "var(--font-mono)", fontSize: 12,
-          color: "var(--text-dim)", letterSpacing: 4, marginTop: 8,
-        }}>
+        <div className="font-mono text-xs text-text-dim tracking-widest mt-2">
           PERSONAL OPERATING SYSTEM
         </div>
       </div>
 
       {/* Setup card */}
-      <div className="panel fade-up" style={{ padding: 40, maxWidth: 480, width: "100%", textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>📁</div>
-        <h2 style={{ fontSize: 18, marginBottom: 8 }}>选择你的 Vault 目录</h2>
-        <p style={{ color: "var(--text-mid)", fontSize: 13, lineHeight: 1.8, marginBottom: 28 }}>
+      <div className="panel fade-up p-10 max-w-[480px] w-full text-center">
+        <div className="text-4xl mb-4">📁</div>
+        <h2 className="text-lg mb-2">选择你的 Vault 目录</h2>
+        <p className="text-text-mid text-sm leading-relaxed mb-7">
           Vault 是你所有数据的家。选择一个文件夹，Life OS 会在里面创建结构化的目录。
           <br />
-          推荐放在 <code style={{ color: "var(--accent)", fontSize: 11 }}>iCloud Drive</code> 或
-          <code style={{ color: "var(--accent)", fontSize: 11 }}> Dropbox</code> 下以实现跨设备同步。
+          推荐放在 <code className="text-accent text-[11px]">iCloud Drive</code> 或
+          <code className="text-accent text-[11px]"> Dropbox</code> 下以实现跨设备同步。
         </p>
 
         <button
-          className="btn btn-primary"
-          style={{ width: "100%", justifyContent: "center", padding: "12px 24px", fontSize: 15 }}
+          className="btn btn-primary w-full justify-center py-3 px-6 text-[15px]"
           onClick={handlePick}
           disabled={loading}
         >
@@ -68,16 +55,12 @@ export default function SetupScreen() {
         </button>
 
         {error && (
-          <div style={{
-            marginTop: 16, padding: "10px 14px",
-            background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.3)",
-            borderRadius: "var(--radius-sm)", color: "var(--accent4)", fontSize: 12,
-          }}>
+          <div className="mt-4 px-3.5 py-2.5 bg-accent4/10 border border-accent4/30 rounded-sm text-accent4 text-xs">
             {error}
           </div>
         )}
 
-        <div style={{ marginTop: 24, fontSize: 11, color: "var(--text-dim)", lineHeight: 2 }}>
+        <div className="mt-6 text-[11px] text-text-dim leading-8">
           ✦ 所有数据存储为 Markdown 文件<br />
           ✦ 完全离线，数据永远属于你<br />
           ✦ 支持任何编辑器直接编辑

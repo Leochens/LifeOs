@@ -275,21 +275,21 @@ function ProjectList({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)" }}>
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between">
+        <div className="font-[var(--font-disp)] text-[28px] tracking-[3px] text-accent">
           项目
         </div>
-        <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+        <span className="text-[12px] text-text-dim font-[var(--font-mono)]">
           {projects.length} 个项目
         </span>
       </div>
 
       {/* Add new project */}
       {showAdd ? (
-        <div className="panel" style={{ padding: 16, background: "var(--panel2)" }}>
+        <div className="panel p-4 bg-[var(--panel2)]">
           <input
-            className="input"
+            className="input w-full mb-3"
             autoFocus
             placeholder="项目名称..."
             value={newTitle}
@@ -307,19 +307,14 @@ function ProjectList({
                 setNewTitle("");
               }
             }}
-            style={{ width: "100%", marginBottom: 12 }}
           />
-          <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+          <div className="flex gap-1 mb-3">
             {(["low", "medium", "high", "urgent"] as Priority[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setNewPriority(p)}
+                className="flex-1 py-[6px] text-[12px] cursor-pointer rounded-[var(--radius-sm)]"
                 style={{
-                  flex: 1,
-                  padding: "6px 0",
-                  fontSize: 12,
-                  cursor: "pointer",
-                  borderRadius: "var(--radius-sm)",
                   background: newPriority === p ? `${PRIORITY_COLORS[p]}22` : "transparent",
                   color: newPriority === p ? PRIORITY_COLORS[p] : "var(--text-dim)",
                   border: `1px solid ${newPriority === p ? `${PRIORITY_COLORS[p]}55` : "var(--border)"}`,
@@ -330,16 +325,14 @@ function ProjectList({
             ))}
           </div>
           <input
-            className="input"
+            className="input w-full mb-3 text-[12px]"
             placeholder="标签 (逗号分隔)..."
             value={newTags}
             onChange={(e) => setNewTags(e.target.value)}
-            style={{ width: "100%", marginBottom: 12, fontSize: 12 }}
           />
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="flex gap-2">
             <button
-              className="btn btn-primary"
-              style={{ flex: 1, justifyContent: "center" }}
+              className="btn btn-primary flex-1 justify-center"
               onClick={() => {
                 if (newTitle.trim()) {
                   onCreateProject(newTitle, newPriority, newTags);
@@ -360,27 +353,7 @@ function ProjectList({
       ) : (
         <button
           onClick={() => setShowAdd(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "12px 16px",
-            background: "transparent",
-            border: "1px dashed var(--border)",
-            borderRadius: "var(--radius)",
-            color: "var(--text-dim)",
-            cursor: "pointer",
-            fontSize: 13,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--accent)";
-            e.currentTarget.style.color = "var(--accent)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--border)";
-            e.currentTarget.style.color = "var(--text-dim)";
-          }}
+          className="flex items-center gap-2 py-3 px-4 bg-transparent border border-dashed border-border rounded-[var(--radius)] text-text-dim cursor-pointer text-[13px] transition-all hover:border-accent hover:text-accent"
         >
           <Plus size={16} />
           新建项目
@@ -388,90 +361,62 @@ function ProjectList({
       )}
 
       {/* Project cards grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
         {projects.map((project) => {
           const pendingTodos = countPendingTodos(project.content);
           return (
             <div
               key={project.path}
               onClick={() => onSelectProject(project)}
-              style={{
-                background: "var(--panel2)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius)",
-                padding: 16,
-                cursor: "pointer",
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "var(--accent)";
-                e.currentTarget.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "var(--border)";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
+              className="bg-[var(--panel2)] border border-border rounded-[var(--radius)] p-4 cursor-pointer transition-all hover:border-accent hover:-translate-y-0.5"
             >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, flex: 1, lineHeight: 1.4 }}>{project.title}</div>
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-[15px] font-semibold flex-1 leading-[1.4]">{project.title}</div>
                 <span
+                  className="text-[10px] py-[2px] px-2 rounded-[10px] font-medium whitespace-nowrap ml-2"
                   style={{
-                    fontSize: 10,
-                    padding: "2px 8px",
-                    borderRadius: 10,
                     background: `${statusColors[project.status]}18`,
                     color: statusColors[project.status],
-                    fontWeight: 500,
-                    whiteSpace: "nowrap",
-                    marginLeft: 8,
                   }}
                 >
                   {statusLabels[project.status]}
                 </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <div className="flex items-center gap-2 mb-2">
                 {project.tags.slice(0, 3).map((tag) => (
-                  <span key={tag} className="tag" style={{ fontSize: 10 }}>
+                  <span key={tag} className="tag text-[10px]">
                     {tag}
                   </span>
                 ))}
                 {project.due && (
-                  <span style={{ fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                  <span className="text-[10px] text-text-dim font-[var(--font-mono)]">
                     {project.due}
                   </span>
                 )}
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-[10px]">
                   <span
-                    style={{
-                      fontSize: 10,
-                      color: "var(--text-dim)",
-                      fontFamily: "var(--font-mono)",
-                    }}
+                    className="text-[10px] text-text-dim font-[var(--font-mono)]"
                   >
                     {columns.length} 面板
                   </span>
                   {pendingTodos > 0 && (
                     <span
-                      style={{
-                        fontSize: 10,
-                        color: "var(--accent)",
-                        fontFamily: "var(--font-mono)",
-                      }}
+                      className="text-[10px] text-accent font-[var(--font-mono)]"
                     >
                       {pendingTodos} 待办
                     </span>
                   )}
                 </div>
                 {project.progress > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div className="progress-track" style={{ width: 60, height: 3 }}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="progress-track w-[60px] h-[3px]">
                       <div className="progress-fill" style={{ width: `${project.progress}%` }} />
                     </div>
-                    <span style={{ fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                    <span className="text-[10px] text-text-dim font-[var(--font-mono)]">
                       {project.progress}%
                     </span>
                   </div>
@@ -493,15 +438,18 @@ function DroppableColumn({
   id,
   children,
   style,
+  className,
 }: {
   id: string;
   children: React.ReactNode;
   style?: React.CSSProperties;
+  className?: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <div
       ref={setNodeRef}
+      className={className}
       style={{
         ...style,
         outline: isOver ? "2px solid var(--accent)" : "none",
@@ -540,20 +488,14 @@ function DraggableTaskCard({
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      className="bg-[var(--panel2)] border border-border rounded-[var(--radius-sm)] py-[10px] px-3 flex flex-col gap-1.5"
       style={{
-        background: "var(--panel2)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius-sm)",
-        padding: "10px 12px",
         cursor: isDragging ? "grabbing" : "grab",
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
         opacity: isDragging ? 0.5 : 1,
         ...dragStyle,
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+      <div className="flex items-start gap-2">
         <input
           type="checkbox"
           checked={task.done}
@@ -562,12 +504,12 @@ function DraggableTaskCard({
             onToggle();
           }}
           onPointerDown={(e) => e.stopPropagation()}
-          style={{ marginTop: 3, accentColor: "var(--accent)" }}
+          className="mt-[3px]"
+          style={{ accentColor: "var(--accent)" }}
         />
         <span
+          className="text-[13px] flex-1"
           style={{
-            fontSize: 13,
-            flex: 1,
             textDecoration: task.done ? "line-through" : "none",
             color: task.done ? "var(--text-dim)" : "var(--text)",
           }}
@@ -576,19 +518,13 @@ function DraggableTaskCard({
         </span>
       </div>
       {(task.priority || task.dueDate) && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 24 }}>
+        <div className="flex items-center gap-1.5 ml-6">
           {task.priority && (
             <span
+              className="text-[10px] py-[1px] px-1.5 rounded-[8px] font-medium flex items-center gap-[3px]"
               style={{
-                fontSize: 10,
-                padding: "1px 6px",
-                borderRadius: 8,
                 background: `${PRIORITY_COLORS[task.priority]}18`,
                 color: PRIORITY_COLORS[task.priority],
-                fontWeight: 500,
-                display: "flex",
-                alignItems: "center",
-                gap: 3,
               }}
             >
               <Flag size={9} />
@@ -597,16 +533,10 @@ function DraggableTaskCard({
           )}
           {task.dueDate && (
             <span
+              className="text-[10px] py-[1px] px-1.5 rounded-[8px] flex items-center gap-[3px] font-[var(--font-mono)]"
               style={{
-                fontSize: 10,
-                padding: "1px 6px",
-                borderRadius: 8,
                 background: isOverdue ? "rgba(255,80,80,0.15)" : "rgba(255,255,255,0.06)",
                 color: isOverdue ? "#ff5050" : "var(--text-dim)",
-                fontFamily: "var(--font-mono)",
-                display: "flex",
-                alignItems: "center",
-                gap: 3,
               }}
             >
               <Calendar size={9} />
@@ -786,35 +716,24 @@ function ProjectBoard({
   const draggedTask = dragActiveId ? tasks.find((t) => t.id === dragActiveId) : null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="flex flex-col gap-5">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div className="flex items-center gap-4">
         <button
           onClick={onBack}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 32,
-            height: 32,
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border)",
-            background: "var(--panel)",
-            color: "var(--text-dim)",
-            cursor: "pointer",
-          }}
+          className="flex items-center justify-center w-8 h-8 rounded-[var(--radius-sm)] border border-border bg-[var(--panel)] text-text-dim cursor-pointer"
         >
           <ChevronLeft size={18} />
         </button>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-disp)", fontSize: 24, letterSpacing: 2, color: "var(--accent)" }}>
+        <div className="flex-1">
+          <div className="font-[var(--font-disp)] text-[24px] tracking-[2px] text-accent">
             {project.title}
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
+          <div className="text-[12px] text-text-dim mt-1">
             {project.content.slice(0, 100)}...
           </div>
         </div>
-        <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+        <span className="text-[12px] text-text-dim font-[var(--font-mono)]">
           {tasks.length} 个任务 · {columns.length} 个面板
         </span>
       </div>
@@ -825,37 +744,23 @@ function ProjectBoard({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns.length},1fr)`, gap: 14, alignItems: "start" }}>
+        <div className="grid gap-[14px] items-start" style={{ gridTemplateColumns: `repeat(${columns.length},1fr)` }}>
           {columns.map((col) => (
             <DroppableColumn
               key={col.id}
               id={col.id}
-              style={{
-                borderRadius: "var(--radius)",
-                overflow: "hidden",
-                border: `1px solid var(--border)`,
-              }}
+              className="rounded-[var(--radius)] overflow-hidden border border-border"
             >
-              <div style={{ height: 3, background: `linear-gradient(90deg, ${col.color}, transparent)` }} />
+              <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${col.color}, transparent)` }} />
               <div
-                style={{
-                  padding: "12px 14px",
-                  background: "var(--panel)",
-                  borderBottom: "1px solid var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                }}
+                className="py-3 px-[14px] bg-[var(--panel)] border-b border-border flex items-center"
               >
-                <span style={{ fontSize: 13, fontWeight: 600, flex: 1, letterSpacing: 1 }}>{col.name}</span>
+                <span className="text-[13px] font-semibold flex-1 tracking-[1px]">{col.name}</span>
                 <span
+                  className="text-[11px] py-[2px] px-2.5 rounded-[20px] font-medium font-[var(--font-mono)]"
                   style={{
-                    fontSize: 11,
-                    padding: "2px 10px",
-                    borderRadius: 20,
                     background: `${col.color}18`,
                     color: col.color,
-                    fontFamily: "var(--font-mono)",
-                    fontWeight: 500,
                   }}
                 >
                   {(tasksByStatus[col.id] || []).length}
@@ -863,14 +768,7 @@ function ProjectBoard({
               </div>
 
               <div
-                style={{
-                  padding: 10,
-                  background: "var(--panel)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  minHeight: 100,
-                }}
+                className="p-[10px] bg-[var(--panel)] flex flex-col gap-2 min-h-[100px]"
               >
                 {(tasksByStatus[col.id] || []).map((task) => (
                   <DraggableTaskCard
@@ -882,15 +780,7 @@ function ProjectBoard({
 
                 {newTaskCol === col.id ? (
                   <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                      padding: 12,
-                      background: "var(--panel2)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius-sm)",
-                    }}
+                    className="flex flex-col gap-2 p-3 bg-[var(--panel2)] border border-border rounded-[var(--radius-sm)]"
                   >
                     <input
                       className="input"
@@ -908,17 +798,13 @@ function ProjectBoard({
                         }
                       }}
                     />
-                    <div style={{ display: "flex", gap: 3 }}>
+                    <div className="flex gap-[3px]">
                       {(["low", "medium", "high", "urgent"] as Priority[]).map((p) => (
                         <button
                           key={p}
                           onClick={() => setNewTaskPriority(newTaskPriority === p ? "" : p)}
+                          className="flex-1 py-1 text-[10px] cursor-pointer rounded-[var(--radius-sm)]"
                           style={{
-                            flex: 1,
-                            padding: "4px 0",
-                            fontSize: 10,
-                            cursor: "pointer",
-                            borderRadius: "var(--radius-sm)",
                             background: newTaskPriority === p ? `${PRIORITY_COLORS[p]}22` : "transparent",
                             color: newTaskPriority === p ? PRIORITY_COLORS[p] : "var(--text-dim)",
                             border: `1px solid ${newTaskPriority === p ? `${PRIORITY_COLORS[p]}55` : "var(--border)"}`,
@@ -930,22 +816,19 @@ function ProjectBoard({
                     </div>
                     <input
                       type="date"
-                      className="input"
+                      className="input text-[11px] py-1 px-2"
                       value={newTaskDueDate}
                       onChange={(e) => setNewTaskDueDate(e.target.value)}
-                      style={{ fontSize: 11, padding: "4px 8px" }}
                     />
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div className="flex gap-1.5">
                       <button
-                        className="btn btn-primary"
-                        style={{ flex: 1, justifyContent: "center", fontSize: 12, padding: "6px" }}
+                        className="btn btn-primary flex-1 justify-center text-[12px] py-1.5"
                         onClick={() => addTask(col.id)}
                       >
                         添加
                       </button>
                       <button
-                        className="btn btn-ghost"
-                        style={{ fontSize: 12, padding: "6px 10px" }}
+                        className="btn btn-ghost text-[12px] py-1.5 px-2.5"
                         onClick={() => {
                           setNewTaskCol(null);
                           setNewTaskText("");
@@ -960,25 +843,7 @@ function ProjectBoard({
                 ) : (
                   <button
                     onClick={() => setNewTaskCol(col.id)}
-                    style={{
-                      width: "100%",
-                      padding: "8px",
-                      background: "transparent",
-                      border: "1px dashed var(--border)",
-                      color: "var(--text-dim)",
-                      fontSize: 12,
-                      borderRadius: "var(--radius-sm)",
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = col.color;
-                      e.currentTarget.style.color = col.color;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "var(--border)";
-                      e.currentTarget.style.color = "var(--text-dim)";
-                    }}
+                    className="w-full py-2 bg-transparent border border-dashed border-border text-text-dim text-[12px] rounded-[var(--radius-sm)] cursor-pointer transition-all"
                   >
                     + 添加任务
                   </button>
@@ -989,59 +854,30 @@ function ProjectBoard({
 
           {/* Add column button */}
           <div
-            style={{
-              minWidth: 200,
-              borderRadius: "var(--radius)",
-              border: "1px dashed var(--border)",
-              padding: "40px 20px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 8,
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
+            className="min-w-[200px] rounded-[var(--radius)] border border-dashed border-border py-10 px-5 flex flex-col items-center gap-2 cursor-pointer transition-all"
             onClick={() => setShowAddCol(true)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent)";
-              e.currentTarget.style.color = "var(--accent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border)";
-              e.currentTarget.style.color = "var(--text-dim)";
-            }}
           >
             <Plus size={24} />
-            <span style={{ fontSize: 13 }}>新建面板</span>
+            <span className="text-[13px]">新建面板</span>
           </div>
         </div>
 
         <DragOverlay>
           {draggedTask ? (
             <div
-              style={{
-                background: "var(--panel2)",
-                border: "1px solid var(--accent)",
-                borderRadius: "var(--radius-sm)",
-                padding: "10px 12px",
-                cursor: "grabbing",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-              }}
+              className="bg-[var(--panel2)] border border-accent rounded-[var(--radius-sm)] py-[10px] px-3 cursor-grabbing shadow-[0_4px_16px_rgba(0,0,0,0.3)] flex flex-col gap-1.5"
             >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <div className="flex items-start gap-2">
                 <input
                   type="checkbox"
                   checked={draggedTask.done}
                   readOnly
-                  style={{ marginTop: 3, accentColor: "var(--accent)" }}
+                  className="mt-[3px]"
+                  style={{ accentColor: "var(--accent)" }}
                 />
                 <span
+                  className="text-[13px] flex-1"
                   style={{
-                    fontSize: 13,
-                    flex: 1,
                     textDecoration: draggedTask.done ? "line-through" : "none",
                     color: draggedTask.done ? "var(--text-dim)" : "var(--text)",
                   }}
@@ -1050,19 +886,13 @@ function ProjectBoard({
                 </span>
               </div>
               {(draggedTask.priority || draggedTask.dueDate) && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 24 }}>
+                <div className="flex items-center gap-1.5 ml-6">
                   {draggedTask.priority && (
                     <span
+                      className="text-[10px] py-[1px] px-1.5 rounded-[8px] font-medium flex items-center gap-[3px]"
                       style={{
-                        fontSize: 10,
-                        padding: "1px 6px",
-                        borderRadius: 8,
                         background: `${PRIORITY_COLORS[draggedTask.priority]}18`,
                         color: PRIORITY_COLORS[draggedTask.priority],
-                        fontWeight: 500,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 3,
                       }}
                     >
                       <Flag size={9} />
@@ -1071,16 +901,10 @@ function ProjectBoard({
                   )}
                   {draggedTask.dueDate && (
                     <span
+                      className="text-[10px] py-[1px] px-1.5 rounded-[8px] flex items-center gap-[3px] font-[var(--font-mono)]"
                       style={{
-                        fontSize: 10,
-                        padding: "1px 6px",
-                        borderRadius: 8,
                         background: "rgba(255,255,255,0.06)",
                         color: "var(--text-dim)",
-                        fontFamily: "var(--font-mono)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 3,
                       }}
                     >
                       <Calendar size={9} />
@@ -1097,63 +921,40 @@ function ProjectBoard({
       {/* Add Column Modal */}
       {showAddCol && (
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            zIndex: 100,
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center"
           onClick={(e) => e.target === e.currentTarget && setShowAddCol(false)}
         >
           <div
-            style={{
-              background: "var(--panel)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius)",
-              padding: 28,
-              width: 360,
-              display: "flex",
-              flexDirection: "column",
-              gap: 16,
-            }}
+            className="bg-[var(--panel)] border border-border rounded-[var(--radius)] p-7 w-[360px] flex flex-col gap-4"
           >
-            <div style={{ fontFamily: "var(--font-disp)", fontSize: 18, letterSpacing: 2, color: "var(--accent)" }}>
+            <div className="font-[var(--font-disp)] text-[18px] tracking-[2px] text-accent">
               新建面板
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>
+              <label className="block text-[12px] text-text-dim mb-1.5">
                 面板名称
               </label>
               <input
-                className="input"
+                className="input w-full"
                 autoFocus
                 placeholder="例如：进行中、待审核..."
                 value={newColName}
                 onChange={(e) => setNewColName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addColumn()}
-                style={{ width: "100%" }}
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>
+              <label className="block text-[12px] text-text-dim mb-1.5">
                 颜色
               </label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="flex gap-2 flex-wrap">
                 {["#00c8ff", "#c864ff", "#00c864", "#ff6b6b", "#ffd93d", "#6bcb77", "#ff9f43", "#a29bfe"].map(
                   (c) => (
                     <button
                       key={c}
                       onClick={() => setNewColColor(c)}
+                      className="w-7 h-7 rounded-[6px]"
                       style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 6,
                         border: newColColor === c ? "2px solid white" : "none",
                         background: c,
                         cursor: "pointer",
@@ -1164,7 +965,7 @@ function ProjectBoard({
                 )}
               </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+            <div className="flex justify-end gap-2.5 mt-2">
               <button className="btn btn-ghost" onClick={() => setShowAddCol(false)}>
                 取消
               </button>

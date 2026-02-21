@@ -124,32 +124,20 @@ export default function SkillsView() {
   }
 
   return (
-    <div style={{ display: "flex", gap: 16, height: "calc(100vh - 120px)" }}>
+    <div className="flex gap-4 h-[calc(100vh-120px)]">
       {/* Left panel - file list */}
       <div
-        className="panel"
-        style={{
-          width: 260,
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
+        className="panel shrink-0 flex flex-col overflow-hidden"
+        style={{ width: 260 }}
       >
         <div
-          style={{
-            padding: "16px 16px 12px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            gap: 8,
-          }}
+          className="flex gap-2 pb-3 px-4 border-b border-border"
         >
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={load}>
+          <button className="btn btn-ghost flex-1" onClick={load}>
             刷新
           </button>
           <button
-            className="btn btn-primary"
-            style={{ flex: 1 }}
+            className="btn btn-primary flex-1"
             onClick={() => {
               setShowNew(true);
               if (skillPaths.length > 0) setNewDir(skillPaths[0].path);
@@ -159,29 +147,22 @@ export default function SkillsView() {
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        <div className="flex-1 overflow-y-auto py-2">
           {groupOrder.map((group) => {
             const items = grouped[group];
             if (!items || items.length === 0) return null;
             return (
-              <div key={group} style={{ marginBottom: 8 }}>
+              <div key={group} className="mb-2">
                 <div
-                  className="label"
-                  style={{
-                    padding: "8px 16px 4px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
+                  className="label flex items-center gap-1.5 px-4 pt-2 pb-1"
                 >
                   <span
+                    className="shrink-0 rounded-full"
                     style={{
                       width: 6,
                       height: 6,
-                      borderRadius: "50%",
                       background: ideColor(group),
                       boxShadow: `0 0 6px ${ideColor(group)}`,
-                      flexShrink: 0,
                     }}
                   />
                   {group}
@@ -190,12 +171,8 @@ export default function SkillsView() {
                   <div
                     key={s.path}
                     onClick={() => setActiveSkill(s)}
+                    className="flex items-center justify-between px-4 py-2 cursor-pointer transition-colors duration-100"
                     style={{
-                      padding: "8px 16px",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
                       background:
                         activeSkill?.path === s.path
                           ? "rgba(0,200,255,0.08)"
@@ -204,7 +181,6 @@ export default function SkillsView() {
                         activeSkill?.path === s.path
                           ? `2px solid ${ideColor(group)}`
                           : "2px solid transparent",
-                      transition: "background 0.1s",
                     }}
                     onMouseEnter={(e) => {
                       if (activeSkill?.path !== s.path)
@@ -217,28 +193,15 @@ export default function SkillsView() {
                           "transparent";
                     }}
                   >
-                    <div style={{ flex: 1, overflow: "hidden" }}>
+                    <div className="flex-1 overflow-hidden">
                       <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 500,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
+                        className="font-medium text-sm overflow-hidden text-ellipsis whitespace-nowrap"
                       >
                         {s.title || s.name}
                       </div>
                       {s.description && (
                         <div
-                          style={{
-                            fontSize: 10,
-                            color: "var(--text-dim)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            marginTop: 2,
-                          }}
+                          className="text-[10px] text-text-dim overflow-hidden text-ellipsis whitespace-nowrap mt-0.5"
                         >
                           {s.description}
                         </div>
@@ -251,12 +214,7 @@ export default function SkillsView() {
           })}
           {skills.length === 0 && (
             <div
-              style={{
-                padding: 20,
-                color: "var(--text-dim)",
-                fontSize: 13,
-                textAlign: "center",
-              }}
+              className="p-5 text-text-dim text-sm text-center"
             >
               没有发现 Skill 文件
             </div>
@@ -266,35 +224,18 @@ export default function SkillsView() {
 
       {/* Right panel - editor */}
       <div
-        className="panel"
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
+        className="panel flex-1 flex flex-col overflow-hidden"
       >
         {activeSkill ? (
           <>
             <div
-              style={{
-                padding: "16px 20px",
-                borderBottom: "1px solid var(--border)",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
+              className="flex items-center gap-3 px-5 py-4 border-b border-border"
             >
-              <div style={{ flex: 1 }}>
+              <div className="flex-1">
                 <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    marginBottom: 4,
-                  }}
+                  className="flex items-center gap-2.5 mb-1"
                 >
-                  <span style={{ fontSize: 16, fontWeight: 600 }}>
+                  <span className="text-base font-semibold">
                     {activeSkill.title || activeSkill.name}
                   </span>
                   <span
@@ -308,11 +249,7 @@ export default function SkillsView() {
                   </span>
                 </div>
                 <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-dim)",
-                    fontFamily: "var(--font-mono)",
-                  }}
+                  className="text-[11px] text-text-dim font-mono"
                 >
                   {activeSkill.path}
                 </div>
@@ -332,30 +269,12 @@ export default function SkillsView() {
               </button>
             </div>
             <textarea
-              className="input"
-              value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
-              style={{
-                flex: 1,
-                margin: 12,
-                fontFamily: "var(--font-mono)",
-                fontSize: 13,
-                lineHeight: 1.8,
-                resize: "none",
-                borderRadius: "var(--radius-sm)",
-              }}
+              className="input flex-1 m-3 font-mono text-sm leading-relaxed resize-none rounded-sm"
             />
           </>
         ) : (
           <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-dim)",
-              fontSize: 14,
-            }}
+            className="flex-1 flex items-center justify-center text-text-dim text-sm"
           >
             从左侧选择一个 Skill 文件查看和编辑
           </div>
@@ -365,30 +284,15 @@ export default function SkillsView() {
       {/* Error display */}
       {error && (
         <div
+          className="fixed bottom-5 right-5 p-[10px_16px] border border-accent4 rounded-sm text-[13px] z-[200] max-w-[400px]"
           style={{
-            position: "fixed",
-            bottom: 20,
-            right: 20,
             background: "rgba(255,107,107,0.15)",
-            border: "1px solid var(--accent4)",
             color: "var(--accent4)",
-            padding: "10px 16px",
-            borderRadius: "var(--radius-sm)",
-            fontSize: 13,
-            zIndex: 200,
-            maxWidth: 400,
           }}
         >
           {error}
           <button
-            style={{
-              marginLeft: 12,
-              background: "none",
-              border: "none",
-              color: "var(--accent4)",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className="ml-3 bg-none border-none cursor-pointer text-accent4 text-[13px]"
             onClick={() => setError("")}
           >
             x
@@ -405,25 +309,15 @@ export default function SkillsView() {
             style={{ minWidth: 420 }}
           >
             <div
-              style={{
-                fontFamily: "var(--font-disp)",
-                fontSize: 22,
-                letterSpacing: 2,
-                color: "var(--accent)",
-                marginBottom: 20,
-              }}
+              className="font-disp text-2xl tracking-widest text-accent mb-5"
             >
               新建 SKILL
             </div>
             <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-              }}
+              className="flex flex-col gap-3.5"
             >
               <div>
-                <div className="label" style={{ marginBottom: 6 }}>
+                <div className="label mb-1.5">
                   文件名
                 </div>
                 <input
@@ -434,7 +328,7 @@ export default function SkillsView() {
                 />
               </div>
               <div>
-                <div className="label" style={{ marginBottom: 6 }}>
+                <div className="label mb-1.5">
                   保存目录
                 </div>
                 <select
@@ -451,12 +345,7 @@ export default function SkillsView() {
                 </select>
               </div>
               <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  justifyContent: "flex-end",
-                  marginTop: 8,
-                }}
+                className="flex gap-2.5 justify-end mt-2"
               >
                 <button
                   className="btn btn-ghost"

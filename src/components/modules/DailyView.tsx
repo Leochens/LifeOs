@@ -61,7 +61,7 @@ export default function DailyView() {
   };
 
   if (tab === "today" && !todayNote) {
-    return <div style={{ color: "var(--text-dim)" }}>加载中...</div>;
+    return <div className="text-text-dim">加载中...</div>;
   }
 
   const save = async (updated: DayNote) => {
@@ -117,21 +117,27 @@ export default function DailyView() {
   const startPad = getDay(monthStart); // 0=Sun
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 900 }}>
+    <div className="flex flex-col gap-5 max-w-[900px]">
       {/* Tab bar */}
-      <div style={{ display: "flex", gap: 0 }}>
+      <div className="flex gap-0">
         {(["today", "history"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
+            className={`px-6 text-sm cursor-pointer font-sans transition-all duration-150 ${
+              t === "today"
+                ? "rounded-l-sm rounded-r-none"
+                : "rounded-r-sm rounded-l-none"
+            } ${
+              tab === t
+                ? "bg-accent/10 text-accent border border-accent/30"
+                : "bg-transparent text-text-dim border border-border"
+            }`}
             style={{
-              padding: "8px 24px", fontSize: 14, cursor: "pointer",
-              fontFamily: "var(--font-sans)",
+              padding: "8px 24px",
               background: tab === t ? "rgba(0,200,255,0.1)" : "transparent",
               color: tab === t ? "var(--accent)" : "var(--text-dim)",
               border: `1px solid ${tab === t ? "rgba(0,200,255,0.3)" : "var(--border)"}`,
-              borderRadius: t === "today" ? "var(--radius-sm) 0 0 var(--radius-sm)" : "0 var(--radius-sm) var(--radius-sm) 0",
-              transition: "all 0.15s",
             }}
           >
             {t === "today" ? "今日" : "历史"}
@@ -142,23 +148,23 @@ export default function DailyView() {
       {tab === "today" && todayNote && (
         <>
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="flex items-center justify-between">
             <div>
-              <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)" }}>
+              <div className="font-disp text-[28px] tracking-widest text-accent">
                 今日任务
               </div>
-              <div style={{ color: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)", marginTop: 2 }}>
+              <div className="text-text-dim text-xs font-mono mt-0.5">
                 {format(new Date(), "yyyy年MM月dd日 EEEE", { locale: zhCN })}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {saving && <span style={{ fontSize: 11, color: "var(--text-dim)" }}>保存中...</span>}
+            <div className="flex gap-2 items-center">
+              {saving && <span className="text-xs text-text-dim">保存中...</span>}
               <MoodBadge mood={todayNote.mood} />
             </div>
           </div>
 
           {/* Add task */}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="flex gap-2">
             <input
               className="input"
               placeholder="添加任务... 支持 #标签  (Enter 确认)"
@@ -166,7 +172,7 @@ export default function DailyView() {
               onChange={(e) => setNewTask(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTask()}
             />
-            <button className="btn btn-primary" onClick={addTask} style={{ whiteSpace: "nowrap" }}>
+            <button className="btn btn-primary whitespace-nowrap">
               + 添加
             </button>
           </div>
@@ -174,31 +180,30 @@ export default function DailyView() {
           {/* Progress */}
           {todayNote.tasks.length > 0 && (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>
+              <div className="flex justify-between text-xs text-text-dim mb-1.5">
                 <span>今日进度</span>
-                <span style={{ color: "var(--accent)" }}>{done.length}/{todayNote.tasks.length}</span>
+                <span className="text-accent">{done.length}/{todayNote.tasks.length}</span>
               </div>
-              <div className="progress-track" style={{ height: 6 }}>
+              <div className="progress-track h-1.5">
                 <div className="progress-fill"
                   style={{ width: `${todayNote.tasks.length ? (done.length / todayNote.tasks.length) * 100 : 0}%` }} />
               </div>
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-2 gap-4">
             {/* Pending */}
-            <div className="panel" style={{ padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent5)",
-                             boxShadow: "0 0 6px var(--accent5)" }} />
+            <div className="panel p-5">
+              <div className="flex items-center gap-2 mb-3.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent5" style={{ boxShadow: "0 0 6px var(--accent5)" }} />
                 <span className="label">待完成 ({pending.length})</span>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="flex flex-col gap-1.5">
                 {pending.map((task) => (
                   <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />
                 ))}
                 {pending.length === 0 && (
-                  <div style={{ color: "var(--accent3)", fontSize: 13, padding: "10px 0" }}>
+                  <div className="text-accent3 text-sm py-2.5">
                     全部完成！
                   </div>
                 )}
@@ -206,33 +211,30 @@ export default function DailyView() {
             </div>
 
             {/* Done */}
-            <div className="panel" style={{ padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent3)",
-                             boxShadow: "0 0 6px var(--accent3)" }} />
+            <div className="panel p-5">
+              <div className="flex items-center gap-2 mb-3.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent3" style={{ boxShadow: "0 0 6px var(--accent3)" }} />
                 <span className="label">已完成 ({done.length})</span>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="flex flex-col gap-1.5">
                 {done.map((task) => (
                   <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />
                 ))}
                 {done.length === 0 && (
-                  <div style={{ color: "var(--text-dim)", fontSize: 13 }}>尚未完成任何任务</div>
+                  <div className="text-text-dim text-sm">尚未完成任何任务</div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Notes section */}
-          <div className="panel" style={{ padding: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent2)",
-                           boxShadow: "0 0 6px var(--accent2)" }} />
+          <div className="panel p-5">
+            <div className="flex items-center gap-2 mb-3.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent2" style={{ boxShadow: "0 0 6px var(--accent2)" }} />
               <span className="label">今日笔记</span>
             </div>
             <textarea
-              className="input"
-              style={{ minHeight: 120 }}
+              className="input min-h-[120px]"
               value={todayNote.notes}
               placeholder="今天有什么想记录的..."
               onChange={(e) => setTodayNote({ ...todayNote, notes: e.target.value })}
@@ -245,47 +247,42 @@ export default function DailyView() {
       {tab === "history" && (
         <>
           {/* Header */}
-          <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)" }}>
+          <div className="font-disp text-[28px] tracking-widest text-accent">
             历史任务
           </div>
 
           {/* Calendar */}
-          <div className="panel" style={{ padding: 24 }}>
+          <div className="panel p-6">
             {/* Month nav */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+            <div className="flex justify-between items-center mb-6">
               <button
-                className="btn btn-ghost"
+                className="btn btn-ghost px-3.5 text-sm"
                 onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
-                style={{ padding: "8px 14px", fontSize: 13 }}
               >
                 ← 上月
               </button>
-              <span style={{ fontFamily: "var(--font-disp)", fontSize: 20, color: "var(--accent)", letterSpacing: 3 }}>
+              <span className="font-disp text-xl text-accent tracking-widest">
                 {format(calMonth, "yyyy年MM月", { locale: zhCN })}
               </span>
               <button
-                className="btn btn-ghost"
+                className="btn btn-ghost px-3.5 text-sm"
                 onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
-                style={{ padding: "8px 14px", fontSize: 13 }}
               >
                 下月 →
               </button>
             </div>
 
             {/* Weekday headers */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, textAlign: "center", marginBottom: 12 }}>
+            <div className="grid grid-cols-7 gap-1.5 text-center mb-3">
               {["日", "一", "二", "三", "四", "五", "六"].map((d, i) => (
-                <div key={d} style={{
-                  fontSize: 12, color: i === 0 || i === 6 ? "var(--accent4)" : "var(--text-dim)",
-                  padding: "10px 0", fontFamily: "var(--font-mono)", fontWeight: 600
-                }}>
+                <div key={d} className={`text-xs py-2.5 font-mono font-semibold ${i === 0 || i === 6 ? "text-accent4" : "text-text-dim"}`}>
                   {d}
                 </div>
               ))}
 
               {/* Empty cells for padding */}
               {Array.from({ length: startPad }).map((_, i) => (
-                <div key={`pad-${i}`} style={{ height: 52 }} />
+                <div key={`pad-${i}`} className="h-13" />
               ))}
 
               {/* Days */}
@@ -300,25 +297,21 @@ export default function DailyView() {
                   <div
                     key={dateStr}
                     onClick={() => hasData && loadDate(dateStr)}
+                    className="h-13 rounded-xl text-sm relative transition-all duration-200 flex flex-col items-center justify-center cursor-pointer"
                     style={{
-                      height: 52, cursor: hasData ? "pointer" : "default",
-                      borderRadius: 12, textAlign: "center",
-                      fontSize: 14, position: "relative",
-                      transition: "all 0.2s",
+                      cursor: hasData ? "pointer" : "default",
                       background: isSelected ? "var(--accent)" : isToday ? "rgba(0,200,255,0.08)" : "transparent",
                       color: isSelected ? "#fff" : !inMonth ? "var(--text-dim)" : "var(--text)",
                       fontWeight: isToday ? 600 : 400,
                       border: isToday && !isSelected ? "1px solid var(--accent)" : "1px solid transparent",
-                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                     }}
                   >
                     <div>{day.getDate()}</div>
                     {hasData && (
-                      <div style={{
-                        width: 5, height: 5, borderRadius: "50%",
-                        background: isSelected ? "#fff" : "var(--accent3)",
-                        marginTop: 2,
-                      }} />
+                      <div className="w-1 h-1 rounded-full absolute bottom-2"
+                        style={{
+                          background: isSelected ? "#fff" : "var(--accent3)",
+                        }} />
                     )}
                   </div>
                 );
@@ -326,17 +319,17 @@ export default function DailyView() {
             </div>
 
             {/* Legend */}
-            <div style={{ display: "flex", gap: 20, justifyContent: "center", marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-dim)" }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, background: "var(--accent)" }} />
+            <div className="flex gap-5 justify-center mt-5 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 text-xs text-text-dim">
+                <div className="w-2.5 h-2.5 rounded-sm bg-accent" />
                 已选择
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-dim)" }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, background: "rgba(0,200,255,0.08)", border: "1px solid var(--accent)" }} />
+              <div className="flex items-center gap-2 text-xs text-text-dim">
+                <div className="w-2.5 h-2.5 rounded-sm bg-accent/10 border border-accent" />
                 今日
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-dim)" }}>
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent3)" }} />
+              <div className="flex items-center gap-2 text-xs text-text-dim">
+                <div className="w-2.5 h-2.5 rounded-full bg-accent3" />
                 有记录
               </div>
             </div>
@@ -344,50 +337,34 @@ export default function DailyView() {
 
           {/* Selected date tasks (read-only) */}
           {selectedDate && (
-            <div className="panel" style={{ padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)",
-                             boxShadow: "0 0 6px var(--accent)" }} />
+            <div className="panel p-5">
+              <div className="flex items-center gap-2 mb-3.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent" style={{ boxShadow: "0 0 6px var(--accent)" }} />
                 <span className="label">{selectedDate} 的任务</span>
               </div>
               {selectedNote && selectedNote.tasks.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div className="flex flex-col gap-1.5">
                   {selectedNote.tasks.map((task) => (
                     <div
                       key={task.id}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "9px 12px",
-                        background: "var(--panel2)", border: "1px solid var(--border)",
-                        borderRadius: "var(--radius-sm)",
-                        opacity: task.done ? 0.55 : 1,
-                      }}
+                      className="flex items-center gap-2.5 px-3 py-2.25 bg-panel-2 border border-border rounded-sm"
                     >
-                      <div style={{
-                        width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-                        background: task.done ? "var(--accent3)" : "transparent",
-                        border: `1.5px solid ${task.done ? "var(--accent3)" : "var(--border)"}`,
-                        color: task.done ? "#000" : "transparent",
-                        fontSize: 11,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
+                      <div className={`w-5 h-5 rounded-sm flex-shrink-0 flex items-center justify-center text-xs ${
+                        task.done ? "bg-accent3 text-black" : "bg-transparent border border-border"
+                      }`}>
                         {task.done && "✓"}
                       </div>
-                      <span style={{
-                        flex: 1, fontSize: 13,
-                        textDecoration: task.done ? "line-through" : "none",
-                        color: task.done ? "var(--text-dim)" : "var(--text)",
-                      }}>
+                      <span className={`flex-1 text-sm ${task.done ? "line-through text-text-dim" : "text-text"}`}>
                         {task.text}
                       </span>
                       {task.tags.map((tag) => (
-                        <span key={tag} className="tag" style={{ fontSize: 10 }}>#{tag}</span>
+                        <span key={tag} className="tag text-[10px]">#{tag}</span>
                       ))}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
+                <div className="text-text-dim text-sm">
                   {selectedNote ? "该日期没有任务记录" : "加载中..."}
                 </div>
               )}
@@ -405,43 +382,26 @@ function TaskRow({ task, onToggle, onDelete }: {
   onDelete: (id: string) => void;
 }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 10,
-      padding: "9px 12px",
-      background: "var(--panel2)", border: "1px solid var(--border)",
-      borderRadius: "var(--radius-sm)",
-      opacity: task.done ? 0.55 : 1,
-      transition: "opacity 0.2s",
-    }}>
+    <div className="flex items-center gap-2.5 px-3 py-2.25 bg-panel-2 border border-border rounded-sm transition-opacity duration-200">
       <button
         onClick={() => onToggle(task.id)}
-        style={{
-          width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-          background: task.done ? "var(--accent3)" : "transparent",
-          border: `1.5px solid ${task.done ? "var(--accent3)" : "var(--border)"}`,
-          color: task.done ? "#000" : "transparent",
-          fontSize: 11, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          transition: "all 0.15s",
-          boxShadow: task.done ? "0 0 8px var(--accent3)" : "none",
-        }}
+        className={`w-5 h-5 rounded-sm flex-shrink-0 flex items-center justify-center text-xs cursor-pointer transition-all duration-150 ${
+          task.done
+            ? "bg-accent3 text-black shadow-[0_0_8px_var(--accent3)]"
+            : "bg-transparent border border-border text-transparent"
+        }`}
       >
         ✓
       </button>
-      <span style={{
-        flex: 1, fontSize: 13,
-        textDecoration: task.done ? "line-through" : "none",
-        color: task.done ? "var(--text-dim)" : "var(--text)",
-      }}>
+      <span className={`flex-1 text-sm ${task.done ? "line-through text-text-dim" : "text-text"}`}>
         {task.text}
       </span>
       {task.tags.map((tag) => (
-        <span key={tag} className="tag" style={{ fontSize: 10 }}>#{tag}</span>
+        <span key={tag} className="tag text-[10px]">#{tag}</span>
       ))}
       <button
-        className="btn-icon"
+        className="btn-icon px-1.5 py-0.5 text-xs opacity-40 hover:opacity-100"
         onClick={() => onDelete(task.id)}
-        style={{ padding: "2px 6px", fontSize: 11, opacity: 0.4 }}
       >
         ✕
       </button>
@@ -451,11 +411,7 @@ function TaskRow({ task, onToggle, onDelete }: {
 
 function MoodBadge({ mood }: { mood: string }) {
   return (
-    <div style={{
-      padding: "6px 14px", border: "1px solid var(--border)",
-      borderRadius: 20, fontSize: 20,
-      background: "var(--panel)",
-    }}>
+    <div className="px-3.5 py-1.5 border border-border rounded-full text-xl bg-panel">
       {mood}
     </div>
   );

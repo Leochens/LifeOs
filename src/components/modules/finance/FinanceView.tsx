@@ -314,30 +314,17 @@ export default function FinanceView() {
     change?: number | null,
   ) => (
     <div
-      style={{
-        background: "var(--panel)",
-        borderRadius: 12,
-        padding: "18px 20px",
-        border: "1px solid var(--border)",
-        flex: 1,
-        minWidth: 160,
-      }}
+      className="bg-[var(--panel)] rounded-[12px] py-[18px] px-5 border border-border flex-1 min-w-[160px]"
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+      <div className="flex items-center gap-2 mb-2">
         {icon}
-        <span style={{ color: "var(--text-dim)", fontSize: 13 }}>{label}</span>
+        <span className="text-[13px] text-text-dim">{label}</span>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+      <div className="text-[22px] font-bold">{value}</div>
       {change !== undefined && change !== null && (
         <div
-          style={{
-            fontSize: 12,
-            marginTop: 4,
-            color: change >= 0 ? "#22c55e" : "#ef4444",
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-          }}
+          className="text-[12px] mt-1 flex items-center gap-0.5"
+          style={{ color: change >= 0 ? "#22c55e" : "#ef4444" }}
         >
           {change >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
           {change >= 0 ? "+" : ""}
@@ -348,23 +335,16 @@ export default function FinanceView() {
   );
 
   const renderStepIndicator = () => (
-    <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 32 }}>
+    <div className="flex items-center gap-0 mb-8">
       {STEP_LABELS.map((s, i) => {
         const stepNum = i + 1;
         const isActive = step === stepNum;
         const isDone = step > stepNum;
         return (
-          <div key={s.key} style={{ display: "flex", alignItems: "center" }}>
+          <div key={s.key} className="flex items-center">
             <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-semibold transition-all"
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 13,
-                fontWeight: 600,
                 background: isDone
                   ? "var(--accent)"
                   : isActive
@@ -372,30 +352,23 @@ export default function FinanceView() {
                     : "var(--panel)",
                 color: isDone || isActive ? "#fff" : "var(--text-dim)",
                 border: isDone || isActive ? "none" : "1px solid var(--border)",
-                transition: "all 0.2s",
               }}
             >
               {isDone ? <Check size={14} /> : stepNum}
             </div>
             <span
+              className="text-[12px] ml-1.5 whitespace-nowrap"
               style={{
-                fontSize: 12,
-                marginLeft: 6,
                 color: isActive ? "var(--accent)" : "var(--text-dim)",
                 fontWeight: isActive ? 600 : 400,
-                whiteSpace: "nowrap",
               }}
             >
               {s.label}
             </span>
             {i < STEP_LABELS.length - 1 && (
               <div
-                style={{
-                  width: 32,
-                  height: 2,
-                  background: isDone ? "var(--accent)" : "var(--border)",
-                  margin: "0 8px",
-                }}
+                className="w-8 h-0.5 mx-2"
+                style={{ background: isDone ? "var(--accent)" : "var(--border)" }}
               />
             )}
           </div>
@@ -407,33 +380,22 @@ export default function FinanceView() {
   const renderBarChart = () => {
     if (barData.length === 0) return null;
     return (
-      <div style={{ marginTop: 24 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 16,
-            fontSize: 15,
-            fontWeight: 600,
-          }}
-        >
+      <div className="mt-6">
+        <div className="flex items-center gap-2 mb-4 text-[15px] font-semibold">
           <BarChart3 size={16} />
           资产对比
         </div>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 24, height: 240, padding: "0 12px" }}>
+        <div className="flex items-end gap-6 h-[240px] px-3">
           {barData.map((d) => {
             const h = (d.value / barMaxValue) * 200;
             const diff = d.prev !== null ? d.value - d.prev : null;
             return (
-              <div key={d.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+              <div key={d.label} className="flex flex-col items-center flex-1">
                 {diff !== null && (
                   <div
+                    className="text-[11px] mb-1 font-medium"
                     style={{
-                      fontSize: 11,
-                      marginBottom: 4,
                       color: diff >= 0 ? "#22c55e" : "#ef4444",
-                      fontWeight: 500,
                     }}
                   >
                     {diff >= 0 ? "↑" : "↓"}
@@ -441,20 +403,19 @@ export default function FinanceView() {
                   </div>
                 )}
                 <div
+                  className="rounded-t-[6px] transition-all"
                   style={{
                     height: Math.max(h, 4),
                     width: 40,
                     background: d.label === "负债"
                       ? "linear-gradient(to top, #ef4444, #f87171)"
                       : "linear-gradient(to top, var(--accent), var(--accent2-5, #60a5fa))",
-                    borderRadius: "6px 6px 0 0",
-                    transition: "height 0.3s",
                   }}
                 />
-                <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6, textAlign: "center" }}>
+                <div className="text-[11px] text-text-dim mt-1.5 text-center">
                   {d.label}
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>
+                <div className="text-[12px] font-semibold mt-0.5">
                   {formatMoney(d.value)}
                 </div>
               </div>
@@ -489,90 +450,52 @@ export default function FinanceView() {
     ];
 
     return (
-      <div style={{ marginTop: 24 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 16,
-            fontSize: 15,
-            fontWeight: 600,
-          }}
-        >
+      <div className="mt-6">
+        <div className="flex items-center gap-2 mb-4 text-[15px] font-semibold">
           <GitBranch size={16} />
           资产构成
         </div>
-        <div style={{ padding: "0 8px" }}>
+        <div className="px-2">
           {treeData.map((node) => (
-            <div key={node.label} style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: node.color }} />
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{node.label}</span>
-                <span style={{ color: "var(--text-dim)", fontSize: 13, marginLeft: "auto" }}>
+            <div key={node.label} className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ background: node.color }} />
+                <span className="font-semibold text-[14px]">{node.label}</span>
+                <span className="text-text-dim text-[13px] ml-auto">
                   {formatMoney(node.value)}
                 </span>
               </div>
               {node.children.map((child, ci) => (
                 <div
                   key={child.label}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginLeft: 24,
-                    padding: "4px 0",
-                    position: "relative",
-                  }}
+                  className="flex items-center gap-2 ml-6 py-1 relative"
                 >
                   <div
+                    className="absolute -left-4 top-0 bottom-0 w-0.5"
                     style={{
-                      position: "absolute",
-                      left: -16,
-                      top: 0,
-                      bottom: ci === node.children.length - 1 ? "50%" : 0,
-                      width: 1,
                       background: "var(--border)",
+                      bottom: ci === node.children.length - 1 ? "50%" : undefined,
                     }}
                   />
                   <div
-                    style={{
-                      position: "absolute",
-                      left: -16,
-                      top: "50%",
-                      width: 12,
-                      height: 1,
-                      background: "var(--border)",
-                    }}
+                    className="absolute -left-3 top-1/2 w-3 h-0.5 -translate-y-1/2"
+                    style={{ background: "var(--border)" }}
                   />
                   <div
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: "var(--text-dim)",
-                    }}
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: "var(--text-dim)" }}
                   />
-                  <span style={{ fontSize: 13 }}>{child.label}</span>
-                  <span style={{ color: "var(--text-dim)", fontSize: 12, marginLeft: "auto" }}>
+                  <span className="text-[13px]">{child.label}</span>
+                  <span className="text-text-dim text-[12px] ml-auto">
                     {formatMoney(child.value)}
                   </span>
                   {totalAssets > 0 && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 4,
-                        borderRadius: 2,
-                        background: "var(--border)",
-                        overflow: "hidden",
-                      }}
-                    >
+                    <div className="w-[60px] h-1 rounded-[2px] bg-border overflow-hidden">
                       <div
+                        className="h-full rounded-[2px]"
                         style={{
                           width: `${(child.value / totalAssets) * 100}%`,
-                          height: "100%",
                           background: "var(--accent)",
-                          borderRadius: 2,
                         }}
                       />
                     </div>

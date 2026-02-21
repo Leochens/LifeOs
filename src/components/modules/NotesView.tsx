@@ -138,41 +138,39 @@ export default function NotesView() {
     : allNotes;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, height: "100%" }}>
+    <div className="flex flex-col gap-5 h-full">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)" }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="font-[var(--font-disp)] text-[28px] tracking-[3px] text-accent">
             备忘录
           </div>
-          <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+          <span className="text-xs text-text-dim font-[var(--font-mono)]">
             {total} 条备忘录
           </span>
         </div>
         <button
-          className="btn btn-primary"
+          className="btn btn-primary text-xs px-3.5 py-1.5 flex items-center gap-1"
           onClick={() => setShowNewNote(true)}
-          style={{ fontSize: 12, padding: "6px 14px", display: "flex", alignItems: "center", gap: 4 }}
         >
           <Plus size={14} /> 新建备忘录
         </button>
       </div>
 
       {/* Search */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ position: "relative", flex: 1, maxWidth: 400 }}>
-          <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }} />
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-[400px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" />
           <input
             type="text"
             placeholder="搜索备忘录..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input"
-            style={{ paddingLeft: 36, width: "100%" }}
+            className="input pl-9 w-full"
           />
         </div>
         {searchQuery && (
-          <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+          <span className="text-xs text-text-dim">
             搜索: "{searchQuery}"
           </span>
         )}
@@ -180,105 +178,55 @@ export default function NotesView() {
 
       {/* Loading / Error states */}
       {loading && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-          <RefreshCw size={24} style={{ animation: "spin 1s linear infinite", color: "var(--accent)" }} />
+        <div className="flex items-center justify-center p-10">
+          <RefreshCw size={24} className="animate-spin text-accent" />
         </div>
       )}
 
       {error && (
-        <div style={{
-          padding: 16,
-          background: "rgba(255,80,80,0.1)",
-          border: "1px solid rgba(255,80,80,0.3)",
-          borderRadius: "var(--radius)",
-          color: "#ff5050",
-          fontSize: 13,
-        }}>
+        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-[var(--radius)] text-red-500 text-sm">
           {error}
         </div>
       )}
 
       {!loading && !error && allNotes.length === 0 && (
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 60,
-          color: "var(--text-dim)",
-        }}>
-          <FileText size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
+        <div className="flex flex-col items-center justify-center p-16 text-text-dim">
+          <FileText size={48} className="mb-4 opacity-50" />
           <div>{searchQuery ? "没有找到匹配的备忘录" : "暂无备忘录"}</div>
         </div>
       )}
 
       {/* Main content */}
       {!loading && !error && allNotes.length > 0 && (
-        <div style={{ display: "flex", gap: 20, flex: 1, overflow: "hidden" }}>
+        <div className="flex gap-5 flex-1 overflow-hidden">
           {/* Folder sidebar */}
-          <div style={{
-            width: 180,
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-          }}>
-            <div style={{
-              fontSize: 11,
-              color: "var(--text-dim)",
-              fontWeight: 500,
-              letterSpacing: 1,
-              padding: "8px 10px",
-              textTransform: "uppercase",
-            }}>
+          <div className="w-[180px] shrink-0 flex flex-col gap-1">
+            <div className="text-xs text-text-dim font-medium tracking-wider uppercase px-2.5 py-2">
               文件夹
             </div>
             <button
               onClick={() => setSelectedFolder(null)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 10px",
-                background: selectedFolder === null ? "rgba(0,200,255,0.1)" : "transparent",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                color: selectedFolder === null ? "var(--accent)" : "var(--text-dim)",
-                cursor: "pointer",
-                fontSize: 13,
-                textAlign: "left",
-                width: "100%",
-              }}
+              className={`flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-sm)] border-none cursor-pointer text-sm text-left w-full transition-colors ${
+                selectedFolder === null ? "bg-cyan-500/10 text-accent" : "text-text-dim hover:bg-white/5"
+              }`}
             >
               <Folder size={14} />
-              <span style={{ flex: 1 }}>全部</span>
-              <span style={{ fontSize: 11, opacity: 0.6 }}>{total}</span>
+              <span className="flex-1">全部</span>
+              <span className="text-xs opacity-60">{total}</span>
             </button>
             {folders.map((folder) => (
               <button
                 key={folder}
                 onClick={() => setSelectedFolder(folder)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 10px",
-                  background: selectedFolder === folder ? "rgba(0,200,255,0.1)" : "transparent",
-                  border: "none",
-                  borderRadius: "var(--radius-sm)",
-                  color: selectedFolder === folder ? "var(--accent)" : "var(--text-dim)",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  textAlign: "left",
-                  width: "100%",
-                  transition: "all 0.15s",
-                }}
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-sm)] border-none cursor-pointer text-sm text-left w-full transition-all ${
+                  selectedFolder === folder ? "bg-cyan-500/10 text-accent" : "text-text-dim hover:bg-white/5"
+                }`}
               >
                 <Folder size={14} />
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                   {folder}
                 </span>
-                <span style={{ fontSize: 11, opacity: 0.6 }}>
+                <span className="text-xs opacity-60">
                   {notesByFolder[folder].length}
                 </span>
               </button>
@@ -286,74 +234,21 @@ export default function NotesView() {
           </div>
 
           {/* Notes grid */}
-          <div style={{
-            flex: 1,
-            overflow: "auto",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-            gap: 12,
-            alignContent: "start",
-            paddingRight: 4,
-          }}>
+          <div className="flex-1 overflow-auto grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3 content-start pr-1">
             {displayNotes.map((note) => (
               <div
                 key={note.id}
                 onClick={() => setSelectedNote(note)}
-                style={{
-                  background: "var(--panel2)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--radius)",
-                  padding: 14,
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--accent)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
+                className="bg-panel2 border border-border rounded-[var(--radius)] p-3.5 cursor-pointer transition-all hover:border-accent hover:-translate-y-0.5 flex flex-col gap-2"
               >
-                <div style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: "var(--text)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}>
+                <div className="text-sm font-semibold text-text overflow-hidden text-ellipsis whitespace-nowrap">
                   {note.name}
                 </div>
-                <div style={{
-                  fontSize: 12,
-                  color: "var(--text-dim)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: "vertical",
-                  lineHeight: 1.5,
-                }}>
+                <div className="text-xs text-text-dim overflow-hidden text-ellipsis line-clamp-3 leading-relaxed">
                   {note.content.slice(0, 150)}
                 </div>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginTop: "auto",
-                  paddingTop: 8,
-                  borderTop: "1px solid var(--border)",
-                }}>
-                  <span style={{
-                    fontSize: 10,
-                    color: "var(--text-dim)",
-                    fontFamily: "var(--font-mono)",
-                  }}>
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
+                  <span className="text-[10px] text-text-dim font-[var(--font-mono)]">
                     {note.folder}
                   </span>
                 </div>
@@ -365,25 +260,11 @@ export default function NotesView() {
               <button
                 onClick={loadMore}
                 disabled={loadingMore}
-                style={{
-                  gridColumn: "1 / -1",
-                  padding: 16,
-                  background: "transparent",
-                  border: "1px dashed var(--border)",
-                  borderRadius: "var(--radius)",
-                  color: loadingMore ? "var(--accent)" : "var(--text-dim)",
-                  cursor: loadingMore ? "wait" : "pointer",
-                  fontSize: 13,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  transition: "all 0.15s",
-                }}
+                className="col-span-full p-4 bg-transparent border border-dashed border-border rounded-[var(--radius)] text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:cursor-wait"
               >
                 {loadingMore ? (
                   <>
-                    <RefreshCw size={16} style={{ animation: "spin 1s linear infinite" }} />
+                    <RefreshCw size={16} className="animate-spin" />
                     加载中...
                   </>
                 ) : (
@@ -401,130 +282,58 @@ export default function NotesView() {
       {/* Note detail modal */}
       {selectedNote && (
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            zIndex: 100,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 40,
-          }}
+          className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-10"
           onClick={(e) => e.target === e.currentTarget && setSelectedNote(null)}
         >
-          <div
-            style={{
-              background: "var(--panel)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius)",
-              width: "100%",
-              maxWidth: 700,
-              maxHeight: "80vh",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-            }}
-          >
+          <div className="bg-panel border border-border rounded-[var(--radius)] w-full max-w-[700px] max-h-[80vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "16px 20px",
-              borderBottom: "1px solid var(--border)",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <FileText size={20} color="var(--accent)" />
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="flex items-center gap-3">
+                <FileText size={20} className="text-accent" />
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 600 }}>{selectedNote.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
+                  <div className="text-base font-semibold">{selectedNote.name}</div>
+                  <div className="text-xs text-text-dim mt-0.5">
                     {selectedNote.folder}
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedNote(null)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 32,
-                  height: 32,
-                  background: "transparent",
-                  border: "none",
-                  borderRadius: "var(--radius-sm)",
-                  color: "var(--text-dim)",
-                  cursor: "pointer",
-                }}
+                className="flex items-center justify-center w-8 h-8 bg-transparent border-none rounded-[var(--radius-sm)] text-text-dim cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
 
             {/* Content */}
-            <div style={{
-              flex: 1,
-              overflow: "auto",
-              padding: 20,
-            }}>
+            <div className="flex-1 overflow-auto p-5">
               {isEditing ? (
                 <textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    minHeight: 300,
-                    background: "var(--panel2)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "var(--radius-sm)",
-                    padding: 12,
-                    fontSize: 14,
-                    lineHeight: 1.7,
-                    color: "var(--text)",
-                    resize: "vertical",
-                    fontFamily: "inherit",
-                  }}
+                  className="w-full h-full min-h-[300px] bg-panel2 border border-border rounded-[var(--radius-sm)] p-3 text-sm leading-relaxed text-text resize-y font-inherit"
                 />
               ) : (
-                <div style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  whiteSpace: "pre-wrap",
-                  color: "var(--text)",
-                }}>
+                <div className="text-sm leading-relaxed whitespace-pre-wrap text-text">
                   {selectedNote.content || "（空备忘录）"}
                 </div>
               )}
             </div>
 
             {/* Footer actions */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
-              gap: 8,
-              padding: "12px 20px",
-              borderTop: "1px solid var(--border)",
-            }}>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
               {isEditing ? (
                 <>
                   <button
-                    className="btn btn-ghost"
+                    className="btn btn-ghost text-xs"
                     onClick={() => setIsEditing(false)}
-                    style={{ fontSize: 12 }}
                   >
                     取消
                   </button>
                   <button
-                    className="btn btn-primary"
+                    className="btn btn-primary text-xs flex items-center gap-1"
                     onClick={handleSaveNote}
                     disabled={saving}
-                    style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
                   >
                     <Save size={14} />
                     {saving ? "保存中..." : "保存"}
@@ -532,9 +341,8 @@ export default function NotesView() {
                 </>
               ) : (
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary text-xs"
                   onClick={() => { setEditContent(selectedNote.content); setIsEditing(true); }}
-                  style={{ fontSize: 12 }}
                 >
                   编辑
                 </button>
@@ -547,52 +355,28 @@ export default function NotesView() {
       {/* New note modal */}
       {showNewNote && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 40,
-          }}
+          className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-10"
           onClick={(e) => e.target === e.currentTarget && setShowNewNote(false)}
         >
           <div
-            className="panel"
-            style={{
-              width: 500,
-              maxHeight: "70vh",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              borderRadius: "var(--radius)",
-            }}
+            className="panel w-[500px] max-h-[70vh] flex flex-col overflow-hidden rounded-[var(--radius)]"
           >
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "16px 20px",
-              borderBottom: "1px solid var(--border)",
-            }}>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>新建备忘录</span>
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <span className="text-base font-semibold">新建备忘录</span>
               <button
                 onClick={() => setShowNewNote(false)}
-                style={{ background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer" }}
+                className="bg-transparent border-none text-text-dim cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="p-5 flex flex-col gap-3">
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>文件夹</label>
+                <label className="text-xs text-text-mid block mb-1">文件夹</label>
                 <select
-                  className="input"
+                  className="input w-full"
                   value={newNoteFolder}
                   onChange={(e) => setNewNoteFolder(e.target.value)}
-                  style={{ width: "100%" }}
                 >
                   {folders.length > 0 ? folders.map(f => (
                     <option key={f} value={f}>{f}</option>
@@ -600,32 +384,29 @@ export default function NotesView() {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>标题</label>
+                <label className="text-xs text-text-mid block mb-1">标题</label>
                 <input
-                  className="input"
+                  className="input w-full"
                   value={newNoteTitle}
                   onChange={(e) => setNewNoteTitle(e.target.value)}
                   placeholder="备忘录标题"
-                  style={{ width: "100%" }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>内容</label>
+                <label className="text-xs text-text-mid block mb-1">内容</label>
                 <textarea
-                  className="input"
+                  className="input w-full resize-y"
                   value={newNoteBody}
                   onChange={(e) => setNewNoteBody(e.target.value)}
                   placeholder="备忘录内容..."
                   rows={8}
-                  style={{ width: "100%", resize: "vertical" }}
                 />
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <div className="flex gap-2 mt-1">
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary flex-1"
                   onClick={handleCreateNote}
                   disabled={saving || !newNoteTitle.trim()}
-                  style={{ flex: 1 }}
                 >
                   {saving ? "创建中..." : "创建"}
                 </button>
@@ -640,6 +421,9 @@ export default function NotesView() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </div>

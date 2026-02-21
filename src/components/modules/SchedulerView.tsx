@@ -168,36 +168,14 @@ export default function SchedulerView() {
   ];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
-        maxWidth: 900,
-      }}
-    >
+    <div className="flex flex-col gap-5 max-w-[900px]">
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+      <div className="flex items-center justify-between">
         <div>
-          <div
-            style={{
-              fontFamily: "var(--font-disp)",
-              fontSize: 28,
-              letterSpacing: 3,
-              color: "var(--accent)",
-            }}
-          >
+          <div className="font-[var(--font-disp)] text-[28px] tracking-[3px] text-accent">
             定时任务
           </div>
-          <div
-            style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 4 }}
-          >
+          <div className="text-[13px] text-text-dim mt-1">
             使用 macOS launchd 管理定时任务。仅支持 macOS 系统。
           </div>
         </div>
@@ -213,11 +191,11 @@ export default function SchedulerView() {
       </div>
 
       {/* Presets */}
-      <div className="panel" style={{ padding: 16 }}>
-        <div className="label" style={{ marginBottom: 10 }}>
+      <div className="panel p-4">
+        <div className="label mb-2.5">
           快速创建预设
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="flex gap-2.5">
           {presets.map((p) => (
             <button
               key={p.label}
@@ -232,47 +210,28 @@ export default function SchedulerView() {
 
       {/* Error */}
       {error && (
-        <div
-          style={{
-            background: "rgba(255,107,107,0.12)",
-            border: "1px solid var(--accent4)",
-            color: "var(--accent4)",
-            padding: "10px 16px",
-            borderRadius: "var(--radius-sm)",
-            fontSize: 13,
-          }}
-        >
+        <div className="bg-[rgba(255,107,107,0.12)] border border-accent4 text-accent4 px-4 py-2.5 rounded-[var(--radius-sm)] text-[13px]">
           {error}
         </div>
       )}
 
       {/* Task cards */}
       <div
-        style={{ display: "flex", flexDirection: "column", gap: 12 }}
+        className="flex flex-col gap-3"
       >
         {scheduledTasks.map((task) => (
           <div
             key={task.id}
-            className="panel"
-            style={{ padding: 20 }}
+            className="panel p-5"
           >
             <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 16,
-              }}
+              className="flex items-start gap-4"
             >
-              <div style={{ flex: 1 }}>
+              <div className="flex-1">
                 <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    marginBottom: 8,
-                  }}
+                  className="flex items-center gap-[10px] mb-2"
                 >
-                  <span style={{ fontSize: 16, fontWeight: 600 }}>
+                  <span className="text-[16px] font-semibold">
                     {task.label}
                   </span>
                   <span
@@ -283,38 +242,22 @@ export default function SchedulerView() {
                   </span>
                 </div>
                 <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-dim)",
-                    fontFamily: "var(--font-mono)",
-                    marginBottom: 6,
-                  }}
+                  className="text-[11px] text-text-dim font-[var(--font-mono)] mb-[6px]"
                 >
                   ID: {task.id}
                 </div>
                 <div
-                  style={{
-                    fontSize: 13,
-                    color: "var(--text-mid)",
-                    fontFamily: "var(--font-mono)",
-                    marginBottom: 6,
-                    wordBreak: "break-all",
-                  }}
+                  className="text-[13px] text-text-mid font-[var(--font-mono)] mb-[6px] break-all"
                 >
                   {task.program} {task.args.join(" ")}
                 </div>
-                <div style={{ fontSize: 13, color: "var(--text-mid)" }}>
+                <div className="text-[13px] text-text-mid">
                   {formatInterval(task.interval_seconds)}
                 </div>
               </div>
 
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  flexShrink: 0,
-                }}
+                className="flex items-center gap-3 flex-shrink-0"
               >
                 <div
                   className={`toggle ${task.enabled ? "on" : ""}`}
@@ -340,12 +283,7 @@ export default function SchedulerView() {
 
         {scheduledTasks.length === 0 && (
           <div
-            style={{
-              textAlign: "center",
-              padding: 60,
-              color: "var(--text-dim)",
-              fontSize: 14,
-            }}
+            className="text-center p-[60px] text-text-dim text-[14px]"
           >
             暂无定时任务，点击"新建任务"或使用预设模板创建
           </div>
@@ -361,26 +299,16 @@ export default function SchedulerView() {
             style={{ minWidth: 500 }}
           >
             <div
-              style={{
-                fontFamily: "var(--font-disp)",
-                fontSize: 22,
-                letterSpacing: 2,
-                color: "var(--accent)",
-                marginBottom: 20,
-              }}
+              className="font-[var(--font-disp)] text-[22px] tracking-[2px] text-accent mb-5"
             >
               新建定时任务
             </div>
 
             <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-              }}
+              className="flex flex-col gap-4"
             >
               <div>
-                <div className="label" style={{ marginBottom: 6 }}>
+                <div className="label mb-1.5">
                   任务名称
                 </div>
                 <input
@@ -392,7 +320,7 @@ export default function SchedulerView() {
               </div>
 
               <div>
-                <div className="label" style={{ marginBottom: 6 }}>
+                <div className="label mb-1.5">
                   任务 ID
                 </div>
                 <input
@@ -405,7 +333,7 @@ export default function SchedulerView() {
               </div>
 
               <div>
-                <div className="label" style={{ marginBottom: 6 }}>
+                <div className="label mb-1.5">
                   执行程序
                 </div>
                 <input
@@ -418,7 +346,7 @@ export default function SchedulerView() {
               </div>
 
               <div>
-                <div className="label" style={{ marginBottom: 6 }}>
+                <div className="label mb-1.5">
                   参数（空格分隔）
                 </div>
                 <input
@@ -431,10 +359,10 @@ export default function SchedulerView() {
               </div>
 
               <div>
-                <div className="label" style={{ marginBottom: 6 }}>
+                <div className="label mb-1.5">
                   执行间隔
                 </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <div className="flex gap-2.5 items-center">
                   <input
                     className="input"
                     type="number"
@@ -477,12 +405,7 @@ export default function SchedulerView() {
               </div>
 
               <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  justifyContent: "flex-end",
-                  marginTop: 8,
-                }}
+                className="flex gap-2.5 justify-end mt-2"
               >
                 <button
                   className="btn btn-ghost"

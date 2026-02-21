@@ -102,11 +102,11 @@ export default function ChatView() {
 
   if (!claudeCodeEnabled) {
     return (
-      <div style={{ maxWidth: 800, margin: "0 auto", paddingTop: 60 }}>
-        <div className="panel" style={{ padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🤖</div>
-          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 8 }}>Claude Code 未启用</div>
-          <div style={{ color: "var(--text-dim)", marginBottom: 20 }}>
+      <div className="max-w-[800px] mx-auto pt-[60px]">
+        <div className="panel p-10 text-center">
+          <div className="text-5xl mb-4">🤖</div>
+          <div className="text-lg font-medium mb-2">Claude Code 未启用</div>
+          <div className="text-text-dim mb-5">
             请先在设置中启用 Claude Code 并配置路径
           </div>
           <button
@@ -121,30 +121,30 @@ export default function ChatView() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)", maxWidth: 900, margin: "0 auto", width: "100%" }}>
+    <div className="flex flex-col h-[calc(100vh-120px)] max-w-[900px] mx-auto w-full">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontFamily: "var(--font-disp)", fontSize: 24, letterSpacing: 2, color: "var(--accent)" }}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="font-disp text-2xl tracking-widest text-accent">
             AI 聊天
           </div>
-          <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 10, background: "rgba(0,200,255,0.1)", color: "var(--accent)", border: "1px solid rgba(0,200,255,0.2)" }}>
+          <span className="text-[10px] px-2 py-0.75 rounded-full bg-accent/10 text-accent border border-accent/20">
             Claude Code
           </span>
         </div>
-        <button className="btn btn-ghost" onClick={clearChat} style={{ fontSize: 12 }}>
+        <button className="btn btn-ghost text-xs" onClick={clearChat}>
           清空对话
         </button>
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", gap: 16, padding: "0 0 20px 0" }}>
+      <div className="flex-1 overflow-auto flex flex-col gap-4 pb-5">
         {messages.length === 0 && !streaming && (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-dim)" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+          <div className="flex-1 flex items-center justify-center text-text-dim">
+            <div className="text-center">
+              <div className="text-5xl mb-3">💬</div>
               <div>开始一段对话吧</div>
-              <div style={{ fontSize: 12, marginTop: 8 }}>Claude Code 会帮你解答问题</div>
+              <div className="text-xs mt-2">Claude Code 会帮你解答问题</div>
             </div>
           </div>
         )}
@@ -152,55 +152,41 @@ export default function ChatView() {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: msg.role === "user" ? "flex-end" : "flex-start",
-            }}
+            className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
           >
             <div
+              className="max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed"
               style={{
-                maxWidth: "80%",
-                padding: "12px 16px",
-                borderRadius: 16,
-                background: msg.role === "user"
-                  ? "var(--accent)"
-                  : "var(--panel)",
+                background: msg.role === "user" ? "var(--accent)" : "var(--panel)",
                 color: msg.role === "user" ? "white" : "var(--text)",
                 border: msg.role === "user" ? "none" : "1px solid var(--border)",
-                whiteSpace: "pre-wrap",
-                lineHeight: 1.6,
-                fontSize: 14,
               }}
             >
               {msg.content}
             </div>
-            <span style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4, padding: "0 8px" }}>
+            <span className="text-[10px] text-text-dim mt-1 px-2">
               {new Date(msg.timestamp).toLocaleTimeString()}
             </span>
           </div>
         ))}
 
         {streaming && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+          <div className="flex flex-col items-start">
             <div
+              className="max-w-[80%] px-4 py-3 rounded-2xl text-sm"
               style={{
-                maxWidth: "80%",
-                padding: "12px 16px",
-                borderRadius: 16,
                 background: "var(--panel)",
                 border: "1px solid var(--border)",
                 color: "var(--text-dim)",
-                fontSize: 14,
               }}
             >
               {currentThinking && (
-                <div style={{ marginBottom: 8, fontStyle: "italic", opacity: 0.7 }}>
+                <div className="mb-2 italic opacity-70">
                   💭 {currentThinking}
                 </div>
               )}
               {currentResponse || "正在思考..."}
-              <span className="blink" style={{ marginLeft: 4 }}>▊</span>
+              <span className="blink ml-1">▊</span>
             </div>
           </div>
         )}
@@ -209,8 +195,8 @@ export default function ChatView() {
       </div>
 
       {/* Input */}
-      <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+      <div className="border-t border-border pt-4">
+        <div className="flex gap-3 items-end">
           <textarea
             ref={inputRef}
             value={input}
@@ -219,35 +205,17 @@ export default function ChatView() {
             placeholder="输入消息... (Shift+Enter 换行)"
             disabled={loading}
             rows={1}
-            style={{
-              flex: 1,
-              padding: "12px 16px",
-              borderRadius: 16,
-              border: "1px solid var(--border)",
-              background: "var(--panel)",
-              color: "var(--text)",
-              fontSize: 14,
-              resize: "none",
-              outline: "none",
-              fontFamily: "inherit",
-              minHeight: 44,
-              maxHeight: 200,
-            }}
+            className="flex-1 px-4 py-3 rounded-2xl border border-border bg-panel text-sm resize-none outline-none font-inherit min-h-[44px] max-h-[200px]"
           />
           <button
-            className="btn btn-primary"
+            className="btn btn-primary px-5 py-2.5 rounded-2xl text-sm"
             onClick={sendMessage}
             disabled={loading || !input.trim()}
-            style={{
-              padding: "10px 20px",
-              borderRadius: 16,
-              fontSize: 14,
-            }}
           >
             {loading ? "..." : "发送"}
           </button>
         </div>
-        <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 8, textAlign: "center" }}>
+        <div className="text-[10px] text-text-dim mt-2 text-center">
           Enter 发送 · Shift+Enter 换行 · Claude Code 提供 AI 支持
         </div>
       </div>

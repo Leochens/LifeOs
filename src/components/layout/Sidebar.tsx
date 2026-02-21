@@ -7,7 +7,7 @@ import * as Icons from "@/components/icons";
 const IconRenderer = ({ name, size = 14 }: { name: string; size?: number }) => {
   const IconComponent = (Icons as Record<string, any>)[name];
   if (!IconComponent) {
-    return <span style={{ fontSize: size }}>?</span>;
+    return <span className="text-[14px]">?</span>;
   }
   return <IconComponent size={size} />;
 };
@@ -50,29 +50,14 @@ export default function Sidebar() {
       <button
         key={plugin.id}
         onClick={() => setView(plugin.component as ViewId)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "8px 12px",
-          background: active ? "rgba(0,200,255,0.08)" : "transparent",
-          border: `1px solid ${active ? "rgba(0,200,255,0.25)" : "transparent"}`,
-          borderRadius: "var(--radius-sm)",
-          color: active ? "var(--accent)" : "var(--text-dim)",
-          cursor: "pointer",
-          width: "100%",
-          textAlign: "left",
-          fontSize: 12,
-          transition: "all 0.15s",
-        }}
-        onMouseEnter={(e) => {
-          if (!active) (e.currentTarget as HTMLElement).style.color = "var(--text)";
-        }}
-        onMouseLeave={(e) => {
-          if (!active) (e.currentTarget as HTMLElement).style.color = "var(--text-dim)";
-        }}
+        className={`flex items-center gap-2.5 px-3 py-2 w-full text-left text-xs transition-all duration-150 ${
+          active
+            ? "bg-accent/10 border border-accent/25 text-accent"
+            : "bg-transparent border border-transparent text-text-dim hover:text-text"
+        }`}
+        style={{ borderRadius: "var(--radius-sm)" }}
       >
-        <span style={{ width: 18, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span className="w-[18px] text-center flex items-center justify-center">
           <IconRenderer name={plugin.icon} />
         </span>
         <span>{plugin.name}</span>
@@ -83,39 +68,22 @@ export default function Sidebar() {
   const GroupHeader = ({ group, plugins }: { group: PluginGroup; plugins: Plugin[] }) => {
     const collapsed = collapsedGroups.has(group.id);
     return (
-      <div style={{ marginBottom: 4 }}>
+      <div className="mb-1">
         <button
           onClick={() => toggleGroup(group.id)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            width: "100%",
-            padding: "6px 10px",
-            background: "transparent",
-            border: "none",
-            color: "var(--text-dim)",
-            fontSize: 11,
-            fontWeight: 500,
-            letterSpacing: 1,
-            cursor: "pointer",
-            textTransform: "uppercase",
-          }}
+          className="flex items-center gap-1.5 w-full px-2.5 py-1.5 bg-transparent border-none text-text-dim text-[11px] font-medium tracking-wide cursor-pointer uppercase"
         >
           <span
-            style={{
-              transform: collapsed ? "rotate(0deg)" : "rotate(90deg)",
-              transition: "transform 0.15s",
-              fontSize: 8,
-            }}
+            className="text-[8px] transition-transform duration-150"
+            style={{ transform: collapsed ? "rotate(0deg)" : "rotate(90deg)" }}
           >
             ▶
           </span>
-          <span style={{ flex: 1, textAlign: "left" }}>{group.name}</span>
-          <span style={{ opacity: 0.5, fontSize: 10 }}>{plugins.length}</span>
+          <span className="flex-1 text-left">{group.name}</span>
+          <span className="opacity-50 text-[10px]">{plugins.length}</span>
         </button>
         {!collapsed && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 1, paddingLeft: 4 }}>
+          <div className="flex flex-col gap-0.5 pl-1">
             {plugins.map((plugin) => (
               <NavButton key={plugin.id} plugin={plugin} />
             ))}
@@ -128,51 +96,19 @@ export default function Sidebar() {
   const settingsActive = currentView === "settings";
 
   return (
-    <aside
-      style={{
-        width: 175,
-        flexShrink: 0,
-        borderRight: "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        background: "var(--panel)",
-        padding: "10px 8px",
-      }}
-    >
+    <aside className="w-[175px] flex-shrink-0 border-r border-border flex flex-col bg-panel px-2 py-2.5">
       {/* Vault label */}
-      <div
-        style={{
-          padding: "6px 10px 12px",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 6,
-        }}
-      >
-        <div className="label" style={{ marginBottom: 4 }}>
+      <div className="px-2.5 pb-3 border-b border-border mb-1.5">
+        <div className="label mb-1">
           Vault
         </div>
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--text-mid)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <div className="text-[11px] text-text-mid overflow-hidden text-ellipsis whitespace-nowrap">
           📁 {folderName}
         </div>
       </div>
 
       {/* Nav with groups */}
-      <nav
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          flex: 1,
-          overflow: "auto",
-        }}
-      >
+      <nav className="flex flex-col gap-1 flex-1 overflow-auto">
         {sortedGroups.map((group) => {
           const groupPlugins = getGroupPlugins(group);
           if (groupPlugins.length === 0) return null;
@@ -187,54 +123,22 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom: settings + shortcut */}
-      <div
-        style={{
-          paddingTop: 8,
-          borderTop: "1px solid var(--border)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-        }}
-      >
+      <div className="pt-2 border-t border-border flex flex-col gap-1">
         <button
           onClick={() => setView("settings")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "8px 12px",
-            background: settingsActive ? "rgba(0,200,255,0.08)" : "transparent",
-            border: `1px solid ${settingsActive ? "rgba(0,200,255,0.25)" : "transparent"}`,
-            borderRadius: "var(--radius-sm)",
-            color: settingsActive ? "var(--accent)" : "var(--text-dim)",
-            cursor: "pointer",
-            width: "100%",
-            textAlign: "left",
-            fontSize: 12,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            if (!settingsActive)
-              (e.currentTarget as HTMLElement).style.color = "var(--text)";
-          }}
-          onMouseLeave={(e) => {
-            if (!settingsActive)
-              (e.currentTarget as HTMLElement).style.color = "var(--text-dim)";
-          }}
+          className={`flex items-center gap-2.5 px-3 py-2 w-full text-left text-xs transition-all duration-150 ${
+            settingsActive
+              ? "bg-accent/10 border border-accent/25 text-accent"
+              : "bg-transparent border border-transparent text-text-dim hover:text-text"
+          }`}
+          style={{ borderRadius: "var(--radius-sm)" }}
         >
-          <span style={{ width: 18, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span className="w-[18px] text-center flex items-center justify-center">
             <IconRenderer name="Settings" />
           </span>
           <span>设置</span>
         </button>
-        <div
-          style={{
-            fontSize: 10,
-            color: "var(--text-dim)",
-            letterSpacing: 1,
-            paddingLeft: 10,
-          }}
-        >
+        <div className="text-[10px] text-text-dim tracking-widest pl-2.5">
           ⌘K 快速命令
         </div>
       </div>

@@ -35,7 +35,16 @@
       "Bash(pkill -f \"tauri\")",
       "Bash(lsof -i :1420)",
       "WebFetch(domain:www.google.com)",
-      "WebFetch(domain:www.baidu.com)"
+      "WebFetch(domain:www.baidu.com)",
+      "Bash(npm install tailwindcss @tailwindcss/vite)",
+      "WebFetch(domain:finance.eastmoney.com)",
+      "WebFetch(domain:www.gold.org)",
+      "WebFetch(domain:www.investing.com)",
+      "WebFetch(domain:www.npmtrends.com)",
+      "WebFetch(domain:www.libraries.io)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:blog.logrocket.com)",
+      "WebFetch(domain:grafana.com)"
     ]
   }
 }

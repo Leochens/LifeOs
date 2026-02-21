@@ -70,7 +70,18 @@ export default function PlanningView() {
       if (newGoalType === "quarterly") fm.quarter = String(newGoalQuarter);
       if (newGoalType === "monthly") fm.month = String(newGoalMonth);
 
-      const content = `## 目标说明\n\n${newGoalTitle.trim()}\n\n## 关键结果\n\n-\n\n## 执行计划\n\n-\n`;
+      const content = `## 目标说明
+
+${newGoalTitle.trim()}
+
+## 关键结果
+
+-
+
+## 执行计划
+
+-
+`;
 
       // Write file
       await writeNote(path, fm, content);
@@ -160,10 +171,10 @@ export default function PlanningView() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 1100 }}>
+    <div className="flex flex-col gap-5 max-w-[1100px]">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)" }}>
+      <div className="flex items-center justify-between">
+        <div className="font-disp text-[28px] tracking-widest text-accent">
           目标计划
         </div>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}>
@@ -172,28 +183,24 @@ export default function PlanningView() {
       </div>
 
       {goals.length === 0 && !showModal && (
-        <div className="panel" style={{ padding: 40, textAlign: "center", color: "var(--text-dim)" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>&#9670;</div>
+        <div className="panel p-10 text-center text-text-dim">
+          <div className="text-4xl mb-3">&#9670;</div>
           <div>点击上方"新建目标"创建你的第一个目标</div>
-          <div style={{ fontSize: 12, marginTop: 8, fontFamily: "var(--font-mono)", color: "var(--accent)", letterSpacing: 1 }}>
+          <div className="text-xs mt-2 font-mono text-accent tracking-widest">
             或在 planning/goals/ 目录下手动创建目标文件
           </div>
         </div>
       )}
 
       {/* Grouped display */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
+      <div className="grid grid-cols-3 gap-4 items-start">
         {(["annual", "quarterly", "monthly"] as GoalType[]).map((type) => (
-          <div key={type} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{
-              fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: 2,
-              color: "var(--accent2)", textTransform: "uppercase",
-              borderBottom: "1px solid var(--border)", paddingBottom: 8,
-            }}>
+          <div key={type} className="flex flex-col gap-3">
+            <div className="font-mono text-xs tracking-widest text-accent2 uppercase border-b border-border pb-2">
               {TYPE_LABELS[type]} ({grouped[type].length})
             </div>
             {grouped[type].length === 0 && (
-              <div style={{ color: "var(--text-dim)", fontSize: 12, padding: "12px 0" }}>
+              <div className="text-text-dim text-xs py-3">
                 暂无{TYPE_LABELS[type]}
               </div>
             )}
@@ -212,39 +219,28 @@ export default function PlanningView() {
 
       {/* Create Goal Modal */}
       {showModal && (
-        <div style={{
-          position: "fixed", top: 0, right: 0, bottom: 0, left: 0, zIndex: 100,
-          background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-start", justifyContent: "center",
-        }} onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
-          <div style={{
-            background: "var(--panel)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius)", padding: 28, width: 480,
-            display: "flex", flexDirection: "column", gap: 16,
-            maxHeight: "85vh", overflowY: "auto",
-            marginTop: "8vh",
-          }}>
-            <div style={{ fontFamily: "var(--font-disp)", fontSize: 20, letterSpacing: 2, color: "var(--accent)" }}>
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-start justify-center" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
+          <div className="bg-panel border border-border rounded-lg p-7 flex flex-col gap-4 max-h-[85vh] overflow-y-auto mt-[8vh] w-[480px]">
+            <div className="font-disp text-xl tracking-widest text-accent">
               新建目标
             </div>
 
             <div>
-              <label className="label" style={{ display: "block", marginBottom: 6 }}>标题</label>
+              <label className="label block mb-1.5">标题</label>
               <input className="input" placeholder="输入目标标题..." value={newGoalTitle}
                 onChange={(e) => setNewGoalTitle(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && createGoal()} />
             </div>
 
             <div>
-              <label className="label" style={{ display: "block", marginBottom: 6 }}>类型</label>
-              <div style={{ display: "flex", gap: 8 }}>
+              <label className="label block mb-1.5">类型</label>
+              <div className="flex gap-2">
                 {(["annual", "quarterly", "monthly"] as GoalType[]).map((t) => (
-                  <button key={t} onClick={() => setNewGoalType(t)} style={{
-                    padding: "6px 16px", fontSize: 13, cursor: "pointer",
-                    borderRadius: "var(--radius-sm)",
-                    background: newGoalType === t ? "rgba(0,200,255,0.15)" : "transparent",
-                    color: newGoalType === t ? "var(--accent)" : "var(--text-dim)",
-                    border: `1px solid ${newGoalType === t ? "rgba(0,200,255,0.4)" : "var(--border)"}`,
-                  }}>
+                  <button key={t} onClick={() => setNewGoalType(t)} className={`px-4 py-1.5 text-sm cursor-pointer rounded-sm transition-colors ${
+                    newGoalType === t
+                      ? "bg-accent/15 text-accent border border-accent/40"
+                      : "bg-transparent text-text-dim border border-border"
+                  }`}>
                     {TYPE_LABELS[t].replace("目标", "")}
                   </button>
                 ))}
@@ -252,23 +248,21 @@ export default function PlanningView() {
             </div>
 
             <div>
-              <label className="label" style={{ display: "block", marginBottom: 6 }}>年份</label>
-              <input className="input" type="number" value={newGoalYear}
-                onChange={(e) => setNewGoalYear(Number(e.target.value))} style={{ width: 120 }} />
+              <label className="label block mb-1.5">年份</label>
+              <input className="input w-[120px]" type="number" value={newGoalYear}
+                onChange={(e) => setNewGoalYear(Number(e.target.value))} />
             </div>
 
             {newGoalType === "quarterly" && (
               <div>
-                <label className="label" style={{ display: "block", marginBottom: 6 }}>季度</label>
-                <div style={{ display: "flex", gap: 8 }}>
+                <label className="label block mb-1.5">季度</label>
+                <div className="flex gap-2">
                   {[1, 2, 3, 4].map((q) => (
-                    <button key={q} onClick={() => setNewGoalQuarter(q)} style={{
-                      padding: "6px 16px", fontSize: 13, cursor: "pointer",
-                      borderRadius: "var(--radius-sm)",
-                      background: newGoalQuarter === q ? "rgba(0,200,255,0.15)" : "transparent",
-                      color: newGoalQuarter === q ? "var(--accent)" : "var(--text-dim)",
-                      border: `1px solid ${newGoalQuarter === q ? "rgba(0,200,255,0.4)" : "var(--border)"}`,
-                    }}>Q{q}</button>
+                    <button key={q} onClick={() => setNewGoalQuarter(q)} className={`px-4 py-1.5 text-sm cursor-pointer rounded-sm transition-colors ${
+                      newGoalQuarter === q
+                        ? "bg-accent/15 text-accent border border-accent/40"
+                        : "bg-transparent text-text-dim border border-border"
+                    }`}>Q{q}</button>
                   ))}
                 </div>
               </div>
@@ -276,31 +270,32 @@ export default function PlanningView() {
 
             {newGoalType === "monthly" && (
               <div>
-                <label className="label" style={{ display: "block", marginBottom: 6 }}>月份</label>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <label className="label block mb-1.5">月份</label>
+                <div className="flex gap-1.5 flex-wrap">
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <button key={m} onClick={() => setNewGoalMonth(m)} style={{
-                      padding: "4px 12px", fontSize: 12, cursor: "pointer",
-                      borderRadius: "var(--radius-sm)",
-                      background: newGoalMonth === m ? "rgba(0,200,255,0.15)" : "transparent",
-                      color: newGoalMonth === m ? "var(--accent)" : "var(--text-dim)",
-                      border: `1px solid ${newGoalMonth === m ? "rgba(0,200,255,0.4)" : "var(--border)"}`,
-                    }}>{m}月</button>
+                    <button key={m} onClick={() => setNewGoalMonth(m)} className={`px-3 py-1 text-xs cursor-pointer rounded-sm transition-colors ${
+                      newGoalMonth === m
+                        ? "bg-accent/15 text-accent border border-accent/40"
+                        : "bg-transparent text-text-dim border border-border"
+                    }`}>{m}月</button>
                   ))}
                 </div>
               </div>
             )}
 
             <div>
-              <label className="label" style={{ display: "block", marginBottom: 6 }}>优先级</label>
-              <div style={{ display: "flex", gap: 8 }}>
+              <label className="label block mb-1.5">优先级</label>
+              <div className="flex gap-2">
                 {(["low", "medium", "high"] as Priority[]).map((p) => (
-                  <button key={p} onClick={() => setNewGoalPriority(p)} style={{
-                    padding: "6px 16px", fontSize: 13, cursor: "pointer",
-                    borderRadius: "var(--radius-sm)",
+                  <button key={p} onClick={() => setNewGoalPriority(p)} className={`px-4 py-1.5 text-sm cursor-pointer rounded-sm transition-colors ${
+                    newGoalPriority === p
+                      ? "border"
+                      : "bg-transparent border border-border"
+                  }`}
+                  style={{
                     background: newGoalPriority === p ? `${PRIORITY_COLORS[p]}22` : "transparent",
                     color: newGoalPriority === p ? PRIORITY_COLORS[p] : "var(--text-dim)",
-                    border: `1px solid ${newGoalPriority === p ? `${PRIORITY_COLORS[p]}66` : "var(--border)"}`,
+                    borderColor: newGoalPriority === p ? `${PRIORITY_COLORS[p]}66` : "var(--border)",
                   }}>
                     {PRIORITY_LABELS[p]}
                   </button>
@@ -309,18 +304,18 @@ export default function PlanningView() {
             </div>
 
             <div>
-              <label className="label" style={{ display: "block", marginBottom: 6 }}>截止日期</label>
-              <input className="input" type="date" value={newGoalDue}
-                onChange={(e) => setNewGoalDue(e.target.value)} style={{ width: 200 }} />
+              <label className="label block mb-1.5">截止日期</label>
+              <input className="input w-[200px]" type="date" value={newGoalDue}
+                onChange={(e) => setNewGoalDue(e.target.value)} />
             </div>
 
             <div>
-              <label className="label" style={{ display: "block", marginBottom: 6 }}>标签 (逗号分隔)</label>
+              <label className="label block mb-1.5">标签 (逗号分隔)</label>
               <input className="input" placeholder="学习, 健康, 工作..."
                 value={newGoalTags} onChange={(e) => setNewGoalTags(e.target.value)} />
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+            <div className="flex justify-end gap-2.5 mt-2">
               <button className="btn btn-ghost" onClick={() => { setShowModal(false); resetForm(); }}>取消</button>
               <button className="btn btn-primary" onClick={createGoal} disabled={creating}>
                 {creating ? "创建中..." : "创建目标"}
@@ -332,48 +327,42 @@ export default function PlanningView() {
 
       {/* Edit Goal Modal */}
       {editingGoal && (
-        <div style={{
-          position: "fixed", top: 0, right: 0, bottom: 0, left: 0, zIndex: 100,
-          background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-start", justifyContent: "center",
-        }} onClick={(e) => e.target === e.currentTarget && setEditingGoal(null)}>
-          <div style={{
-            background: "var(--panel)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius)", padding: 28, width: 480,
-            display: "flex", flexDirection: "column", gap: 16,
-            maxHeight: "85vh", overflowY: "auto",
-            marginTop: "8vh",
-          }}>
-            <div style={{ fontFamily: "var(--font-disp)", fontSize: 20, letterSpacing: 2, color: "var(--accent)" }}>
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-start justify-center" onClick={(e) => e.target === e.currentTarget && setEditingGoal(null)}>
+          <div className="bg-panel border border-border rounded-lg p-7 flex flex-col gap-4 max-h-[85vh] overflow-y-auto mt-[8vh] w-[480px]">
+            <div className="font-disp text-xl tracking-widest text-accent">
               编辑目标
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>标题</label>
-              <input className="input" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} style={{ width: "100%" }} />
+              <label className="block text-xs text-text-dim mb-1.5">标题</label>
+              <input className="input w-full" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>状态</label>
-              <div style={{ display: "flex", gap: 6 }}>
+              <label className="block text-xs text-text-dim mb-1.5">状态</label>
+              <div className="flex gap-1.5">
                 {(["active", "completed", "archived"] as const).map((s) => (
-                  <button key={s} onClick={() => setEditStatus(s)} style={{
-                    padding: "6px 14px", fontSize: 12, cursor: "pointer", borderRadius: "var(--radius-sm)",
-                    background: editStatus === s ? "rgba(0,200,255,0.15)" : "transparent",
-                    color: editStatus === s ? "var(--accent)" : "var(--text-dim)",
-                    border: `1px solid ${editStatus === s ? "rgba(0,200,255,0.4)" : "var(--border)"}`,
-                  }}>
+                  <button key={s} onClick={() => setEditStatus(s)} className={`px-3.5 py-1.5 text-xs cursor-pointer rounded-sm transition-colors ${
+                    editStatus === s
+                      ? "bg-accent/15 text-accent border border-accent/40"
+                      : "bg-transparent text-text-dim border border-border"
+                  }`}>
                     {s === "active" ? "进行中" : s === "completed" ? "已完成" : "已归档"}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>优先级</label>
-              <div style={{ display: "flex", gap: 6 }}>
+              <label className="block text-xs text-text-dim mb-1.5">优先级</label>
+              <div className="flex gap-1.5">
                 {(["low", "medium", "high"] as Priority[]).map((p) => (
-                  <button key={p} onClick={() => setEditPriority(p)} style={{
-                    padding: "6px 14px", fontSize: 12, cursor: "pointer", borderRadius: "var(--radius-sm)",
+                  <button key={p} onClick={() => setEditPriority(p)} className={`px-3.5 py-1.5 text-xs cursor-pointer rounded-sm transition-colors ${
+                    editPriority === p
+                      ? "border"
+                      : "bg-transparent border border-border"
+                  }`}
+                  style={{
                     background: editPriority === p ? `${PRIORITY_COLORS[p]}22` : "transparent",
                     color: editPriority === p ? PRIORITY_COLORS[p] : "var(--text-dim)",
-                    border: `1px solid ${editPriority === p ? `${PRIORITY_COLORS[p]}55` : "var(--border)"}`,
+                    borderColor: editPriority === p ? `${PRIORITY_COLORS[p]}55` : "var(--border)",
                   }}>
                     {PRIORITY_LABELS[p]}
                   </button>
@@ -381,17 +370,17 @@ export default function PlanningView() {
               </div>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>进度: {editProgress}%</label>
+              <label className="block text-xs text-text-dim mb-1.5">进度: {editProgress}%</label>
               <input type="range" min={0} max={100} value={editProgress}
                 onChange={(e) => setEditProgress(Number(e.target.value))}
-                style={{ width: "100%", accentColor: "var(--accent)" }} />
+                className="w-full accent-accent" />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>截止日期</label>
-              <input className="input" type="date" value={editDue}
-                onChange={(e) => setEditDue(e.target.value)} style={{ width: 200 }} />
+              <label className="block text-xs text-text-dim mb-1.5">截止日期</label>
+              <input className="input w-[200px]" type="date" value={editDue}
+                onChange={(e) => setEditDue(e.target.value)} />
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+            <div className="flex justify-end gap-2.5 mt-2">
               <button className="btn btn-ghost" onClick={() => setEditingGoal(null)}>取消</button>
               <button className="btn btn-primary" onClick={saveEdit}>保存</button>
             </div>
@@ -413,51 +402,39 @@ function GoalCard({ goal, onUpdateProgress, onEdit, onDelete }: {
 
   return (
     <div
-      className="panel"
-      style={{ padding: 16, position: "relative", overflow: "hidden" }}
+      className="panel p-4 relative overflow-hidden"
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <div style={{
-        position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
-        background: "linear-gradient(to bottom, var(--accent), var(--accent2))",
-      }} />
-      <div style={{ marginLeft: 10 }}>
+      <div className="absolute left-0 top-0 bottom-0 w-0.75 bg-gradient-to-b from-accent to-accent-2" />
+      <div className="ml-2.5">
         {/* Title + badges + actions */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <div style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{g.title}</div>
-          <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
+        <div className="flex justify-between items-center mb-1.5">
+          <div className="text-sm font-medium flex-1">{g.title}</div>
+          <div className="flex gap-1 items-center flex-shrink-0">
             {showActions && (
               <>
-                <button onClick={onEdit} style={{
-                  width: 22, height: 22, borderRadius: 4, border: "none",
-                  background: "rgba(0,200,255,0.12)", color: "var(--accent)",
-                  cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center",
-                }} title="编辑">&#9998;</button>
-                <button onClick={onDelete} style={{
-                  width: 22, height: 22, borderRadius: 4, border: "none",
-                  background: "rgba(255,107,107,0.1)", color: "var(--accent4)",
-                  cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center",
-                }} title="删除">&#10005;</button>
+                <button onClick={onEdit} className="w-5.5 h-5.5 rounded-sm border-none bg-accent/12 text-accent cursor-pointer text-xs flex items-center justify-center" title="编辑">&#9998;</button>
+                <button onClick={onDelete} className="w-5.5 h-5.5 rounded-sm border-none bg-accent4/10 text-accent4 cursor-pointer text-xs flex items-center justify-center" title="删除">&#10005;</button>
               </>
             )}
             {g.priority && (
-              <span style={{
-                fontSize: 10, padding: "2px 8px", borderRadius: 10, marginLeft: 4,
-                background: `${PRIORITY_COLORS[g.priority]}22`,
-                color: PRIORITY_COLORS[g.priority],
-                border: `1px solid ${PRIORITY_COLORS[g.priority]}44`,
-              }}>
+              <span className="text-[10px] px-2 py-0.5 rounded-full ml-1"
+                style={{
+                  background: `${PRIORITY_COLORS[g.priority]}22`,
+                  color: PRIORITY_COLORS[g.priority],
+                  border: `1px solid ${PRIORITY_COLORS[g.priority]}44`,
+                }}>
                 {PRIORITY_LABELS[g.priority]}
               </span>
             )}
             {g.status && (
-              <span style={{
-                fontSize: 10, padding: "2px 8px", borderRadius: 10,
-                background: g.status === "completed" ? "rgba(0,200,100,0.15)" : g.status === "archived" ? "rgba(128,128,128,0.15)" : "rgba(0,200,255,0.1)",
-                color: g.status === "completed" ? "var(--accent3)" : g.status === "archived" ? "var(--text-dim)" : "var(--accent)",
-                border: `1px solid ${g.status === "completed" ? "rgba(0,200,100,0.3)" : g.status === "archived" ? "rgba(128,128,128,0.3)" : "rgba(0,200,255,0.25)"}`,
-              }}>
+              <span className="text-[10px] px-2 py-0.5 rounded-full"
+                style={{
+                  background: g.status === "completed" ? "rgba(0,200,100,0.15)" : g.status === "archived" ? "rgba(128,128,128,0.15)" : "rgba(0,200,255,0.1)",
+                  color: g.status === "completed" ? "var(--accent3)" : g.status === "archived" ? "var(--text-dim)" : "var(--accent)",
+                  border: `1px solid ${g.status === "completed" ? "rgba(0,200,100,0.3)" : g.status === "archived" ? "rgba(128,128,128,0.3)" : "rgba(0,200,255,0.25)"}`,
+                }}>
                 {g.status === "active" ? "进行中" : g.status === "completed" ? "已完成" : "已归档"}
               </span>
             )}
@@ -465,24 +442,24 @@ function GoalCard({ goal, onUpdateProgress, onEdit, onDelete }: {
         </div>
 
         {g.due && (
-          <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 8 }}>截止: {g.due}</div>
+          <div className="text-xs text-text-dim mb-2">截止: {g.due}</div>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <div className="flex items-center gap-2 mb-2">
           <input type="range" min={0} max={100} value={g.progress}
             onChange={(e) => onUpdateProgress(Number(e.target.value))}
-            style={{ flex: 1, accentColor: "var(--accent)", cursor: "pointer" }} />
-          <span style={{ fontSize: 11, color: "var(--accent)", fontFamily: "var(--font-mono)", minWidth: 36, textAlign: "right" }}>
+            className="flex-1 accent-accent cursor-pointer" />
+          <span className="text-xs text-accent font-mono min-w-[36px] text-right">
             {g.progress}%
           </span>
         </div>
 
-        <div className="progress-track" style={{ height: 4 }}>
+        <div className="progress-track h-1">
           <div className="progress-fill" style={{ width: `${g.progress}%` }} />
         </div>
 
         {g.tags.length > 0 && (
-          <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div className="mt-2 flex gap-1.5 flex-wrap">
             {g.tags.map((t) => <span key={t} className="tag">{t}</span>)}
           </div>
         )}

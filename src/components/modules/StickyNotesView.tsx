@@ -183,15 +183,10 @@ export default function StickyNotesView() {
   }, [stickyNotes, upsertStickyNote]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
+    <div className="flex flex-col gap-3 h-full">
       {/* Toolbar */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        flexWrap: "wrap",
-      }}>
-        <button className="btn btn-primary" onClick={createNote} style={{ padding: "6px 14px" }}>
+      <div className="flex items-center gap-2 flex-wrap">
+        <button className="btn btn-primary px-3.5 py-1.5" onClick={createNote}>
           <Plus size={14} /> 新建
         </button>
 
@@ -199,28 +194,24 @@ export default function StickyNotesView() {
           <button
             key={c}
             onClick={() => setSelectedColor(c)}
+            className="w-7 h-7 rounded-full cursor-pointer transition-colors duration-150 flex-shrink-0"
             style={{
-              width: 28, height: 28,
-              borderRadius: "50%",
               border: selectedColor === c ? "2px solid var(--text)" : "2px solid transparent",
               background: COLOR_HEX[c],
-              cursor: "pointer",
-              transition: "border-color 0.15s",
-              flexShrink: 0,
             }}
           />
         ))}
 
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
-        <button className="btn btn-ghost" onClick={autoLayout} style={{ padding: "6px 12px" }}>
+        <button className="btn btn-ghost px-3 py-1.5" onClick={autoLayout}>
           <LayoutGrid size={14} /> 一键排版
         </button>
-        <button className="btn btn-ghost" onClick={resetView} style={{ padding: "6px 12px" }}>
+        <button className="btn btn-ghost px-3 py-1.5" onClick={resetView}>
           <Maximize size={14} /> 重置视图
         </button>
 
-        <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: 4 }}>
+        <span className="text-xs text-text-dim ml-1">
           {Math.round(zoom * 100)}%
         </span>
       </div>
@@ -260,24 +251,7 @@ export default function StickyNotesView() {
               {/* Delete button */}
               <button
                 onClick={(e) => { e.stopPropagation(); deleteStickyNote(note.id); }}
-                style={{
-                  position: "absolute",
-                  top: 4, right: 4,
-                  width: 20, height: 20,
-                  border: "none",
-                  background: "rgba(0,0,0,0.15)",
-                  color: "inherit",
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: 0.5,
-                  transition: "opacity 0.15s",
-                }}
-                onMouseEnter={(e) => { (e.target as HTMLElement).style.opacity = "1"; }}
-                onMouseLeave={(e) => { (e.target as HTMLElement).style.opacity = "0.5"; }}
+                className="absolute top-1 right-1 w-5 h-5 rounded-full border-none bg-black/15 text-inherit cursor-pointer text-xs flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity duration-150"
               >
                 x
               </button>

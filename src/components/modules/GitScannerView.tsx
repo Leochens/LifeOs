@@ -54,54 +54,32 @@ export default function GitScannerView() {
   ];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
-        maxWidth: 1100,
-      }}
-    >
+    <div className="flex flex-col gap-5" style={{ maxWidth: 1100 }}>
       {/* Header */}
       <div>
-        <div
-          style={{
-            fontFamily: "var(--font-disp)",
-            fontSize: 28,
-            letterSpacing: 3,
-            color: "var(--accent)",
-          }}
-        >
+        <div className="text-accent tracking-[3px]" style={{ fontFamily: "var(--font-disp)", fontSize: 28 }}>
           GIT 仓库扫描器
         </div>
-        <div style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 4 }}>
+        <div className="text-sm text-text-dim mt-1">
           扫描本地目录，发现所有 Git 仓库及其状态。
         </div>
       </div>
 
       {/* Scan bar */}
       <div
-        className="panel"
-        style={{
-          padding: 16,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
+        className="panel p-4 flex items-center gap-2.5"
       >
         <input
-          className="input"
+          className="input flex-1"
           placeholder="输入扫描路径，如 /Users/..."
           value={scanRoot}
           onChange={(e) => setScanRoot(e.target.value)}
-          style={{ flex: 1 }}
         />
         <button className="btn btn-ghost" onClick={handlePickFolder}>
           选择文件夹
         </button>
         <select
-          className="input"
-          style={{ width: 100 }}
+          className="input w-[100px]"
           value={maxDepth}
           onChange={(e) => setMaxDepth(Number(e.target.value))}
         >
@@ -115,17 +93,9 @@ export default function GitScannerView() {
           disabled={scanning || !scanRoot}
         >
           {scanning ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span className="inline-flex items-center gap-1.5">
               <span
-                className="spin"
-                style={{
-                  width: 14,
-                  height: 14,
-                  border: "2px solid rgba(255,255,255,0.3)",
-                  borderTopColor: "#fff",
-                  borderRadius: "50%",
-                  display: "inline-block",
-                }}
+                className="spin w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full inline-block"
               />
               扫描中...
             </span>
@@ -137,39 +107,21 @@ export default function GitScannerView() {
 
       {/* Error */}
       {error && (
-        <div
-          style={{
-            background: "rgba(255,107,107,0.12)",
-            border: "1px solid var(--accent4)",
-            color: "var(--accent4)",
-            padding: "10px 16px",
-            borderRadius: "var(--radius-sm)",
-            fontSize: 13,
-          }}
-        >
+        <div className="bg-red-500/12 border border-accent4 text-accent4 p-2.5 py-[10px] rounded-sm text-sm">
           {error}
         </div>
       )}
 
       {/* Stats bar */}
       {gitRepos.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span
-            className="tag"
-            style={{ fontSize: 12, padding: "4px 12px" }}
-          >
+        <div className="flex items-center gap-3">
+          <span className="tag text-xs px-3 py-1">
             共 {gitRepos.length} 个仓库
           </span>
-          <span
-            className="tag orange"
-            style={{ fontSize: 12, padding: "4px 12px" }}
-          >
+          <span className="tag orange text-xs px-3 py-1">
             {dirtyCount} 个有未提交改动
           </span>
-          <span
-            className="tag green"
-            style={{ fontSize: 12, padding: "4px 12px" }}
-          >
+          <span className="tag green text-xs px-3 py-1">
             {cleanCount} 个干净
           </span>
         </div>
@@ -177,12 +129,11 @@ export default function GitScannerView() {
 
       {/* Filter tabs */}
       {gitRepos.length > 0 && (
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="flex gap-1.5">
           {filterTabs.map((t) => (
             <button
               key={t.key}
-              className={filter === t.key ? "btn btn-primary" : "btn btn-ghost"}
-              style={{ padding: "6px 16px" }}
+              className={filter === t.key ? "btn btn-primary px-4 py-1.5" : "btn btn-ghost px-4 py-1.5"}
               onClick={() => setFilter(t.key)}
             >
               {t.label}
@@ -193,74 +144,30 @@ export default function GitScannerView() {
 
       {/* Repo grid */}
       {filtered.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 12,
-          }}
-        >
+        <div className="grid grid-cols-3 gap-3">
           {filtered.map((repo) => (
             <div
               key={repo.path}
-              className="panel-inner"
-              style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}
+              className="panel-inner p-4 flex flex-col gap-2.5"
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  flexWrap: "wrap",
-                }}
-              >
-                <span style={{ fontSize: 15, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-base font-semibold flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                   {repo.name}
                 </span>
-                <span
-                  className="tag"
-                  style={{
-                    background: "rgba(0,200,255,0.1)",
-                    color: "var(--accent)",
-                  }}
-                >
+                <span className="tag text-accent" style={{ background: "rgba(0,200,255,0.1)" }}>
                   {repo.branch}
                 </span>
               </div>
 
               {repo.has_uncommitted && (
-                <span
-                  className="tag orange"
-                  style={{
-                    alignSelf: "flex-start",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: "var(--accent5)",
-                      display: "inline-block",
-                    }}
-                  />
+                <span className="tag orange self-start inline-flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent5 inline-block" />
                   有改动
                 </span>
               )}
 
               {repo.last_commit && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--text-mid)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <div className="text-xs text-text-mid overflow-hidden text-ellipsis whitespace-nowrap">
                   {repo.last_commit.length > 40
                     ? repo.last_commit.slice(0, 40) + "..."
                     : repo.last_commit}
@@ -268,40 +175,22 @@ export default function GitScannerView() {
               )}
 
               {repo.remote_url && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-dim)",
-                    fontFamily: "var(--font-mono)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <div className="text-[11px] text-text-dim font-mono overflow-hidden text-ellipsis whitespace-nowrap">
                   {repo.remote_url.length > 50
                     ? repo.remote_url.slice(0, 50) + "..."
                     : repo.remote_url}
                 </div>
               )}
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginTop: "auto",
-                  paddingTop: 4,
-                }}
-              >
+              <div className="flex gap-2 mt-auto pt-1">
                 <button
-                  className="btn btn-ghost"
-                  style={{ flex: 1, justifyContent: "center", padding: "6px 10px", fontSize: 12 }}
+                  className="btn btn-ghost flex-1 justify-center px-2.5 py-1.5 text-xs"
                   onClick={() => openInFinder(repo.path)}
                 >
                   在 Finder 打开
                 </button>
                 <button
-                  className="btn btn-ghost"
-                  style={{ flex: 1, justifyContent: "center", padding: "6px 10px", fontSize: 12 }}
+                  className="btn btn-ghost flex-1 justify-center px-2.5 py-1.5 text-xs"
                   onClick={() => copyPath(repo.path)}
                 >
                   {copied === repo.path ? "已复制" : "复制路径"}
@@ -314,14 +203,7 @@ export default function GitScannerView() {
 
       {/* Empty state */}
       {!scanning && gitRepos.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: 60,
-            color: "var(--text-dim)",
-            fontSize: 14,
-          }}
-        >
+        <div className="text-center p-[60px] text-text-dim text-sm">
           输入路径并点击"开始扫描"来发现 Git 仓库
         </div>
       )}

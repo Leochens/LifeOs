@@ -60,12 +60,12 @@ export default function ConnectorsView() {
   const vaultPath = useStore((s) => s.vaultPath);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 900 }}>
+    <div className="flex flex-col gap-6 max-w-[900px]">
       <div>
-        <div style={{ fontFamily: "var(--font-disp)", fontSize: 28, letterSpacing: 3, color: "var(--accent)" }}>
+        <div className="font-disp text-2xl tracking-widest text-accent">
           应用连接器
         </div>
-        <div style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 4 }}>
+        <div className="text-sm text-text-dim mt-1">
           将外部服务的数据同步到你的 Vault，保持一切在一个地方。
         </div>
       </div>
@@ -75,8 +75,8 @@ export default function ConnectorsView() {
 
       {/* MCP-based connectors */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>MCP 连接器</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="label mb-3">MCP 连接器</div>
+        <div className="flex flex-col gap-3">
           {MCP_CONNECTORS.map((c) => (
             <MCPConnectorCard key={c.id} connector={c} />
           ))}
@@ -85,36 +85,34 @@ export default function ConnectorsView() {
 
       {/* Future connectors */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>即将支持</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 }}>
+        <div className="label mb-3">即将支持</div>
+        <div className="grid grid-cols-2 gap-3">
           {FUTURE_CONNECTORS.map((c) => (
-            <div key={c.id} className="panel" style={{ padding: 16, display: "flex", alignItems: "center", gap: 14, opacity: 0.6 }}>
-              <span style={{ fontSize: 28 }}>{c.icon}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 3 }}>{c.name}</div>
-                <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{c.desc}</div>
+            <div key={c.id} className="panel p-4 flex items-center gap-3.5 opacity-60">
+              <span className="text-2xl">{c.icon}</span>
+              <div className="flex-1">
+                <div className="text-sm font-medium mb-0.75">{c.name}</div>
+                <div className="text-xs text-text-dim">{c.desc}</div>
               </div>
-              <span style={{
-                fontSize: 9, padding: "2px 8px", borderRadius: 8,
-                background: "var(--border)", color: "var(--text-dim)",
-                letterSpacing: 1, textTransform: "uppercase",
-              }}>Soon</span>
+              <span className="text-[9px] px-2 py-0.5 rounded-lg bg-border text-text-dim tracking-widest uppercase">
+                Soon
+              </span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="panel" style={{ padding: 20 }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: 2, marginBottom: 10 }}>
+      <div className="panel p-5">
+        <div className="font-mono text-xs text-accent tracking-widest mb-2.5">
           配置说明
         </div>
-        <div style={{ fontSize: 13, color: "var(--text-mid)", lineHeight: 1.8 }}>
+        <div className="text-sm text-text-mid leading-relaxed">
           GitHub Token 存储在 Vault 的{" "}
-          <code style={{ color: "var(--accent)", fontSize: 11, background: "rgba(0,200,255,0.1)", padding: "1px 6px", borderRadius: 4 }}>
+          <code className="text-accent text-xs bg-[rgba(0,200,255,0.1)] px-1.5 py-0.25 rounded">
             .life-os/connectors.yaml
           </code>{" "}
           中。MCP 连接器的配置在{" "}
-          <code style={{ color: "var(--accent)", fontSize: 11, background: "rgba(0,200,255,0.1)", padding: "1px 6px", borderRadius: 4 }}>
+          <code className="text-accent text-xs bg-[rgba(0,200,255,0.1)] px-1.5 py-0.25 rounded">
             ~/.claude/settings.json
           </code>{" "}
           中。
@@ -145,45 +143,34 @@ function MCPConnectorCard({ connector }: { connector: typeof MCP_CONNECTORS[numb
   };
 
   return (
-    <div className="panel" style={{ padding: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <span style={{ fontSize: 32 }}>{connector.icon}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 16, fontWeight: 600 }}>{connector.name}</span>
-            <span style={{
-              fontSize: 9, padding: "2px 8px", borderRadius: 8,
-              background: "rgba(200,100,255,0.12)", color: "var(--accent2)",
-              border: "1px solid rgba(200,100,255,0.25)",
-              letterSpacing: 1,
-            }}>
+    <div className="panel p-5">
+      <div className="flex items-center gap-3.5">
+        <span className="text-3xl">{connector.icon}</span>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-semibold">{connector.name}</span>
+            <span className="text-[9px] px-2 py-0.5 rounded-lg bg-[rgba(200,100,255,0.12)] text-accent2 border border-[rgba(200,100,255,0.25)] tracking-widest">
               {connector.isSkill ? "SKILL" : "MCP"}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>{connector.desc}</div>
+          <div className="text-xs text-text-dim mt-0.5">{connector.desc}</div>
         </div>
         <button
-          className="btn btn-ghost"
+          className="btn btn-ghost text-xs px-3 py-1"
           onClick={() => setExpanded(!expanded)}
-          style={{ fontSize: 12, padding: "4px 12px" }}
         >
           {expanded ? "收起" : "配置指南"}
         </button>
       </div>
 
       {expanded && (
-        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="mt-4 flex flex-col gap-3">
           {/* Install */}
           <div>
-            <div style={{ fontSize: 11, color: "var(--accent2)", marginBottom: 6, fontWeight: 500, letterSpacing: 1 }}>
+            <div className="text-xs text-accent2 font-medium tracking-widest mb-1.5">
               1. 安装
             </div>
-            <code style={{
-              display: "block", padding: "10px 14px",
-              background: "rgba(0,0,0,0.2)", borderRadius: "var(--radius-sm)",
-              fontSize: 12, color: "var(--accent)", fontFamily: "var(--font-mono)",
-              lineHeight: 1.6, userSelect: "all",
-            }}>
+            <code className="block p-[10px_14px] bg-[rgba(0,0,0,0.2)] rounded-sm text-xs text-accent font-mono leading-[1.6] select-all">
               {connector.install}
             </code>
           </div>
@@ -191,27 +178,21 @@ function MCPConnectorCard({ connector }: { connector: typeof MCP_CONNECTORS[numb
           {/* MCP Config */}
           {configJson && (
             <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 11, color: "var(--accent2)", fontWeight: 500, letterSpacing: 1 }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-xs text-accent2 font-medium tracking-widest">
                   2. 添加到 Claude 配置
                 </div>
                 <button
-                  className="btn btn-ghost"
+                  className="btn btn-ghost text-[10px] px-2 py-0.5"
                   onClick={copyConfig}
-                  style={{ fontSize: 10, padding: "2px 8px" }}
                 >
                   {copied ? "已复制!" : "复制"}
                 </button>
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 6 }}>
-                添加到 <code style={{ color: "var(--accent)", fontSize: 10 }}>~/.claude/settings.json</code> 的 mcpServers 中：
+              <div className="text-xs text-text-dim mb-1.5">
+                添加到 <code className="text-accent text-[10px]">~/.claude/settings.json</code> 的 mcpServers 中：
               </div>
-              <pre style={{
-                padding: "10px 14px", margin: 0,
-                background: "rgba(0,0,0,0.2)", borderRadius: "var(--radius-sm)",
-                fontSize: 11, color: "var(--accent3)", fontFamily: "var(--font-mono)",
-                lineHeight: 1.6, overflow: "auto",
-              }}>
+              <pre className="p-[10px_14px] m-0 bg-[rgba(0,0,0,0.2)] rounded-sm text-xs text-accent3 font-mono leading-[1.6] overflow-auto">
                 {configJson}
               </pre>
             </div>
@@ -220,31 +201,26 @@ function MCPConnectorCard({ connector }: { connector: typeof MCP_CONNECTORS[numb
           {/* Skill-specific instructions */}
           {connector.isSkill && (
             <div>
-              <div style={{ fontSize: 11, color: "var(--accent2)", marginBottom: 6, fontWeight: 500, letterSpacing: 1 }}>
+              <div className="text-xs text-accent2 font-medium tracking-widest mb-1.5">
                 2. 使用方式
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-mid)", lineHeight: 1.7 }}>
+              <div className="text-xs text-text-mid leading-[1.7]">
                 作为 Claude Code Skill 使用，安装后直接在 Claude Code 中调用即刻相关功能。
                 也可以手动 clone 到{" "}
-                <code style={{ color: "var(--accent)", fontSize: 11 }}>~/.claude/skills/jike</code>
+                <code className="text-accent text-xs">~/.claude/skills/jike</code>
               </div>
             </div>
           )}
 
           {/* Notes */}
-          <div style={{
-            padding: 10, background: "rgba(255,200,0,0.06)",
-            border: "1px solid rgba(255,200,0,0.15)",
-            borderRadius: "var(--radius-sm)",
-            fontSize: 11, color: "var(--accent5)", lineHeight: 1.6,
-          }}>
+          <div className="p-2.5 bg-[rgba(255,200,0,0.06)] border border-[rgba(255,200,0,0.15)] rounded-sm text-xs text-accent5 leading-[1.6]">
             {connector.notes}
           </div>
 
           {/* Repo link */}
-          <div style={{ fontSize: 11 }}>
+          <div className="text-xs">
             <a href={connector.mcpRepo} target="_blank" rel="noopener noreferrer"
-              style={{ color: "var(--accent)", textDecoration: "none" }}>
+              className="text-accent no-underline">
               {connector.mcpName} ({connector.stars} stars) →
             </a>
           </div>
@@ -322,17 +298,17 @@ function GitHubConnector({ vaultPath }: { vaultPath: string | null }) {
 
   return (
     <div>
-      <div className="label" style={{ marginBottom: 12 }}>
+      <div className="label mb-3">
         已连接
       </div>
-      <div className="panel" style={{ padding: 20 }}>
+      <div className="panel p-5">
         {!githubToken ? (
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-              <span style={{ fontSize: 32 }}>🐙</span>
+            <div className="flex items-center gap-3.5 mb-4">
+              <span className="text-3xl">🐙</span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>连接 GitHub</div>
-                <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>
+                <div className="text-base font-semibold">连接 GitHub</div>
+                <div className="text-xs text-text-dim mt-0.5">
                   输入你的 Personal Access Token（需要 repo, notifications 权限）
                 </div>
               </div>
@@ -340,13 +316,13 @@ function GitHubConnector({ vaultPath }: { vaultPath: string | null }) {
             {!showTokenInput ? (
               <button className="btn btn-primary" onClick={() => setShowTokenInput(true)}>设置 Token</button>
             ) : (
-              <div style={{ display: "flex", gap: 8 }}>
-                <input className="input" type="password" autoFocus placeholder="ghp_xxxxxxxxxxxx"
+              <div className="flex gap-2">
+                <input className="input flex-1" type="password" autoFocus placeholder="ghp_xxxxxxxxxxxx"
                   value={tokenInput} onChange={(e) => setTokenInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && tokenInput.trim()) saveToken(tokenInput.trim());
                     if (e.key === "Escape") { setShowTokenInput(false); setTokenInput(""); }
-                  }} style={{ flex: 1 }} />
+                  }} />
                 <button className="btn btn-primary" onClick={() => { if (tokenInput.trim()) saveToken(tokenInput.trim()); }}>连接</button>
                 <button className="btn btn-ghost" onClick={() => { setShowTokenInput(false); setTokenInput(""); }}>取消</button>
               </div>
@@ -354,77 +330,70 @@ function GitHubConnector({ vaultPath }: { vaultPath: string | null }) {
           </div>
         ) : (
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+            <div className="flex items-center gap-3.5 mb-4">
               {githubUser?.avatar_url ? (
                 <img src={githubUser.avatar_url} alt={githubUser.login}
-                  style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid var(--border)" }} />
-              ) : <span style={{ fontSize: 32 }}>🐙</span>}
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>@{githubUser?.login}</span>
-                  {githubUser?.name && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{githubUser.name}</span>}
+                  className="w-10 h-10 rounded-full border-2 border-border" />
+              ) : <span className="text-3xl">🐙</span>}
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">@{githubUser?.login}</span>
+                  {githubUser?.name && <span className="text-xs text-text-dim">{githubUser.name}</span>}
                 </div>
-                {githubUser?.bio && <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>{githubUser.bio}</div>}
+                {githubUser?.bio && <div className="text-xs text-text-dim mt-0.5">{githubUser.bio}</div>}
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button className="btn btn-ghost" onClick={syncGitHub}
-                  style={{ fontSize: 11, padding: "4px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-                  <span className={syncing ? "spin" : ""} style={{ display: "inline-block" }}>{syncing ? "⟳" : "↻"}</span>
+              <div className="flex gap-1.5">
+                <button className="btn btn-ghost text-xs px-2.5 py-1 flex items-center gap-1" onClick={syncGitHub}>
+                  <span className={syncing ? "spin" : ""}>{syncing ? "⟳" : "↻"}</span>
                   {syncing ? "同步中" : "同步"}
                 </button>
-                <button className="btn btn-ghost" onClick={disconnectGitHub}
-                  style={{ fontSize: 11, padding: "4px 10px", color: "var(--accent4)" }}>断开</button>
+                <button className="btn btn-ghost text-xs px-2.5 py-1 text-accent4" onClick={disconnectGitHub}>断开</button>
               </div>
             </div>
             {syncError && (
-              <div style={{ fontSize: 11, color: "var(--accent4)", marginBottom: 12, padding: "6px 10px", background: "rgba(255,107,107,0.08)", borderRadius: "var(--radius-sm)" }}>
+              <div className="text-xs text-accent4 mb-3 p-1.5 px-2.5 bg-[rgba(255,107,107,0.08)] rounded-sm">
                 {syncError}
               </div>
             )}
-            <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: "var(--text-mid)" }}>
-                公开仓库: <span style={{ color: "var(--accent)", fontWeight: 600 }}>{githubUser?.public_repos ?? 0}</span>
+            <div className="flex gap-4 mb-4">
+              <div className="text-xs text-text-mid">
+                公开仓库: <span className="text-accent font-semibold">{githubUser?.public_repos ?? 0}</span>
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-mid)" }}>
-                未读通知: <span style={{ color: notifications > 0 ? "var(--accent5)" : "var(--text-dim)", fontWeight: 600 }}>{notifications}</span>
+              <div className="text-xs text-text-mid">
+                未读通知: <span className={notifications > 0 ? "text-accent5 font-semibold" : "text-text-dim font-semibold"}>{notifications}</span>
               </div>
             </div>
             {repos.length > 0 && (
               <div>
-                <div style={{
-                  fontSize: 10, letterSpacing: 2, color: "var(--text-dim)",
-                  textTransform: "uppercase", marginBottom: 10,
-                  borderTop: "1px solid var(--border)", paddingTop: 12,
-                }}>最近仓库</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div className="text-[10px] tracking-widest text-text-dim uppercase mb-2.5 border-t border-border pt-3">
+                  最近仓库
+                </div>
+                <div className="flex flex-col gap-1.5">
                   {repos.slice(0, 8).map((repo) => (
                     <a key={repo.id} href={repo.html_url} target="_blank" rel="noopener noreferrer"
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
-                        background: "var(--panel2)", border: "1px solid var(--border)",
-                        borderRadius: "var(--radius-sm)", textDecoration: "none", color: "inherit",
-                        transition: "border-color 0.15s",
-                      }}
+                      className="flex items-center gap-2.5 p-2 bg-panel-2 border border-border rounded-sm no-underline text-inherit transition-colors duration-150"
                       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,200,255,0.25)"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; }}
                     >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{repo.name}</span>
-                          {repo.private && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 8, background: "var(--border)", color: "var(--text-dim)" }}>private</span>}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium overflow-hidden text-ellipsis whitespace-nowrap">{repo.name}</span>
+                          {repo.private && <span className="text-[9px] px-1 py-0.25 rounded-lg bg-border text-text-dim">private</span>}
                         </div>
-                        {repo.description && <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{repo.description}</div>}
+                        {repo.description && <div className="text-xs text-text-dim mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">{repo.description}</div>}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                      <div className="flex items-center gap-2.5 shrink-0">
                         {repo.language && (
-                          <span style={{
-                            fontSize: 10, padding: "2px 8px", borderRadius: 8,
-                            background: `${LANG_COLORS[repo.language] ?? "#888"}20`,
-                            color: LANG_COLORS[repo.language] ?? "#888",
-                          }}>{repo.language}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-lg"
+                            style={{
+                              background: `${LANG_COLORS[repo.language] ?? "#888"}20`,
+                              color: LANG_COLORS[repo.language] ?? "#888",
+                            }}>
+                            {repo.language}
+                          </span>
                         )}
-                        {repo.stargazers_count > 0 && <span style={{ fontSize: 11, color: "var(--text-dim)" }}>★ {repo.stargazers_count}</span>}
-                        <span style={{ fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                        {repo.stargazers_count > 0 && <span className="text-xs text-text-dim">★ {repo.stargazers_count}</span>}
+                        <span className="text-[10px] text-text-dim font-mono">
                           {format(parseISO(repo.pushed_at), "MM-dd")}
                         </span>
                       </div>
