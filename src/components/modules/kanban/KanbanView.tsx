@@ -10,11 +10,18 @@ import {
   useSensors,
   closestCorners,
   useDroppable,
-  useDraggable,
   type DragEndEvent,
   DragOverlay,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Plus, ChevronLeft, Calendar, Flag, Trash2 } from "lucide-react";
+import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
 
 // Serialize tasks to markdown format dynamically based on columns
 function tasksToMarkdown(tasks: Task[], columns: KanbanColumn[], existingContent: string): string {
@@ -514,18 +521,19 @@ function ProjectList({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(`确定要永久删除项目 "${project.title}" 吗？此操作无法撤销。`)) {
-                        onDeleteProject(project.path);
-                      }
-                    }}
-                    className="p-1 text-text-dim hover:text-red-500 rounded hover:bg-[var(--bg)] transition-colors"
-                    title="删除项目"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  <ConfirmPopover
+                    trigger={
+                      <button
+                        className="p-1 text-text-dim hover:text-red-500 rounded hover:bg-[var(--bg)] transition-colors"
+                        title="删除项目"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    }
+                    message={`确定要永久删除项目 "${project.title}" 吗？此操作无法撤销。`}
+                    confirmText="删除"
+                    onConfirm={() => onDeleteProject(project.path)}
+                  />
                 </div>
               </div>
 
@@ -708,14 +716,21 @@ function DraggableTaskCard({
   const [priority, setPriority] = useState<Priority | "">(task.priority || "");
   const [dueDate, setDueDate] = useState(task.dueDate || "");
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useSortable({
     id: task.id,
     disabled: isEditing,
   });
 
-  const dragStyle: React.CSSProperties = transform
-    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
-    : {};
+  const dragStyle: React.CSSProperties = {
+    ...(transform ? { transform: CSS.Transform.toString(transform) } : {}),
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.done;
 
@@ -1134,15 +1149,34 @@ function ProjectBoard({
     if (!task) return;
 
     const overId = over.id as string;
-    let targetColId = overId;
 
     // Check if overId is a column or a task
     const isColumn = columns.some((c) => c.id === overId);
-    if (!isColumn) {
-      const overTask = tasks.find((t) => t.id === overId);
-      if (overTask) {
-        targetColId = overTask.status;
+    const overTask = tasks.find((t) => t.id === overId);
+
+    // 同列内排序
+    if (!isColumn && overTask && task.status === overTask.status) {
+      if (task.id !== overTask.id) {
+        const colTasks = tasks.filter((t) => t.status === task.status);
+        const oldIndex = colTasks.findIndex((t) => t.id === taskId);
+        const newIndex = colTasks.findIndex((t) => t.id === overId);
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const reorderedColTasks = arrayMove(colTasks, oldIndex, newIndex);
+          // 保持其他列的任务不变，只更新当前列的顺序
+          const otherTasks = tasks.filter((t) => t.status !== task.status);
+          setTasks([...otherTasks, ...reorderedColTasks]);
+          saveTasks([...otherTasks, ...reorderedColTasks]);
+          return;
+        }
       }
+    }
+
+    // 跨列移动
+    let targetColId = task.status;
+    if (isColumn) {
+      targetColId = overId;
+    } else if (overTask) {
+      targetColId = overTask.status;
     }
 
     if (task.status !== targetColId) {
@@ -1209,9 +1243,18 @@ function ProjectBoard({
             </div>
           )}
         </div>
-        <span className="text-[12px] text-text-dim font-[var(--font-mono)]">
-          {tasks.length} 个任务 · {columns.length} 个面板
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[12px] text-text-dim font-[var(--font-mono)]">
+            {tasks.length} 个任务 · {columns.length} 个面板
+          </span>
+          <button
+            onClick={() => setShowAddCol(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-[var(--radius-sm)] border border-dashed border-border text-text-dim hover:border-accent hover:text-accent cursor-pointer transition-all"
+          >
+            <Plus size={14} />
+            新建面板
+          </button>
+        </div>
       </div>
 
       <DndContext
@@ -1242,8 +1285,17 @@ function ProjectBoard({
                   {(tasksByStatus[col.id] || []).length}
                 </span>
                 <button
-                  onClick={() => startEditColumn(col)}
+                  onClick={() => setNewTaskCol(col.id)}
                   className="ml-2 p-1 text-text-dim hover:text-accent rounded hover:bg-[var(--bg)] transition-colors"
+                  title="添加任务"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => startEditColumn(col)}
+                  className="ml-1 p-1 text-text-dim hover:text-accent rounded hover:bg-[var(--bg)] transition-colors"
                   title="编辑面板"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1260,7 +1312,7 @@ function ProjectBoard({
                       deleteColumn(col.id);
                     }
                   }}
-                  className="ml-2 p-1 text-text-dim hover:text-red-500 rounded hover:bg-[var(--bg)] transition-colors"
+                  className="ml-1 p-1 text-text-dim hover:text-red-500 rounded hover:bg-[var(--bg)] transition-colors"
                   title="删除面板"
                 >
                   <Trash2 size={14} />
@@ -1268,16 +1320,21 @@ function ProjectBoard({
               </div>
 
               <div
-                className="p-[10px] bg-[var(--panel)] flex flex-col gap-2 min-h-[100px]"
+                className="p-[10px] bg-[var(--panel)] flex flex-col gap-2 min-h-[100px] max-h-[calc(100vh-180px)] overflow-y-auto"
               >
-                {(tasksByStatus[col.id] || []).map((task) => (
-                  <DraggableTaskCard
-                    key={task.id}
-                    task={task}
-                    onToggle={() => toggleTask(task.id)}
-                    onUpdate={updateTask}
-                  />
-                ))}
+                <SortableContext
+                  items={(tasksByStatus[col.id] || []).map(t => t.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {(tasksByStatus[col.id] || []).map((task) => (
+                    <DraggableTaskCard
+                      key={task.id}
+                      task={task}
+                      onToggle={() => toggleTask(task.id)}
+                      onUpdate={updateTask}
+                    />
+                  ))}
+                </SortableContext>
 
                 {newTaskCol === col.id ? (
                   <div
@@ -1352,15 +1409,6 @@ function ProjectBoard({
               </div>
             </DroppableColumn>
           ))}
-
-          {/* Add column button */}
-          <div
-            className="min-w-[200px] rounded-[var(--radius)] border border-dashed border-border py-10 px-5 flex flex-col items-center gap-2 cursor-pointer transition-all"
-            onClick={() => setShowAddCol(true)}
-          >
-            <Plus size={24} />
-            <span className="text-[13px]">新建面板</span>
-          </div>
         </div>
 
         <DragOverlay>

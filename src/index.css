@@ -1475,6 +1475,13 @@ textarea.input {
 .sticky-note.blue   { background: #bae6fd; color: #0c4a6e; }
 .sticky-note.green  { background: #bbf7d0; color: #14532d; }
 .sticky-note.orange { background: #fed7aa; color: #7c2d12; }
+.sticky-note.purple { background: #e9d5ff; color: #581c87; }
+.sticky-note.cyan   { background: #a5f3fc; color: #164e63; }
+.sticky-note.red    { background: #fecaca; color: #7f1d1d; }
+.sticky-note.lime   { background: #d9f99d; color: #365314; }
+.sticky-note.indigo { background: #c7d2fe; color: #3730a3; }
+.sticky-note.rose   { background: #fecdd3; color: #881337; }
+.sticky-note.amber  { background: #fde68a; color: #78350f; }
 
 .sticky-pin {
   position: absolute;
