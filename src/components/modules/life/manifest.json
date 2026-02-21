@@ -1,0 +1,9 @@
+{
+  "id": "life",
+  "name": "生活数据",
+  "icon": "Activity",
+  "description": "屏幕使用时间和健康数据追踪",
+  "dataDirectory": "life",
+  "builtin": true,
+  "version": "1.0.0"
+}

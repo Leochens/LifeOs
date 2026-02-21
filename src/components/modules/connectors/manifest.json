@@ -1,0 +1,9 @@
+{
+  "id": "connectors",
+  "name": "连接器",
+  "icon": "Plug",
+  "description": "外部服务连接器，支持 GitHub、小红书、即刻等",
+  "dataDirectory": "connectors",
+  "builtin": true,
+  "version": "1.0.0"
+}

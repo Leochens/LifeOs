@@ -1,0 +1,10 @@
+{
+  "id": "scheduler",
+  "name": "定时任务",
+  "icon": "Clock",
+  "description": "macOS launchd 定时任务管理模块",
+  "dataDirectory": "scheduler",
+  "configFile": ".lifeos/scheduler.yaml",
+  "builtin": true,
+  "version": "1.0.0"
+}

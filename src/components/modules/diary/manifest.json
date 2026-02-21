@@ -1,0 +1,9 @@
+{
+  "id": "diary",
+  "name": "日记",
+  "icon": "BookOpen",
+  "description": "个人日记和心情记录",
+  "dataDirectory": "diary",
+  "builtin": true,
+  "version": "1.0.0"
+}

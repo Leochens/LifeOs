@@ -1,0 +1,9 @@
+{
+  "id": "mail",
+  "name": "邮箱",
+  "icon": "Mail",
+  "description": "多邮箱账户管理，支持 IMAP/POP3 同步和邮件收发",
+  "dataDirectory": "emails",
+  "builtin": true,
+  "version": "1.0.0"
+}

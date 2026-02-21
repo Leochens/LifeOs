@@ -1,0 +1,9 @@
+{
+  "id": "settings",
+  "name": "设置",
+  "icon": "Settings",
+  "description": "系统设置、主题定制、菜单管理和应用配置",
+  "dataDirectory": "settings",
+  "builtin": true,
+  "version": "1.0.0"
+}

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useStore } from "@/stores/app";
 import { pickVaultFolder, setVaultPath as saveVaultPath, initVault, openInFinder, regenerateSkills } from "@/services/tauri";
 import { Settings, FolderOpen, Info, Bot, CheckCircle, RefreshCw } from "lucide-react";
-import MenuManager from "./Settings/MenuManager";
-import ThemeCustomizer from "./Settings/ThemeCustomizer";
+import MenuManager from "./MenuManager";
+import ThemeCustomizer from "./ThemeCustomizer";
 
 export default function SettingsView() {
   const vaultPath = useStore((s) => s.vaultPath);

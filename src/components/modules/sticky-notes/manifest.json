@@ -1,0 +1,9 @@
+{
+  "id": "sticky-notes",
+  "name": "便利贴",
+  "icon": "StickyNote",
+  "description": "可视化便利贴白板，支持自由布局、颜色分类和缩放操作",
+  "dataDirectory": "stickynotes",
+  "builtin": true,
+  "version": "1.0.0"
+}

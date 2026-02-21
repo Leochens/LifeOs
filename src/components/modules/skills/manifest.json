@@ -1,0 +1,9 @@
+{
+  "id": "skills",
+  "name": "技能管理",
+  "icon": "Lightbulb",
+  "description": "AI代码助手技能文件管理模块，支持Claude Code、Cursor、VS Code",
+  "dataDirectory": "skills",
+  "builtin": true,
+  "version": "1.0.0"
+}

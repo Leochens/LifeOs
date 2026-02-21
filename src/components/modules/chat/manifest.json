@@ -1,0 +1,9 @@
+{
+  "id": "chat",
+  "name": "AI聊天",
+  "icon": "MessageSquare",
+  "description": "Claude Code AI 助手聊天界面",
+  "dataDirectory": "chat",
+  "builtin": true,
+  "version": "1.0.0"
+}

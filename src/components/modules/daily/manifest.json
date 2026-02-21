@@ -1,0 +1,10 @@
+{
+  "id": "daily",
+  "name": "每日任务",
+  "icon": "CheckSquare",
+  "description": "每日任务管理和历史记录模块",
+  "dataDirectory": "daily",
+  "configFile": ".lifeos/daily.yaml",
+  "builtin": true,
+  "version": "1.0.0"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "planning",
+  "name": "目标计划",
+  "icon": "Target",
+  "description": "年度、季度、月度目标管理和进度追踪模块",
+  "dataDirectory": "planning",
+  "configFile": ".lifeos/planning.yaml",
+  "builtin": true,
+  "version": "1.0.0"
+}

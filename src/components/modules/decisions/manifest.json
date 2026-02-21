@@ -1,0 +1,9 @@
+{
+  "id": "decisions",
+  "name": "重大决策",
+  "icon": "Scale",
+  "description": "记录和追踪重要的人生决策",
+  "dataDirectory": "decisions",
+  "builtin": true,
+  "version": "1.0.0"
+}

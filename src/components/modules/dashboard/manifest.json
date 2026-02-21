@@ -1,0 +1,10 @@
+{
+  "id": "dashboard",
+  "name": "仪表盘",
+  "icon": "LayoutDashboard",
+  "description": "系统概览仪表盘，展示任务、项目、日记和习惯的汇总信息",
+  "dataDirectory": "dashboard",
+  "configFile": ".lifeos/dashboard.yaml",
+  "builtin": true,
+  "version": "1.0.0"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "servers",
+  "name": "服务器管理",
+  "icon": "Server",
+  "description": "SSH 服务器连接信息管理，支持密码和密钥认证",
+  "dataDirectory": "servers",
+  "builtin": true,
+  "version": "1.0.0"
+}

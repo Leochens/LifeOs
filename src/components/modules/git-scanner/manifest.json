@@ -1,0 +1,9 @@
+{
+  "id": "git-scanner",
+  "name": "Git仓库扫描器",
+  "icon": "GitBranch",
+  "description": "扫描本地目录，发现所有 Git 仓库及其状态",
+  "dataDirectory": "git-scanner",
+  "builtin": true,
+  "version": "1.0.0"
+}

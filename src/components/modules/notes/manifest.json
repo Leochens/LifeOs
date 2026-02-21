@@ -1,0 +1,9 @@
+{
+  "id": "notes",
+  "name": "备忘录",
+  "icon": "FileText",
+  "description": "Apple Notes 集成，支持备忘录查看、编辑和创建",
+  "dataDirectory": "notes",
+  "builtin": true,
+  "version": "1.0.0"
+}

@@ -1,25 +1,25 @@
 // Plugin Registry - 注册所有可用插件
 // 这个文件是插件系统的核心，定义了所有可用的插件及其组件
 
-import Dashboard from "@/components/modules/Dashboard";
-import DailyView from "@/components/modules/DailyView";
+import Dashboard from "@/components/modules/dashboard/index";
+import DailyView from "@/components/modules/daily/index";
 import KanbanView from "@/components/modules/kanban/KanbanView";
-import PlanningView from "@/components/modules/PlanningView";
-import DiaryView from "@/components/modules/DiaryView";
-import DecisionsView from "@/components/modules/DecisionsView";
-import LifeView from "@/components/modules/LifeView";
-import ChatView from "@/components/modules/ChatView";
-import MailView from "@/components/modules/MailView";
-import ServersView from "@/components/modules/ServersView";
-import ConnectorsView from "@/components/modules/ConnectorsView";
-import StickyNotesView from "@/components/modules/StickyNotesView";
-import SkillsView from "@/components/modules/SkillsView";
-import GitScannerView from "@/components/modules/GitScannerView";
-import SchedulerView from "@/components/modules/SchedulerView";
-import SettingsView from "@/components/modules/SettingsView";
+import PlanningView from "@/components/modules/planning/PlanningView";
+import DiaryView from "@/components/modules/diary/index";
+import DecisionsView from "@/components/modules/decisions/index";
+import LifeView from "@/components/modules/life/LifeView";
+import ChatView from "@/components/modules/chat/index";
+import MailView from "@/components/modules/mail/index";
+import ServersView from "@/components/modules/servers/ServersView";
+import ConnectorsView from "@/components/modules/connectors/index";
+import StickyNotesView from "@/components/modules/sticky-notes/index";
+import SkillsView from "@/components/modules/skills/index";
+import GitScannerView from "@/components/modules/git-scanner/GitScannerView";
+import SchedulerView from "@/components/modules/scheduler/SchedulerView";
+import SettingsView from "@/components/modules/Settings/SettingsView";
 import FinanceView from "@/components/modules/finance/FinanceView";
 import SubscriptionsView from "@/components/modules/subscriptions/SubscriptionsView";
-import NotesView from "@/components/modules/NotesView";
+import NotesView from "@/components/modules/notes/index";
 
 import type { ComponentType } from "react";
 
