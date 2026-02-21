@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { HeroUIProvider } from "@heroui/react";
 import { useStore } from "@/stores/app";
 import { getVaultPath } from "@/services/fs";
 import { useVaultLoader } from "@/hooks/useVaultLoader";
@@ -8,7 +9,7 @@ import { isTauri } from "@/services/env";
 import { loadDirectoryHandle } from "@/services/web-fs-store";
 import { setDirectoryHandle } from "@/services/web-fs";
 
-export default function App() {
+function AppContent() {
   const { vaultPath, setVaultPath } = useStore();
   const { loadAll } = useVaultLoader();
 
@@ -41,5 +42,13 @@ export default function App() {
       <div className="radial-bg" />
       {vaultPath ? <Shell /> : <SetupScreen />}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <HeroUIProvider>
+      <AppContent />
+    </HeroUIProvider>
   );
 }

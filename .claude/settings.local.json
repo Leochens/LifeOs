@@ -61,7 +61,10 @@
       "Bash(NODE_PATH=/Applications/ServBay/package/node/22/22.19.0/lib/node_modules node /tmp/playwright-local.js 2>&1)",
       "Bash(NODE_PATH=/Applications/ServBay/package/node/22/22.19.0/lib/node_modules node /tmp/playwright-select-dir.js 2>&1)",
       "Bash(NODE_PATH=/Applications/ServBay/package/node/22/22.19.0/lib/node_modules node /tmp/playwright-screenshot.js 2>&1)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "WebFetch(domain:www.heroui.com)",
+      "Bash(npm install @heroui/react framer-motion)",
+      "Bash(git checkout:*)"
     ]
   }
 }
