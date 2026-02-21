@@ -6,15 +6,16 @@ import { format } from "date-fns";
 import type { HabitStore, DayNote, Project, DiaryEntry, Decision, Goal, FinancePerson, FinanceRecord, FinanceSubItem, Subscription } from "@/types";
 
 export function useVaultLoader() {
-  const { vaultPath, setTodayNote, setProjects, setDiaryEntries, setDecisions, setGoals, setHabits, setFinancePersons, setFinanceRecords, setSubscriptions, setLoading, loadMenuConfigFromVault } =
+  const { vaultPath, setTodayNote, setProjects, setDiaryEntries, setDecisions, setGoals, setHabits, setFinancePersons, setFinanceRecords, setSubscriptions, setLoading, loadMenuConfigFromVault, loadAppSettingsFromVault } =
     useStore();
 
   const loadAll = useCallback(async () => {
     if (!vaultPath) return;
     setLoading(true);
     try {
-      // Load menu config first
+      // Load menu config and app settings first
       await loadMenuConfigFromVault();
+      await loadAppSettingsFromVault();
 
       // Use allSettled so one failing loader doesn't break the rest
       const results = await Promise.allSettled([
@@ -36,7 +37,7 @@ export function useVaultLoader() {
     } finally {
       setLoading(false);
     }
-  }, [vaultPath, loadMenuConfigFromVault]);
+  }, [vaultPath, loadMenuConfigFromVault, loadAppSettingsFromVault]);
 
   return { loadAll };
 }

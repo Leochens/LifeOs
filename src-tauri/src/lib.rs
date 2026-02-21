@@ -18,6 +18,8 @@ pub fn run() {
             vault_commands::load_board_config,
             vault_commands::save_board_config,
             vault_commands::regenerate_skills,
+            vault_commands::load_app_settings,
+            vault_commands::save_app_settings,
             // Generic file system
             fs_commands::read_file,
             fs_commands::write_file,
@@ -45,10 +47,13 @@ pub fn run() {
             extra_commands::delete_launchd_task,
             // Apple Notes
             extra_commands::get_apple_notes,
+            extra_commands::create_apple_note,
+            extra_commands::update_apple_note,
             // Email: IMAP sync
             email_commands::imap_sync,
             email_commands::get_cached_emails,
             email_commands::list_email_folders,
+            email_commands::send_email,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Life OS");

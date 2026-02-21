@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use tokio::process::Command as AsyncCommand;
 use walkdir::WalkDir;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -434,80 +435,59 @@ pub fn delete_launchd_task(id: String) -> Result<(), String> {
 // Apple Notes (备忘录)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// 缓存备忘录数据，避免每次都调用 AppleScript
+use std::sync::Mutex;
+use once_cell::sync::Lazy;
+
+static NOTES_CACHE: Lazy<Mutex<Vec<AppleNote>>> = Lazy::new(|| Mutex::new(Vec::new()));
+static CACHE_TIMESTAMP: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(0));
+
+fn get_cache_age() -> u64 {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let timestamp = *CACHE_TIMESTAMP.lock().unwrap();
+    now.saturating_sub(timestamp)
+}
+
+fn invalidate_cache() {
+    NOTES_CACHE.lock().unwrap().clear();
+    *CACHE_TIMESTAMP.lock().unwrap() = 0;
+}
+
 #[tauri::command]
-pub fn get_apple_notes(query: Option<String>, offset: Option<usize>, limit: Option<usize>) -> Result<AppleNotesResult, String> {
+pub async fn get_apple_notes(query: Option<String>, offset: Option<usize>, limit: Option<usize>) -> Result<AppleNotesResult, String> {
     let query = query.unwrap_or_default().to_lowercase();
     let offset = offset.unwrap_or(0);
     let limit = limit.unwrap_or(20);
 
-    // 使用 Python 调用 AppleScript 并正确生成 JSON
-    let python_script = r#"
-import subprocess
-import json
-import sys
+    // 检查缓存（缓存有效期 30 秒）
+    let cache_age = get_cache_age();
+    let use_cache = query.is_empty() && offset == 0 && cache_age < 30;
 
-# AppleScript 简化版
-script = '''
-tell application "Notes"
-    set notesList to {}
-    repeat with aNote in every note
-        set noteName to name of aNote
-        set noteContent to plaintext of aNote
-        set noteId to id of aNote
-        set noteFolder to "Notes"
-        set end of notesList to {noteId, noteName, noteContent, noteFolder}
-    end repeat
-    return notesList
-end tell
-'''
+    let all_notes: Vec<AppleNote> = if use_cache {
+        let cache = NOTES_CACHE.lock().unwrap();
+        if !cache.is_empty() {
+            cache.clone()
+        } else {
+            drop(cache);
+            load_notes_from_apple()?
+        }
+    } else {
+        load_notes_from_apple()?
+    };
 
-result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
-if result.returncode != 0:
-    print(result.stderr, file=sys.stderr)
-    sys.exit(1)
-
-output = result.stdout.strip()
-if not output:
-    print("[]")
-    sys.exit(0)
-
-parts = output.split(',')
-notes = []
-
-i = 0
-while i + 3 < len(parts):
-    note = {
-        "id": parts[i].strip(),
-        "name": parts[i+1].strip(),
-        "content": parts[i+2].strip(),
-        "folder": parts[i+3].strip(),
-        "created": None,
-        "modified": None
+    // 更新缓存
+    if query.is_empty() && offset == 0 {
+        let mut cache = NOTES_CACHE.lock().unwrap();
+        *cache = all_notes.clone();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        *CACHE_TIMESTAMP.lock().unwrap() = now;
     }
-    notes.append(note)
-    i += 4
-
-print(json.dumps(notes, ensure_ascii=False))
-"#;
-
-    let output = Command::new("python3")
-        .arg("-c")
-        .arg(python_script)
-        .output()
-        .map_err(|e| format!("Failed to execute Python: {}", e))?;
-
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    if !output.status.success() {
-        return Err(format!("Python failed. stderr: {}", stderr));
-    }
-
-    // 解析 JSON
-    let all_notes: Vec<AppleNote> = serde_json::from_str(&stdout)
-        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
-
-    let total = all_notes.len();
 
     // 过滤搜索结果
     let filtered: Vec<AppleNote> = if query.is_empty() {
@@ -527,4 +507,156 @@ print(json.dumps(notes, ensure_ascii=False))
         total: filtered.len(),
         has_more,
     })
+}
+
+fn load_notes_from_apple() -> Result<Vec<AppleNote>, String> {
+    // 直接使用 osascript，避免 Python 开销
+    let script = r#"
+tell application "Notes"
+    set notesList to {}
+    repeat with aNote in (get notes)
+        try
+            set noteId to id of aNote
+            set noteName to name of aNote
+            set noteContent to plaintext of aNote
+            set noteFolder to name of container of aNote
+            set end of notesList to {noteId, noteName, noteContent, noteFolder}
+        on error
+            -- skip problematic notes
+        end try
+    end repeat
+    return notesList
+end tell
+"#;
+
+    let output = std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .map_err(|e| format!("Failed to run AppleScript: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("AppleScript error: {}", stderr));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let output_str = stdout.trim();
+
+    if output_str.is_empty() || output_str == "{}" {
+        return Ok(Vec::new());
+    }
+
+    // 解析 AppleScript 返回的列表格式
+    // 格式: {id1, name1, content1, folder1}, {id2, name2, content2, folder2}, ...
+    let mut notes = Vec::new();
+    let mut current_depth = 0;
+    let mut current_start = 0;
+
+    for (i, c) in output_str.chars().enumerate() {
+        match c {
+            '{' => {
+                if current_depth == 0 {
+                    current_start = i;
+                }
+                current_depth += 1;
+            }
+            '}' => {
+                current_depth -= 1;
+                if current_depth == 0 {
+                    let item = &output_str[current_start..=i];
+                    if let Some(note) = parse_note_item(item) {
+                        notes.push(note);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(notes)
+}
+
+fn parse_note_item(item: &str) -> Option<AppleNote> {
+    // 移除大括号
+    let item = item.trim().trim_start_matches('{').trim_end_matches('}');
+
+    // 使用简单分割（注意：内容中可能包含逗号，所以这里需要更智能的处理）
+    let parts: Vec<&str> = item.splitn(4, ',').collect();
+    if parts.len() >= 4 {
+        Some(AppleNote {
+            id: parts[0].trim().to_string(),
+            name: parts[1].trim().to_string(),
+            content: parts[2].trim().to_string(),
+            folder: parts[3].trim().to_string(),
+            created: None,
+            modified: None,
+        })
+    } else {
+        None
+    }
+}
+
+/// Create a new Apple Note
+#[tauri::command]
+pub async fn create_apple_note(folder: String, title: String, body: String) -> Result<String, String> {
+    invalidate_cache(); // 使缓存失效
+
+    let escaped_title = title.replace("\"", "\\\"");
+    let escaped_body = body.replace("\"", "\\\"").replace("\n", "\\n");
+
+    let script = format!(
+        r#"tell application "Notes"
+    tell folder "{folder}"
+        set newNote to make new note with properties {{name:"{title}", body:"{body}"}}
+        return id of newNote
+    end tell
+end tell"#,
+        folder = folder.replace("\"", "\\\""),
+        title = escaped_title,
+        body = escaped_body
+    );
+
+    let output = AsyncCommand::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run AppleScript: {}", e))?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
+}
+
+/// Update an existing Apple Note
+#[tauri::command]
+pub async fn update_apple_note(note_id: String, body: String) -> Result<(), String> {
+    invalidate_cache(); // 使缓存失效
+
+    let escaped_body = body.replace("\"", "\\\"").replace("\n", "\\n");
+
+    let script = format!(
+        r#"tell application "Notes"
+    set targetNote to first note whose id is "{id}"
+    set body of targetNote to "{body}"
+end tell"#,
+        id = note_id.replace("\"", "\\\""),
+        body = escaped_body
+    );
+
+    let output = AsyncCommand::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run AppleScript: {}", e))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
 }

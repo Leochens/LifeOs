@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { saveMenuConfig, loadMenuConfig } from "@/services/tauri";
+import { saveMenuConfig, loadMenuConfig, saveAppSettings, loadAppSettings } from "@/services/tauri";
 import type {
   ViewId,
   DayNote,
@@ -143,6 +143,22 @@ function menuConfigToYaml(config: MenuConfig): string {
   return yaml;
 }
 
+// Settings YAML helpers
+function settingsToYaml(theme: string, claudeCodeEnabled: boolean, claudeCodePath: string): string {
+  return `theme: ${theme}\nclaudeCodeEnabled: ${claudeCodeEnabled}\nclaudeCodePath: ${claudeCodePath}\n`;
+}
+
+function parseSettingsYaml(yaml: string): { theme?: string; claudeCodeEnabled?: boolean; claudeCodePath?: string } {
+  const result: any = {};
+  for (const line of yaml.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("theme:")) result.theme = trimmed.replace("theme:", "").trim();
+    if (trimmed.startsWith("claudeCodeEnabled:")) result.claudeCodeEnabled = trimmed.replace("claudeCodeEnabled:", "").trim() === "true";
+    if (trimmed.startsWith("claudeCodePath:")) result.claudeCodePath = trimmed.replace("claudeCodePath:", "").trim();
+  }
+  return result;
+}
+
 // Default menu configuration
 const DEFAULT_MENU_CONFIG: MenuConfig = {
   groups: [
@@ -275,6 +291,7 @@ interface AppState {
   updateGroup: (groupId: string, updates: Partial<{ name: string; collapsed: boolean; pluginIds: string[] }>) => void;
   saveMenuConfigToVault: () => Promise<void>;
   loadMenuConfigFromVault: () => Promise<void>;
+  loadAppSettingsFromVault: () => Promise<void>;
 
   // Email
   emailAccounts: EmailAccount[];
@@ -310,6 +327,12 @@ export const useStore = create<AppState>((set) => ({
   setTheme: (theme) => {
     document.documentElement.setAttribute("data-theme", theme);
     set({ theme });
+    // Auto-save settings
+    const state = useStore.getState();
+    if (state.vaultPath) {
+      const yaml = settingsToYaml(theme, state.claudeCodeEnabled, state.claudeCodePath);
+      saveAppSettings(state.vaultPath, yaml).catch(console.error);
+    }
   },
 
   todayNote: null,
@@ -361,9 +384,25 @@ export const useStore = create<AppState>((set) => ({
   setScheduledTasks: (scheduledTasks) => set({ scheduledTasks }),
 
   claudeCodeEnabled: true,
-  setClaudeCodeEnabled: (claudeCodeEnabled) => set({ claudeCodeEnabled }),
+  setClaudeCodeEnabled: (claudeCodeEnabled) => {
+    set({ claudeCodeEnabled });
+    // Auto-save settings
+    const state = useStore.getState();
+    if (state.vaultPath) {
+      const yaml = settingsToYaml(state.theme, claudeCodeEnabled, state.claudeCodePath);
+      saveAppSettings(state.vaultPath, yaml).catch(console.error);
+    }
+  },
   claudeCodePath: "claude",
-  setClaudeCodePath: (claudeCodePath) => set({ claudeCodePath }),
+  setClaudeCodePath: (claudeCodePath) => {
+    set({ claudeCodePath });
+    // Auto-save settings
+    const state = useStore.getState();
+    if (state.vaultPath) {
+      const yaml = settingsToYaml(state.theme, state.claudeCodeEnabled, claudeCodePath);
+      saveAppSettings(state.vaultPath, yaml).catch(console.error);
+    }
+  },
 
   // Menu / Plugin System
   menuConfig: DEFAULT_MENU_CONFIG,
@@ -447,6 +486,24 @@ export const useStore = create<AppState>((set) => ({
     } catch (e) {
       // If loading fails, use default config
       console.log("Using default menu config");
+    }
+  },
+
+  loadAppSettingsFromVault: async () => {
+    const state = useStore.getState();
+    if (!state.vaultPath) return;
+    try {
+      const yaml = await loadAppSettings(state.vaultPath);
+      if (!yaml) return;
+      const settings = parseSettingsYaml(yaml);
+      if (settings.theme) {
+        document.documentElement.setAttribute("data-theme", settings.theme);
+        set({ theme: settings.theme as Theme });
+      }
+      if (settings.claudeCodeEnabled !== undefined) set({ claudeCodeEnabled: settings.claudeCodeEnabled });
+      if (settings.claudeCodePath) set({ claudeCodePath: settings.claudeCodePath });
+    } catch (e) {
+      console.log("No settings file found, using defaults");
     }
   },
 

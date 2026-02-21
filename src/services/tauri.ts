@@ -30,6 +30,12 @@ export const saveBoardConfig = (vaultPath: string, content: string): Promise<voi
 export const regenerateSkills = (vaultPath: string): Promise<void> =>
   invoke("regenerate_skills", { vaultPath });
 
+export const loadAppSettings = (vaultPath: string): Promise<string> =>
+  invoke("load_app_settings", { vaultPath });
+
+export const saveAppSettings = (vaultPath: string, content: string): Promise<void> =>
+  invoke("save_app_settings", { vaultPath, content });
+
 export const pickVaultFolder = async (): Promise<string | null> => {
   const selected = await open({ directory: true, multiple: false });
   return selected as string | null;
@@ -159,6 +165,12 @@ export const getAppleNotes = (
 ): Promise<AppleNotesResult> =>
   invoke("get_apple_notes", { query, offset, limit });
 
+export const createAppleNote = (folder: string, title: string, body: string): Promise<string> =>
+  invoke("create_apple_note", { folder, title, body });
+
+export const updateAppleNote = (noteId: string, body: string): Promise<void> =>
+  invoke("update_apple_note", { noteId, body });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Email / IMAP Sync
 // ─────────────────────────────────────────────────────────────────────────────
@@ -204,8 +216,29 @@ export const imapSync = (
     maxEmails,
   });
 
-export const getCachedEmails = (vaultPath: string, folder: string): Promise<EmailMessage[]> =>
-  invoke("get_cached_emails", { vaultPath, folder });
+export const getCachedEmails = (vaultPath: string, folder: string, offset?: number, limit?: number): Promise<EmailMessage[]> =>
+  invoke("get_cached_emails", { vaultPath, folder, offset, limit });
 
 export const listEmailFolders = (vaultPath: string): Promise<string[]> =>
   invoke("list_email_folders", { vaultPath });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Email / SMTP Send
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SendEmailRequest {
+  smtp: {
+    from_email: string;
+    from_name: string;
+    password: string;
+    smtp_host: string;
+    smtp_port: number;
+  };
+  to: string;
+  subject: string;
+  body: string;
+  in_reply_to?: string;
+}
+
+export const sendEmail = (request: SendEmailRequest): Promise<void> =>
+  invoke("send_email", { request });

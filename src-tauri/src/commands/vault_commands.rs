@@ -599,6 +599,24 @@ pub fn save_board_config(vault_path: String, content: String) -> Result<(), Stri
     fs::write(&board_path, content).map_err(|e| e.to_string())
 }
 
+/// Load app settings from vault
+#[tauri::command]
+pub fn load_app_settings(vault_path: String) -> Result<String, String> {
+    let settings_path = PathBuf::from(&vault_path).join(".lifeos/settings.yaml");
+    if settings_path.exists() {
+        fs::read_to_string(&settings_path).map_err(|e| e.to_string())
+    } else {
+        Ok(String::new())
+    }
+}
+
+/// Save app settings to vault
+#[tauri::command]
+pub fn save_app_settings(vault_path: String, content: String) -> Result<(), String> {
+    let settings_path = PathBuf::from(&vault_path).join(".lifeos/settings.yaml");
+    fs::write(&settings_path, content).map_err(|e| e.to_string())
+}
+
 /// Regenerate skills in vault
 #[tauri::command]
 pub fn regenerate_skills(vault_path: String) -> Result<(), String> {

@@ -162,6 +162,29 @@ export default function SubscriptionsView() {
     loadSubscriptions();
   }, [vaultPath]);
 
+  // Auto-calculate renewal date
+  useEffect(() => {
+    if (!formStartDate) return;
+    const start = new Date(formStartDate);
+    if (isNaN(start.getTime())) return;
+
+    const now = new Date();
+    let next = new Date(start);
+
+    // Advance until next renewal is in the future
+    while (next <= now) {
+      if (formCycle === "monthly") {
+        next.setMonth(next.getMonth() + 1);
+      } else if (formCycle === "yearly") {
+        next.setFullYear(next.getFullYear() + 1);
+      } else if (formCycle === "weekly") {
+        next.setDate(next.getDate() + 7);
+      }
+    }
+
+    setFormRenewalDate(format(next, "yyyy-MM-dd"));
+  }, [formStartDate, formCycle]);
+
   const resetForm = () => {
     setFormName("");
     setFormAmount("");
@@ -700,13 +723,13 @@ export default function SubscriptionsView() {
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>续费日期</label>
+                  <label style={labelStyle}>续费日期 <span style={{ fontSize: 10, color: "var(--accent)", marginLeft: 4 }}>自动计算</span></label>
                   <input
                     className="input"
                     type="date"
                     value={formRenewalDate}
-                    onChange={(e) => setFormRenewalDate(e.target.value)}
-                    style={{ width: "100%" }}
+                    readOnly
+                    style={{ width: "100%", opacity: 0.8 }}
                   />
                 </div>
               </div>

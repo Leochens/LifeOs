@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAppleNotes, type AppleNote, type AppleNotesResult } from "@/services/tauri";
-import { RefreshCw, Folder, FileText, X, Search, ChevronDown } from "lucide-react";
+import { getAppleNotes, createAppleNote, updateAppleNote, type AppleNote, type AppleNotesResult } from "@/services/tauri";
+import { RefreshCw, Folder, FileText, X, Search, ChevronDown, Plus, Save } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
@@ -14,9 +14,26 @@ export default function NotesView() {
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showNewNote, setShowNewNote] = useState(false);
+  const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [newNoteBody, setNewNoteBody] = useState("");
+  const [newNoteFolder, setNewNoteFolder] = useState("Notes");
+  const [cachedNotes, setCachedNotes] = useState<AppleNote[] | null>(null);
 
   // 加载备忘录
   const loadNotes = async (query: string = "", offset: number = 0, append: boolean = false) => {
+    // Use cache for non-search, initial loads
+    if (!query && offset === 0 && !append && cachedNotes) {
+      setAllNotes(cachedNotes);
+      setTotal(cachedNotes.length);
+      setHasMore(false);
+      setLoading(false);
+      return;
+    }
+
     if (append) {
       setLoadingMore(true);
     } else {
@@ -29,6 +46,10 @@ export default function NotesView() {
         setAllNotes(prev => [...prev, ...result.notes]);
       } else {
         setAllNotes(result.notes);
+        // Cache the first load results
+        if (!query && offset === 0) {
+          setCachedNotes(result.notes);
+        }
       }
       setTotal(result.total);
       setHasMore(result.has_more);
@@ -62,6 +83,43 @@ export default function NotesView() {
     }
   };
 
+  // Save edited note
+  const handleSaveNote = async () => {
+    if (!selectedNote) return;
+    setSaving(true);
+    try {
+      await updateAppleNote(selectedNote.id, editContent);
+      // Update local state
+      const updated = { ...selectedNote, content: editContent };
+      setSelectedNote(updated);
+      setAllNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
+      setCachedNotes(null); // Invalidate cache
+      setIsEditing(false);
+    } catch (e) {
+      alert("保存失败: " + e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Create new note
+  const handleCreateNote = async () => {
+    if (!newNoteTitle.trim()) return;
+    setSaving(true);
+    try {
+      await createAppleNote(newNoteFolder, newNoteTitle, newNoteBody);
+      setShowNewNote(false);
+      setNewNoteTitle("");
+      setNewNoteBody("");
+      setCachedNotes(null); // Invalidate cache
+      loadNotes(); // Reload
+    } catch (e) {
+      alert("创建失败: " + e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // 按文件夹分组
   const notesByFolder = useMemo(() => {
     const groups: Record<string, AppleNote[]> = {};
@@ -91,6 +149,13 @@ export default function NotesView() {
             {total} 条备忘录
           </span>
         </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowNewNote(true)}
+          style={{ fontSize: 12, padding: "6px 14px", display: "flex", alignItems: "center", gap: 4 }}
+        >
+          <Plus size={14} /> 新建备忘录
+        </button>
       </div>
 
       {/* Search */}
@@ -405,12 +470,167 @@ export default function NotesView() {
               flex: 1,
               overflow: "auto",
               padding: 20,
-              fontSize: 14,
-              lineHeight: 1.7,
-              whiteSpace: "pre-wrap",
-              color: "var(--text)",
             }}>
-              {selectedNote.content || "（空备忘录）"}
+              {isEditing ? (
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    minHeight: 300,
+                    background: "var(--panel2)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-sm)",
+                    padding: 12,
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color: "var(--text)",
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                  }}
+                />
+              ) : (
+                <div style={{
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  whiteSpace: "pre-wrap",
+                  color: "var(--text)",
+                }}>
+                  {selectedNote.content || "（空备忘录）"}
+                </div>
+              )}
+            </div>
+
+            {/* Footer actions */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 8,
+              padding: "12px 20px",
+              borderTop: "1px solid var(--border)",
+            }}>
+              {isEditing ? (
+                <>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => setIsEditing(false)}
+                    style={{ fontSize: 12 }}
+                  >
+                    取消
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSaveNote}
+                    disabled={saving}
+                    style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+                  >
+                    <Save size={14} />
+                    {saving ? "保存中..." : "保存"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => { setEditContent(selectedNote.content); setIsEditing(true); }}
+                  style={{ fontSize: 12 }}
+                >
+                  编辑
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New note modal */}
+      {showNewNote && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 40,
+          }}
+          onClick={(e) => e.target === e.currentTarget && setShowNewNote(false)}
+        >
+          <div
+            className="panel"
+            style={{
+              width: 500,
+              maxHeight: "70vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              borderRadius: "var(--radius)",
+            }}
+          >
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "16px 20px",
+              borderBottom: "1px solid var(--border)",
+            }}>
+              <span style={{ fontSize: 16, fontWeight: 600 }}>新建备忘录</span>
+              <button
+                onClick={() => setShowNewNote(false)}
+                style={{ background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer" }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>文件夹</label>
+                <select
+                  className="input"
+                  value={newNoteFolder}
+                  onChange={(e) => setNewNoteFolder(e.target.value)}
+                  style={{ width: "100%" }}
+                >
+                  {folders.length > 0 ? folders.map(f => (
+                    <option key={f} value={f}>{f}</option>
+                  )) : <option value="Notes">Notes</option>}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>标题</label>
+                <input
+                  className="input"
+                  value={newNoteTitle}
+                  onChange={(e) => setNewNoteTitle(e.target.value)}
+                  placeholder="备忘录标题"
+                  style={{ width: "100%" }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: "var(--text-mid)", display: "block", marginBottom: 4 }}>内容</label>
+                <textarea
+                  className="input"
+                  value={newNoteBody}
+                  onChange={(e) => setNewNoteBody(e.target.value)}
+                  placeholder="备忘录内容..."
+                  rows={8}
+                  style={{ width: "100%", resize: "vertical" }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleCreateNote}
+                  disabled={saving || !newNoteTitle.trim()}
+                  style={{ flex: 1 }}
+                >
+                  {saving ? "创建中..." : "创建"}
+                </button>
+                <button className="btn btn-ghost" onClick={() => setShowNewNote(false)}>取消</button>
+              </div>
             </div>
           </div>
         </div>

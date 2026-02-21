@@ -332,6 +332,9 @@ export interface EmailAccount {
   authType: "password" | "oauth2";
   // 密码只存储引用，实际密码从系统 keychain 获取
   passwordRef?: string;
+  // SMTP 配置（用于发送邮件）
+  smtpHost?: string;
+  smtpPort?: number;
   folders: string[];
   lastSync?: string;
   enabled: boolean;
