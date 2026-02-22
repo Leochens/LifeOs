@@ -43,42 +43,51 @@ pub struct ImapAccount {
 
 /// Connect to IMAP or POP3 server and sync emails (with TLS support)
 #[tauri::command]
-pub fn imap_sync(
+pub async fn imap_sync(
     account: ImapAccount,
     vault_path: String,
     folder: String,
     max_emails: u32,
 ) -> Result<Vec<EmailMessage>, String> {
-    let host = &account.imap_host;
+    let host = account.imap_host.clone();
     let port = account.imap_port;
-    let email = &account.email;
-    let password = &account.password;
-    let protocol = account.protocol.as_deref().unwrap_or("pop3");
+    let email = account.email.clone();
+    let password = account.password.clone();
+    let protocol = account.protocol.clone().unwrap_or_else(|| "pop3".to_string());
+    let account_id = account.account_id.clone();
 
     // Debug: 打印接收到的 account_id
-    println!("[DEBUG] imap_sync received - email: {}, account_id: {:?}", email, account.account_id);
+    println!("[DEBUG] imap_sync received - email: {}, account_id: {:?}", email, account_id);
 
-    // 使用 account_id 或 email 作为账户目录名
-    let account_dir = account.account_id
-        .unwrap_or_else(|| {
-            println!("[DEBUG] account_id is None, using email as fallback: {}", email.replace("@", "_at_"));
-            email.replace("@", "_at_")
-        });
+    // 使用 spawn_blocking 在后台线程执行阻塞的网络操作，避免阻塞主线程
+    let vault_path_clone = vault_path.clone();
+    let folder_clone = folder.clone();
 
-    // Determine if we need TLS (port 993/995 typically means SSL)
-    let use_tls = port == 993 || port == 995;
+    tokio::task::spawn_blocking(move || {
+        // 使用 account_id 或 email 作为账户目录名
+        let account_dir = account_id
+            .unwrap_or_else(|| {
+                println!("[DEBUG] account_id is None, using email as fallback: {}", email.replace("@", "_at_"));
+                email.replace("@", "_at_")
+            });
 
-    // Route to IMAP or POP3 based on protocol
-    if protocol == "pop3" {
-        if use_tls {
-            pop3_sync_tls(host, port, email, password, &vault_path, &account_dir, max_emails)
+        // Determine if we need TLS (port 993/995 typically means SSL)
+        let use_tls = port == 993 || port == 995;
+
+        // Route to IMAP or POP3 based on protocol
+        if protocol == "pop3" {
+            if use_tls {
+                pop3_sync_tls(&host, port, &email, &password, &vault_path_clone, &account_dir, max_emails)
+            } else {
+                pop3_sync_plain(&host, port, &email, &password, &vault_path_clone, &account_dir, max_emails)
+            }
         } else {
-            pop3_sync_plain(host, port, email, password, &vault_path, &account_dir, max_emails)
+            // IMAP — use the `imap` crate for reliable parsing
+            imap_sync_with_crate(&host, port, &email, &password, &vault_path_clone, &account_dir, &folder_clone, max_emails, use_tls)
         }
-    } else {
-        // IMAP — use the `imap` crate for reliable parsing
-        imap_sync_with_crate(host, port, email, password, &vault_path, &account_dir, &folder, max_emails, use_tls)
-    }
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {}", e))?
 }
 
 // ── IMAP via `imap` crate + `mail-parser` ────────────────────────────────────
@@ -927,6 +936,276 @@ pub async fn send_email(request: SendEmailRequest) -> Result<(), String> {
         .build();
 
     mailer.send(&email).map_err(|e| format!("发送失败: {}", e))?;
+
+    Ok(())
+}
+
+/// Delete an email from local cache and optionally from IMAP server
+#[tauri::command]
+pub async fn delete_email(
+    vault_path: String,
+    account_id: String,
+    email_id: String,
+    imap_host: Option<String>,
+    imap_port: Option<u16>,
+    imap_password: Option<String>,
+    email: Option<String>,
+    folder: Option<String>,
+) -> Result<(), String> {
+    // Parse email_id to extract uid
+    // email_id format: "FOLDER_UID" (e.g., "INBOX_123")
+    // The uid is always the last part after splitting by underscore
+    let uid: u32 = email_id
+        .split('_')
+        .last()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+
+    // Use the provided folder parameter, or fall back to parsing from email_id
+    let folder_name = folder.unwrap_or_else(|| {
+        let parts: Vec<&str> = email_id.split('_').collect();
+        if parts.len() >= 2 {
+            parts[..parts.len() - 1].join("_")
+        } else {
+            "INBOX".to_string()
+        }
+    });
+
+    // Load account info to get protocol
+    let account_path = PathBuf::from(&vault_path)
+        .join(".lifeos")
+        .join("emails")
+        .join(format!("{}.json", account_id));
+
+    let protocol = if account_path.exists() {
+        if let Ok(content) = fs::read_to_string(&account_path) {
+            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
+                data.get("protocol")
+                    .and_then(|p| p.as_str())
+                    .unwrap_or("pop3")
+                    .to_string()
+            } else {
+                "pop3".to_string()
+            }
+        } else {
+            "pop3".to_string()
+        }
+    } else {
+        "pop3".to_string()
+    };
+
+    // First, try to mark as deleted on IMAP server if it's IMAP protocol
+    if protocol == "imap" {
+        if let (Some(host), Some(port), Some(password), Some(email_addr)) =
+            (&imap_host, &imap_port, &imap_password, &email)
+        {
+            let use_tls = *port == 993;
+
+            let tls = native_tls::TlsConnector::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .map_err(|e| format!("TLS 创建失败: {}", e))?;
+
+            let client = if use_tls {
+                imap::connect((host.as_str(), *port), host.as_str(), &tls)
+                    .map_err(|e| format!("IMAP 连接失败: {}", e))?
+            } else {
+                let stream = TcpStream::connect((host.as_str(), *port))
+                    .map_err(|e| format!("连接失败: {}", e))?;
+                imap::Client::new(stream)
+                    .secure(host.as_str(), &tls)
+                    .map_err(|e| format!("STARTTLS 失败: {}", e))?
+            };
+
+            let mut session = client
+                .login(&email_addr, &password)
+                .map_err(|e| format!("登录失败: {}", e.0))?;
+
+            // Select mailbox
+            session.select(&folder_name).map_err(|e| format!("选择文件夹失败: {}", e))?;
+
+            // Store +FLAGS (\Deleted) to mark as deleted using UID
+            session
+                .store(format!("{}", uid), "+FLAGS (\\Deleted)")
+                .map_err(|e| format!("标记删除失败: {}", e))?;
+
+            // Expunge to permanently delete
+            session.expunge().map_err(|e| format!("永久删除失败: {}", e))?;
+
+            session.logout().ok();
+        }
+    }
+
+    // Delete from local cache
+    let emails_dir = PathBuf::from(&vault_path)
+        .join("Mailbox")
+        .join(&account_id);
+
+    // Load index.json
+    let index_path = emails_dir.join("index.json");
+    if index_path.exists() {
+        let content = fs::read_to_string(&index_path)
+            .map_err(|e| format!("读取索引失败: {}", e))?;
+        let mut emails: Vec<EmailMessage> = serde_json::from_str(&content)
+            .map_err(|e| format!("解析索引失败: {}", e))?;
+
+        // Find and remove the email
+        let original_len = emails.len();
+        emails.retain(|e| e.id != email_id);
+
+        if emails.len() < original_len {
+            // Save updated index
+            let index_json = serde_json::to_string_pretty(&emails)
+                .map_err(|e| format!("序列化失败: {}", e))?;
+            fs::write(&index_path, index_json)
+                .map_err(|e| format!("写入索引失败: {}", e))?;
+        }
+    }
+
+    // Try to delete EML file if exists
+    // The EML filename is based on the email's id (message_id or folder_uid)
+    let eml_files = vec![
+        emails_dir.join(format!("{}.eml", email_id)),
+        emails_dir.join(format!("{}.eml", uid)),
+    ];
+
+    for eml_path in eml_files {
+        if eml_path.exists() {
+            fs::remove_file(&eml_path).ok();
+        }
+    }
+
+    Ok(())
+}
+
+/// Mark an email as read or unread
+#[tauri::command]
+pub async fn mark_email_read(
+    vault_path: String,
+    account_id: String,
+    email_id: String,
+    read: bool,
+    folder: Option<String>,
+    imap_host: Option<String>,
+    imap_port: Option<u16>,
+    imap_password: Option<String>,
+    email: Option<String>,
+) -> Result<(), String> {
+    // Parse email_id to extract uid
+    // email_id format: "FOLDER_UID" (e.g., "INBOX_123")
+    let uid: u32 = email_id
+        .split('_')
+        .last()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+
+    // Use the provided folder parameter, or fall back to parsing from email_id
+    let folder_name = folder.unwrap_or_else(|| {
+        let parts: Vec<&str> = email_id.split('_').collect();
+        if parts.len() >= 2 {
+            parts[..parts.len() - 1].join("_")
+        } else {
+            "INBOX".to_string()
+        }
+    });
+
+    // Load account info to get protocol
+    let account_path = PathBuf::from(&vault_path)
+        .join(".lifeos")
+        .join("emails")
+        .join(format!("{}.json", account_id));
+
+    let protocol = if account_path.exists() {
+        if let Ok(content) = fs::read_to_string(&account_path) {
+            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
+                data.get("protocol")
+                    .and_then(|p| p.as_str())
+                    .unwrap_or("pop3")
+                    .to_string()
+            } else {
+                "pop3".to_string()
+            }
+        } else {
+            "pop3".to_string()
+        }
+    } else {
+        "pop3".to_string()
+    };
+
+    // First, try to mark as read/unread on IMAP server if it's IMAP protocol
+    if protocol == "imap" {
+        if let (Some(host), Some(port), Some(password), Some(email_addr)) =
+            (&imap_host, &imap_port, &imap_password, &email)
+        {
+            let use_tls = *port == 993;
+
+            let tls = native_tls::TlsConnector::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .map_err(|e| format!("TLS 创建失败: {}", e))?;
+
+            let client = if use_tls {
+                imap::connect((host.as_str(), *port), host.as_str(), &tls)
+                    .map_err(|e| format!("IMAP 连接失败: {}", e))?
+            } else {
+                let stream = TcpStream::connect((host.as_str(), *port))
+                    .map_err(|e| format!("连接失败: {}", e))?;
+                imap::Client::new(stream)
+                    .secure(host.as_str(), &tls)
+                    .map_err(|e| format!("STARTTLS 失败: {}", e))?
+            };
+
+            let mut session = client
+                .login(&email_addr, &password)
+                .map_err(|e| format!("登录失败: {}", e.0))?;
+
+            // Select mailbox
+            session.select(&folder_name).map_err(|e| format!("选择文件夹失败: {}", e))?;
+
+            // Store flags to mark as read/unread using UID
+            let flag_action = if read { "+FLAGS (\\Seen)" } else { "-FLAGS (\\Seen)" };
+            session
+                .store(format!("{}", uid), flag_action)
+                .map_err(|e| format!("标记已读/未读失败: {}", e))?;
+
+            session.logout().ok();
+        }
+    }
+
+    // Update local cache
+    let emails_dir = PathBuf::from(&vault_path)
+        .join("Mailbox")
+        .join(&account_id);
+
+    let index_path = emails_dir.join("index.json");
+    if index_path.exists() {
+        let content = fs::read_to_string(&index_path)
+            .map_err(|e| format!("读取索引失败: {}", e))?;
+        let mut emails: Vec<EmailMessage> = serde_json::from_str(&content)
+            .map_err(|e| format!("解析索引失败: {}", e))?;
+
+        // Find and update the email's flags
+        for email in emails.iter_mut() {
+            if email.id == email_id {
+                if read {
+                    // Add Seen flag if not present
+                    if !email.flags.contains(&"Seen".to_string()) {
+                        email.flags.push("Seen".to_string());
+                    }
+                } else {
+                    // Remove Seen flag
+                    email.flags.retain(|f| f != "Seen");
+                }
+                break;
+            }
+        }
+
+        // Save updated index
+        let index_json = serde_json::to_string_pretty(&emails)
+            .map_err(|e| format!("序列化失败: {}", e))?;
+        fs::write(&index_path, index_json)
+            .map_err(|e| format!("写入索引失败: {}", e))?;
+    }
 
     Ok(())
 }

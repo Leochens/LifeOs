@@ -166,3 +166,28 @@ export const listEmailFolders = (vaultPath: string) =>
 
 export const sendEmail = (request: tauri.SendEmailRequest) =>
   tauri.sendEmail(request);
+
+export const deleteEmail = (
+  vaultPath: string,
+  accountId: string,
+  emailId: string,
+  imapHost?: string,
+  imapPort?: number,
+  imapPassword?: string,
+  email?: string,
+  folder?: string
+) =>
+  tauri.deleteEmail(vaultPath, accountId, emailId, imapHost, imapPort, imapPassword, email, folder);
+
+export const markEmailRead = (
+  vaultPath: string,
+  accountId: string,
+  emailId: string,
+  read: boolean,
+  folder?: string,
+  imapHost?: string,
+  imapPort?: number,
+  imapPassword?: string,
+  email?: string
+) =>
+  tauri.markEmailRead(vaultPath, accountId, emailId, read, folder, imapHost, imapPort, imapPassword, email);

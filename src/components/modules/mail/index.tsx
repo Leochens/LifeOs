@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { imapSync, getCachedEmails, deleteFile, sendEmail, readFile, writeFile, listDir } from "@/services/fs";
+import { imapSync, getCachedEmails, deleteFile, sendEmail, readFile, writeFile, listDir, deleteEmail, markEmailRead } from "@/services/fs";
 import type { EmailMessage, SendEmailRequest } from "@/services/fs";
 import type { EmailAccount } from "@/types";
-import { HelpCircle, Send, ChevronDown, ChevronRight, Inbox, Mail, Star, Trash2, Archive, RefreshCw } from "lucide-react";
+import { HelpCircle, Send, ChevronDown, ChevronRight, Inbox, Mail, Star, Trash2, Archive, RefreshCw, Plus, X, MailOpen, Circle, Search } from "lucide-react";
 
 const EMAILS_DIR = ".lifeos/emails";
 const PAGE_SIZE = 20;
@@ -73,6 +73,25 @@ export default function MailView() {
   const [showReply, setShowReply] = useState(false);
   const [replyBody, setReplyBody] = useState("");
   const [sending, setSending] = useState(false);
+
+  // Compose new email state
+  const [showCompose, setShowCompose] = useState(false);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeCc, setComposeCc] = useState("");
+  const [composeBcc, setComposeBcc] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [composing, setComposing] = useState(false);
+
+  // Delete email state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Forward state
+  const [forwardMode, setForwardMode] = useState<"reply" | "forward" | null>(null);
 
   // Load accounts from vault
   const loadAccounts = async () => {
@@ -332,6 +351,80 @@ export default function MailView() {
     finally { setSending(false); }
   };
 
+  // Handle compose new email
+  const handleSendCompose = async () => {
+    if (!selectedAccount) { alert("请先选择一个邮箱账户"); return; }
+    if (!composeTo.trim()) { alert("请填写收件人"); return; }
+    if (!composeSubject.trim()) { alert("请填写主题"); return; }
+    if (!composeBody.trim()) { alert("请填写邮件内容"); return; }
+    if (!selectedAccount.smtpHost) { alert("请先在账户设置中配置 SMTP 服务器"); return; }
+
+    setComposing(true);
+    try {
+      const request: SendEmailRequest = {
+        smtp: { from_email: selectedAccount.email, from_name: selectedAccount.name, password: selectedAccount.password || "", smtp_host: selectedAccount.smtpHost, smtp_port: selectedAccount.smtpPort || 587 },
+        to: composeTo,
+        subject: composeSubject,
+        body: composeBody,
+      };
+      await sendEmail(request);
+      alert("邮件发送成功！");
+      setShowCompose(false);
+      setComposeTo(""); setComposeCc(""); setComposeBcc("");
+      setComposeSubject(""); setComposeBody("");
+      setForwardMode(null);
+    } catch (e) { alert("发送失败: " + e); }
+    finally { setComposing(false); }
+  };
+
+  // Handle forward email
+  const handleForward = () => {
+    if (!selectedEmail) return;
+    const originalContent = selectedEmail.bodyText || selectedEmail.bodyHtml?.replace(/<[^>]*>/g, "") || "（无正文）";
+    const forwardBody = `
+---------- 转发邮件 ----------
+发件人: ${selectedEmail.from}
+收件人: ${selectedEmail.to || ""}
+日期: ${selectedEmail.date}
+主题: ${selectedEmail.subject}
+
+${originalContent}`;
+    setComposeTo("");
+    setComposeCc("");
+    setComposeBcc("");
+    setComposeSubject(`Fwd: ${selectedEmail.subject}`);
+    setComposeBody(forwardBody);
+    setForwardMode("forward");
+    setShowCompose(true);
+  };
+
+  // Handle delete email
+  const handleDeleteEmail = async () => {
+    if (!selectedAccount || !selectedEmail || !vaultPath) return;
+    setDeleting(true);
+    try {
+      await deleteEmail(vaultPath, selectedAccount.id, selectedEmail.id, selectedAccount.imapHost, selectedAccount.imapPort, selectedAccount.password, selectedAccount.email, selectedEmail.folder);
+      setEmails(prev => prev.filter(e => e.id !== selectedEmail.id));
+      setSelectedEmail(null);
+      setShowDeleteConfirm(false);
+      alert("邮件已删除");
+    } catch (e) { alert("删除失败: " + e); }
+    finally { setDeleting(false); }
+  };
+
+  // Handle mark email as read/unread
+  const handleMarkAsRead = async (read: boolean) => {
+    if (!selectedAccount || !selectedEmail || !vaultPath) return;
+    try {
+      await markEmailRead(vaultPath, selectedAccount.id, selectedEmail.id, read, selectedEmail.folder, selectedAccount.imapHost, selectedAccount.imapPort, selectedAccount.password, selectedAccount.email);
+      setSelectedEmail(prev => prev ? { ...prev, flags: read ? [...(prev.flags || []), "Seen"] : (prev.flags || []).filter(f => f !== "Seen") } : null);
+      setEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, flags: read ? [...(e.flags || []), "Seen"] : (e.flags || []).filter(f => f !== "Seen") } : e));
+    } catch (e) { console.error(e); }
+  };
+
+  // Check if email is read
+  const isEmailRead = (email: EmailMessage) => email.flags?.includes("Seen") ?? false;
+
   // ==================== 三层布局渲染 ====================
   return (
     <div className="flex h-[calc(100vh-120px)] gap-0">
@@ -405,10 +498,36 @@ export default function MailView() {
             <div className="text-[14px] font-semibold">{selectedFolder}</div>
             <div className="text-[11px] text-text-dim">{selectedAccount?.email}</div>
           </div>
-          <button className="btn btn-ghost" onClick={() => selectedAccount && handleSync(selectedAccount, selectedFolder)} disabled={syncing} style={{ padding: "6px" }}>
-            <RefreshCw size={14} className={syncing ? "spin" : ""} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button className="btn btn-primary flex items-center gap-1" onClick={() => { if (!selectedAccount) { alert("请先选择一个邮箱账户"); return; } setShowCompose(true); }} style={{ fontSize: 11, padding: "4px 8px" }} disabled={!selectedAccount}>
+              <Plus size={14} /> 写邮件
+            </button>
+            <button className="btn btn-ghost" onClick={() => selectedAccount && handleSync(selectedAccount, selectedFolder)} disabled={syncing} style={{ padding: "6px" }}>
+              <RefreshCw size={14} className={syncing ? "spin" : ""} />
+            </button>
+          </div>
         </div>
+
+        {/* 搜索框 */}
+        {selectedAccount && !loading && emails.length > 0 && (
+          <div className="px-3 py-2 border-b border-border bg-panel">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" />
+              <input
+                type="text"
+                className="input w-full pl-9 pr-8 text-[12px]"
+                placeholder="搜索主题、发件人、收件人..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="absolute right-2 top-1/2 -translate-y-1/2 text-text-dim hover:text-text" onClick={() => setSearchQuery("")}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 邮件列表 */}
         <div className="flex-1 overflow-auto">
@@ -423,9 +542,36 @@ export default function MailView() {
               暂无邮件<br />
               <span className="text-[11px]">点击同步按钮收取邮件</span>
             </div>
-          ) : (
-            <>
-              {emails.map((email, i) => (
+          ) : (() => {
+              const filteredEmails = searchQuery.trim()
+                ? emails.filter(email => {
+                    const query = searchQuery.toLowerCase();
+                    return (
+                      (email.subject?.toLowerCase().includes(query)) ||
+                      (email.from?.toLowerCase().includes(query)) ||
+                      (email.to?.toLowerCase().includes(query))
+                    );
+                  })
+                : emails;
+
+              if (searchQuery.trim() && filteredEmails.length === 0) {
+                return (
+                  <div className="text-text-dim text-center p-10 text-[13px]">
+                    <div className="text-[32px] mb-3">🔍</div>
+                    没有找到匹配的邮件<br />
+                    <span className="text-[11px]">尝试其他关键词</span>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {searchQuery.trim() && (
+                    <div className="px-4 py-2 text-[11px] text-text-dim bg-panel2 border-b border-border">
+                      找到 {filteredEmails.length} 封邮件
+                    </div>
+                  )}
+                  {filteredEmails.map((email, i) => (
                 <div
                   key={email.id || i}
                   onClick={() => { setSelectedEmail(email); setShowReply(false); }}
@@ -452,7 +598,8 @@ export default function MailView() {
                 </button>
               )}
             </>
-          )}
+            );
+          })()}
         </div>
       </div>
 
@@ -483,6 +630,10 @@ export default function MailView() {
             replyBody={replyBody} setReplyBody={setReplyBody}
             sending={sending}
             onSend={handleSendReply}
+            onForward={handleForward}
+            onDelete={() => setShowDeleteConfirm(true)}
+            onMarkAsRead={handleMarkAsRead}
+            isRead={isEmailRead(selectedEmail)}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-text-dim">
@@ -493,6 +644,78 @@ export default function MailView() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && selectedEmail && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-panel rounded-lg shadow-2xl p-6 max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500">
+                <X size={20} />
+              </div>
+              <div className="text-[16px] font-semibold">删除邮件</div>
+            </div>
+            <div className="text-[13px] text-text-dim mb-4">确定要删除这封邮件吗？此操作将同时删除本地缓存和服务器上的邮件。</div>
+            <div className="flex justify-end gap-2">
+              <button className="btn btn-ghost" onClick={() => setShowDeleteConfirm(false)}>取消</button>
+              <button className="btn text-white" onClick={handleDeleteEmail} disabled={deleting} style={{ background: "var(--accent4)" }}>
+                {deleting ? "删除中..." : "删除"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compose Email Modal */}
+      {showCompose && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50" onClick={() => setShowCompose(false)}>
+          <div className="bg-panel rounded-lg shadow-2xl w-[700px] max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="text-[16px] font-semibold">{forwardMode === "forward" ? "转发邮件" : "写邮件"}</div>
+              <button className="btn btn-ghost p-1" onClick={() => setShowCompose(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            {/* Form */}
+            <div className="flex-1 overflow-auto p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-[13px]">
+                  <span className="text-text-mid w-12">From:</span>
+                  <span className="text-text">{selectedAccount?.email}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-text-mid w-12 text-[13px]">To:</span>
+                  <input className="input flex-1 text-[13px]" value={composeTo} onChange={(e) => setComposeTo(e.target.value)} placeholder="收件人邮箱" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-text-mid w-12 text-[13px]">Cc:</span>
+                  <input className="input flex-1 text-[13px]" value={composeCc} onChange={(e) => setComposeCc(e.target.value)} placeholder="抄送（可选）" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-text-mid w-12 text-[13px]">Bcc:</span>
+                  <input className="input flex-1 text-[13px]" value={composeBcc} onChange={(e) => setComposeBcc(e.target.value)} placeholder="密送（可选）" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-text-mid w-12 text-[13px]">Subject:</span>
+                  <input className="input flex-1 text-[13px]" value={composeSubject} onChange={(e) => setComposeSubject(e.target.value)} placeholder="邮件主题" />
+                </div>
+                <div className="mt-2">
+                  <textarea className="input w-full resize-vertical text-[13px]" value={composeBody} onChange={(e) => setComposeBody(e.target.value)} placeholder="邮件正文..." rows={12} style={{ minHeight: "200px" }} />
+                </div>
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+              <button className="btn btn-ghost" onClick={() => setShowCompose(false)}>取消</button>
+              <button className="btn btn-primary flex items-center gap-1" onClick={handleSendCompose} disabled={composing || !composeTo.trim() || !composeSubject.trim()}>
+                <Send size={14} />
+                {composing ? "发送中..." : "发送"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Context Menu */}
       {ctxMenu && (
@@ -565,16 +788,25 @@ function AccountForm({ formName, setFormName, formEmail, setFormEmail, formProto
   );
 }
 
-function EmailDetail({ email, showReply, setShowReply, replyBody, setReplyBody, sending, onSend }: { email: EmailMessage; showReply: boolean; setShowReply: (v: boolean) => void; replyBody: string; setReplyBody: (v: string) => void; sending: boolean; onSend: () => void }) {
+function EmailDetail({ email, showReply, setShowReply, replyBody, setReplyBody, sending, onSend, onForward, onDelete, onMarkAsRead, isRead }: { email: EmailMessage; showReply: boolean; setShowReply: (v: boolean) => void; replyBody: string; setReplyBody: (v: string) => void; sending: boolean; onSend: () => void; onForward?: () => void; onDelete?: () => void; onMarkAsRead?: (read: boolean) => void; isRead?: boolean }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* 头部 */}
       <div className="p-5 border-b border-border bg-panel">
-        <div className="text-[16px] font-semibold mb-3 leading-relaxed">{email.subject}</div>
-        <div className="text-[12px] text-text-dim flex flex-col gap-1">
-          <div><span className="text-text-mid">From:</span> {email.from}</div>
-          <div><span className="text-text-mid">To:</span> {email.to}</div>
-          <div><span className="text-text-mid">Date:</span> {email.date}</div>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="text-[16px] font-semibold mb-3 leading-relaxed">{email.subject}</div>
+            <div className="text-[12px] text-text-dim flex flex-col gap-1">
+              <div><span className="text-text-mid">From:</span> {email.from}</div>
+              <div><span className="text-text-mid">To:</span> {email.to}</div>
+              <div><span className="text-text-mid">Date:</span> {email.date}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {onForward && <button className="btn btn-ghost flex items-center gap-1 text-[12px]" onClick={onForward}><Send size={14} /> 转发</button>}
+            {onMarkAsRead && <button className="btn btn-ghost flex items-center gap-1 text-[12px]" onClick={() => onMarkAsRead(!isRead)}>{isRead ? <Circle size={14} /> : <MailOpen size={14} />}{isRead ? "未读" : "已读"}</button>}
+            {onDelete && <button className="btn btn-ghost flex items-center gap-1 text-[12px]" onClick={onDelete} style={{ color: "var(--accent4)" }}><Trash2 size={14} /> 删除</button>}
+          </div>
         </div>
       </div>
 

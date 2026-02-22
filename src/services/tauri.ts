@@ -244,3 +244,47 @@ export interface SendEmailRequest {
 
 export const sendEmail = (request: SendEmailRequest): Promise<void> =>
   invoke("send_email", { request });
+
+export const deleteEmail = (
+  vaultPath: string,
+  accountId: string,
+  emailId: string,
+  imapHost?: string,
+  imapPort?: number,
+  imapPassword?: string,
+  email?: string,
+  folder?: string
+): Promise<void> =>
+  invoke("delete_email", {
+    vaultPath,
+    accountId,
+    emailId,
+    imapHost,
+    imapPort,
+    imapPassword,
+    email,
+    folder,
+  });
+
+export const markEmailRead = (
+  vaultPath: string,
+  accountId: string,
+  emailId: string,
+  read: boolean,
+  folder?: string,
+  imapHost?: string,
+  imapPort?: number,
+  imapPassword?: string,
+  email?: string
+): Promise<void> =>
+  invoke("mark_email_read", {
+    vaultPath,
+    accountId,
+    emailId,
+    read,
+    folder,
+    imapHost,
+    imapPort,
+    imapPassword,
+    email,
+  });
