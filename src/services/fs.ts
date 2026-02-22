@@ -155,8 +155,9 @@ export const imapSync = (
   account: tauri.ImapAccount,
   vaultPath: string,
   folder: string,
-  maxEmails: number
-) => tauri.imapSync(account, vaultPath, folder, maxEmails);
+  maxEmails: number,
+  skip?: number
+) => tauri.imapSync(account, vaultPath, folder, maxEmails, skip);
 
 export const getCachedEmails = (vaultPath: string, accountId: string, offset?: number, limit?: number) =>
   tauri.getCachedEmails(vaultPath, accountId, offset, limit);

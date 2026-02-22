@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote } from "@/services/fs";
+import { writeNote, deleteFile } from "@/services/fs";
 import { useVaultLoader } from "@/hooks/useVaultLoader";
 import type { DiaryEntry } from "@/types";
 import { format } from "date-fns";
-import { Moon, Frown, Meh, Smile, Zap, Target, Brain, Heart, Plus } from "lucide-react";
+import { Moon, Frown, Meh, Smile, Zap, Target, Brain, Heart, Plus, Trash2, Sparkles, Coffee, CloudRain } from "lucide-react";
 
 const MOODS: { emoji: string; icon: React.ReactNode; label: string }[] = [
   { emoji: "😴", icon: <Moon size={18} />, label: "疲惫" },
@@ -15,6 +15,10 @@ const MOODS: { emoji: string; icon: React.ReactNode; label: string }[] = [
   { emoji: "🎯", icon: <Target size={18} />, label: "专注" },
   { emoji: "🤔", icon: <Brain size={18} />, label: "思考" },
   { emoji: "😌", icon: <Heart size={18} />, label: "满足" },
+  { emoji: "✨", icon: <Sparkles size={18} />, label: "兴奋" },
+  { emoji: "☕", icon: <Coffee size={18} />, label: "悠闲" },
+  { emoji: "🌧️", icon: <CloudRain size={18} />, label: "忧伤" },
+  { emoji: "😤", icon: <Zap size={18} className="rotate-180" />, label: "愤怒" },
 ];
 
 export default function DiaryView() {
@@ -48,6 +52,17 @@ export default function DiaryView() {
       await loadAll();
     } finally {
       setSaving(false);
+    }
+  };
+
+  const remove = async (e: DiaryEntry) => {
+    if (!vaultPath) return;
+    if (!confirm("确定要删除这篇日记吗？此操作不可恢复。")) return;
+    await deleteFile(e.path);
+    await loadAll();
+    if (active?.path === e.path) {
+      setActive(null);
+      setEditing(null);
     }
   };
 
@@ -145,6 +160,12 @@ export default function DiaryView() {
             </div>
             <div className="flex gap-2 items-center">
               {saving && <span className="text-xs text-text-dim">保存中...</span>}
+              <button
+                className="btn btn-ghost px-3 py-1.5 text-sm text-red-400 hover:text-red-300"
+                onClick={() => remove(current)}
+              >
+                <Trash2 size={14} className="mr-1" /> 删除
+              </button>
               <button className="btn btn-primary px-4 py-1.5 text-sm" onClick={save}>
                 保存
               </button>

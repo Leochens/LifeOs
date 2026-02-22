@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { imapSync, getCachedEmails, getEmailContent, deleteFile, sendEmail, readFile, writeFile, listDir, deleteEmail, markEmailRead, openExternalUrl } from "@/services/fs";
+import { imapSync, getEmailContent, deleteFile, sendEmail, readFile, writeFile, listDir, deleteEmail, markEmailRead, openExternalUrl } from "@/services/fs";
 import type { EmailMessage, SendEmailRequest } from "@/services/fs";
 import type { EmailAccount } from "@/types";
 import { HelpCircle, Send, ChevronDown, ChevronRight, Inbox, Mail, Star, Trash2, Archive, RefreshCw, Plus, X, MailOpen, Circle, Search, Loader2 } from "lucide-react";
@@ -67,7 +67,6 @@ export default function MailView() {
   const [formFolders, setFormFolders] = useState("INBOX,Sent,Draft,Trash,Archive");
 
   // Pagination state
-  const [emailPage, setEmailPage] = useState(0);
   const [hasMoreEmails, setHasMoreEmails] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -151,18 +150,25 @@ export default function MailView() {
       return;
     }
     const loadEmails = async () => {
+      setSyncing(true);
       try {
-        const cached = await getCachedEmails(vaultPath, selectedAccount?.id || "", 0, PAGE_SIZE);
-        console.log("Loaded emails:", cached.length, "folder:", selectedFolder);
-        console.log("First email sample:", cached[0]);
-        setEmails(cached);
-        setHasMoreEmails(cached.length === PAGE_SIZE);
-        setEmailPage(0);
+        const imapHost = selectedAccount.imapHost || "imap.example.com";
+        const imapPort = selectedAccount.imapPort || 993;
+        const password = selectedAccount.password || "";
+        if (!password) { setEmails([]); return; }
+        const fetched = await imapSync(
+          { email: selectedAccount.email, password, imapHost, imapPort, protocol: selectedAccount.protocol || "imap", account_id: selectedAccount.id },
+          vaultPath, selectedFolder, PAGE_SIZE, 0
+        );
+        setEmails(fetched);
+        setHasMoreEmails(fetched.length === PAGE_SIZE);
         setSelectedEmail(null);
         setEmailContent(null);
       } catch (e) {
-        console.error("Failed to load cached emails:", e);
+        console.error("Failed to load emails from server:", e);
         setEmails([]);
+      } finally {
+        setSyncing(false);
       }
     };
     loadEmails();
@@ -240,7 +246,7 @@ export default function MailView() {
     } catch (e) { alert("删除失败: " + e); }
   };
 
-  const handleSync = async (account: EmailAccount, folder: string = "INBOX") => {
+  const handleSync = async (account: EmailAccount, folder: string = selectedFolder) => {
     if (!account.enabled || !vaultPath) return;
     setSyncing(true);
     try {
@@ -248,14 +254,14 @@ export default function MailView() {
       const imapPort = account.imapPort || 993;
       const password = account.password || "";
       if (!password) { alert("请先在账户设置中填写密码"); setSyncing(false); return; }
-      console.log("[DEBUG] handleSync - account.id:", account.id, "account.email:", account.email);
-      const emails = await imapSync({ email: account.email, password, imapHost, imapPort, protocol: account.protocol || "imap", account_id: account.id }, vaultPath, folder, 500);
-      console.log("Sync complete, emails:", emails.length);
-      // Reload current folder
-      const cached = await getCachedEmails(vaultPath, selectedAccount?.id || "", 0, PAGE_SIZE);
-      setEmails(cached);
-      setHasMoreEmails(cached.length === PAGE_SIZE);
-      alert(`同步完成！获取 ${emails.length} 封邮件`);
+      const fetched = await imapSync(
+        { email: account.email, password, imapHost, imapPort, protocol: account.protocol || "imap", account_id: account.id },
+        vaultPath, folder, PAGE_SIZE, 0
+      );
+      setEmails(fetched);
+      setHasMoreEmails(fetched.length === PAGE_SIZE);
+      setSelectedEmail(null);
+      setEmailContent(null);
     } catch (e) {
       console.error("IMAP sync error:", e);
       alert("同步失败: " + e);
@@ -323,14 +329,19 @@ export default function MailView() {
   };
 
   const handleLoadMore = async () => {
-    if (!vaultPath || loadingMore) return;
+    if (!vaultPath || loadingMore || !selectedAccount) return;
     setLoadingMore(true);
     try {
-      const nextPage = emailPage + 1;
-      const cached = await getCachedEmails(vaultPath, selectedAccount?.id || "", nextPage * PAGE_SIZE, PAGE_SIZE);
-      setEmails(prev => [...prev, ...cached]);
-      setEmailPage(nextPage);
-      setHasMoreEmails(cached.length === PAGE_SIZE);
+      const imapHost = selectedAccount.imapHost || "imap.example.com";
+      const imapPort = selectedAccount.imapPort || 993;
+      const password = selectedAccount.password || "";
+      if (!password) return;
+      const fetched = await imapSync(
+        { email: selectedAccount.email, password, imapHost, imapPort, protocol: selectedAccount.protocol || "imap", account_id: selectedAccount.id },
+        vaultPath, selectedFolder, PAGE_SIZE, emails.length
+      );
+      setEmails(prev => [...prev, ...fetched]);
+      setHasMoreEmails(fetched.length === PAGE_SIZE);
     } catch (e) { console.error("Failed to load more emails:", e); }
     finally { setLoadingMore(false); }
   };
@@ -579,61 +590,69 @@ ${originalContent}`;
               <span className="text-[11px]">点击同步按钮收取邮件</span>
             </div>
           ) : (() => {
-              const filteredEmails = searchQuery.trim()
-                ? emails.filter(email => {
-                    const query = searchQuery.toLowerCase();
-                    return (
-                      (email.subject?.toLowerCase().includes(query)) ||
-                      (email.from?.toLowerCase().includes(query)) ||
-                      (email.to?.toLowerCase().includes(query))
-                    );
-                  })
-                : emails;
-
-              if (searchQuery.trim() && filteredEmails.length === 0) {
+            const filteredEmails = searchQuery.trim()
+              ? emails.filter(email => {
+                const query = searchQuery.toLowerCase();
                 return (
-                  <div className="text-text-dim text-center p-10 text-[13px]">
-                    <div className="text-[32px] mb-3">🔍</div>
-                    没有找到匹配的邮件<br />
-                    <span className="text-[11px]">尝试其他关键词</span>
-                  </div>
+                  (email.subject?.toLowerCase().includes(query)) ||
+                  (email.from?.toLowerCase().includes(query)) ||
+                  (email.to?.toLowerCase().includes(query))
                 );
-              }
+              })
+              : emails;
 
+            if (searchQuery.trim() && filteredEmails.length === 0) {
               return (
-                <>
-                  {searchQuery.trim() && (
-                    <div className="px-4 py-2 text-[11px] text-text-dim bg-panel2 border-b border-border">
-                      找到 {filteredEmails.length} 封邮件
-                    </div>
-                  )}
-                  {filteredEmails.map((email, i) => (
-                <div
-                  key={email.id || i}
-                  onClick={() => handleSelectEmail(email)}
-                  className="p-[12px_16px] border-b border-border cursor-pointer"
-                  style={{
-                    background: selectedEmail?.id === email.id ? "rgba(0,200,255,0.1)" : "var(--panel)",
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="flex-1 text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap">
-                      {email.subject || "(无主题)"}
-                    </span>
-                    {email.flags?.includes("Seen") === false && <span className="w-2 h-2 rounded-full" style={{ background: "var(--accent)" }} />}
-                  </div>
-                  <div className="text-[11px] text-text-dim flex justify-between">
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[180px]">{email.from}</span>
-                    <span className="flex-shrink-0">{email.date?.slice(0, 10) || ""}</span>
-                  </div>
+                <div className="text-text-dim text-center p-10 text-[13px]">
+                  <div className="text-[32px] mb-3">🔍</div>
+                  没有找到匹配的邮件<br />
+                  <span className="text-[11px]">尝试其他关键词</span>
                 </div>
-              ))}
-              {hasMoreEmails && (
-                <button onClick={handleLoadMore} disabled={loadingMore} className="w-full p-3 bg-transparent border-none border-t border-border text-accent cursor-pointer text-[12px]" style={{ cursor: loadingMore ? "wait" : "pointer" }}>
-                  {loadingMore ? "加载中..." : "加载更多"}
-                </button>
-              )}
-            </>
+              );
+            }
+
+            return (
+              <>
+                {searchQuery.trim() && (
+                  <div className="px-4 py-2 text-[11px] text-text-dim bg-panel2 border-b border-border">
+                    找到 {filteredEmails.length} 封邮件
+                  </div>
+                )}
+                {filteredEmails.map((email, i) => (
+                  <div
+                    key={email.id || i}
+                    onClick={() => handleSelectEmail(email)}
+                    className="p-[12px_16px] border-b border-border cursor-pointer"
+                    style={{
+                      background: selectedEmail?.id === email.id ? "rgba(0,200,255,0.1)" : "var(--panel)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="flex-1 text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+                        {email.subject || "(无主题)"}
+                      </span>
+                      {email.flags?.includes("Seen") === false && <span className="w-2 h-2 rounded-full" style={{ background: "var(--accent)" }} />}
+                    </div>
+                    <div className="text-[11px] text-text-dim flex justify-between">
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[180px]">{email.from}</span>
+                      <span className="flex-shrink-0">{email.date?.slice(0, 10) || ""}</span>
+                    </div>
+                  </div>
+                ))}
+                {!searchQuery.trim() && (
+                  <button
+                    onClick={hasMoreEmails ? handleLoadMore : undefined}
+                    disabled={loadingMore || !hasMoreEmails}
+                    className="w-full p-3 bg-transparent border-none border-t border-border text-[12px]"
+                    style={{
+                      cursor: hasMoreEmails && !loadingMore ? "pointer" : "default",
+                      color: hasMoreEmails ? "var(--accent)" : "var(--text-dim)",
+                    }}
+                  >
+                    {loadingMore ? "加载中..." : hasMoreEmails ? "加载更多" : "暂无未拉取邮件"}
+                  </button>
+                )}
+              </>
             );
           })()}
         </div>
