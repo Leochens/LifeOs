@@ -230,3 +230,74 @@ fn json_to_yaml(val: &serde_json::Value) -> String {
         _ => String::new(),
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_frontmatter_with_yaml() {
+        let raw = r#"---
+title: "Test Note"
+date: "2024-01-15"
+tags: "test"
+---
+
+This is the body content."#;
+        let (frontmatter, body) = extract_frontmatter(raw);
+        let obj = frontmatter.as_object().unwrap();
+        assert_eq!(obj.get("title").unwrap().as_str().unwrap(), "Test Note");
+        assert_eq!(obj.get("date").unwrap().as_str().unwrap(), "2024-01-15");
+        assert_eq!(body, "This is the body content.");
+    }
+
+    #[test]
+    fn test_extract_frontmatter_without_yaml() {
+        let raw = "This is just plain content without frontmatter.";
+        let (frontmatter, body) = extract_frontmatter(raw);
+        assert!(frontmatter.as_object().unwrap().is_empty());
+        assert_eq!(body, raw);
+    }
+
+    #[test]
+    fn test_extract_frontmatter_empty_yaml() {
+        let raw = "---
+---
+
+Real content here.";
+        let (frontmatter, body) = extract_frontmatter(raw);
+        assert!(frontmatter.as_object().unwrap().is_empty());
+        assert!(body.contains("Real content"));
+    }
+
+    #[test]
+    fn test_json_to_yaml_with_strings() {
+        let json = serde_json::json!({
+            "title": "Test",
+            "status": "active"
+        });
+        let yaml = json_to_yaml(&json);
+        assert!(yaml.contains("title:"));
+        assert!(yaml.contains("status:"));
+    }
+
+    #[test]
+    fn test_json_to_yaml_with_null() {
+        let json = serde_json::json!({
+            "optional": serde_json::Value::Null
+        });
+        let yaml = json_to_yaml(&json);
+        assert!(yaml.contains("optional: ~"));
+    }
+
+    #[test]
+    fn test_json_to_yaml_non_object() {
+        let json = serde_json::json!("just a string");
+        let yaml = json_to_yaml(&json);
+        assert_eq!(yaml, "");
+    }
+}

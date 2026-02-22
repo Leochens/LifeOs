@@ -172,6 +172,125 @@ github: username/repo
 
 参考 `.claude/SKILL-create-module.md` 技能文件，了解如何创建和集成新模块。
 
+### 测试框架
+
+项目已配置完整的测试框架，确保代码质量。
+
+#### 运行测试
+
+```bash
+# 前端单元测试 (Vitest)
+npm test              # 监听模式
+npm run test:run     # 单次运行
+npm run test:ui      # UI 模式
+
+# E2E 测试 (Playwright)
+npm run test:e2e     # 运行 E2E 测试
+npm run test:e2e:ui  # UI 模式
+
+# Rust 后端测试
+cd src-tauri && cargo test
+```
+
+#### 编写测试
+
+**单元测试文件位置端服务/工具函数：`：**
+- 前src/services/xxx.test.ts`
+- 状态管理：`src/stores/xxx.test.ts`
+- React 组件：`src/components/xxx.test.tsx`
+- Rust 后端：在 `src-tauri/src/commands/` 目录下添加 `#[cfg(test)]` 模块
+
+**测试文件命名规范：** `*.test.ts` 或 `*.spec.ts`
+
+**示例：服务函数测试**
+
+```typescript
+// src/services/parser.test.ts
+import { describe, it, expect } from 'vitest'
+import { parseTasks, serializeTasks } from './parser'
+
+describe('parser', () => {
+  it('should parse completed task', () => {
+    const content = '- [x] 完成项目'
+    const tasks = parseTasks(content)
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0].done).toBe(true)
+  })
+})
+```
+
+**示例：React 组件测试**
+
+```tsx
+// src/components/ui/Button.test.tsx
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { Button } from './Button'
+
+describe('Button', () => {
+  it('renders button with children', () => {
+    render(<Button>Click me</Button>)
+    expect(screen.getByRole('button')).toHaveTextContent('Click me')
+  })
+
+  it('handles click events', async () => {
+    const handleClick = vi.fn()
+    const user = userEvent.setup()
+    render(<Button onPress={handleClick}>Click me</Button>)
+    await user.click(screen.getByRole('button'))
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+})
+```
+
+**示例：Rust 测试**
+
+```rust
+// src-tauri/src/commands/fs_commands.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_frontmatter() {
+        let raw = r#"---
+title: "Test"
+---
+Body"#;
+        let (frontmatter, body) = extract_frontmatter(raw);
+        assert!(frontmatter.get("title").is_some());
+        assert_eq!(body, "Body");
+    }
+}
+```
+
+**E2E 测试**
+
+```typescript
+// tests/e2e/app.spec.ts
+import { test, expect } from '@playwright/test'
+
+test('should load the app', async ({ page }) => {
+  await page.goto('/')
+  await expect(page).toHaveTitle(/Life-OS/i)
+})
+```
+
+#### 测试最佳实践
+
+1. **测试用户行为而非实现细节** - 使用 React Testing Library 测试组件功能而非内部状态
+2. **保持测试独立** - 每个测试应该能独立运行，不依赖其他测试的结果
+3. **合理的测试覆盖** - 优先测试核心业务逻辑、工具函数和关键组件
+4. **Mock Tauri API** - 测试组件时需要 mock `@tauri-apps/api`
+
+```typescript
+// Mock Tauri APIs
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+}))
+```
+
 ### 项目结构
 
 ```
