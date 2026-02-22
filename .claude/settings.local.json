@@ -71,7 +71,9 @@
       "WebFetch(domain:en.wikipedia.org)",
       "mcp__MiniMax__understand_image",
       "Bash(cargo build:*)",
-      "Bash(ls -la /Users/leochens/Desktop/zhl/life-os/dist/assets/*.js 2>&1 | head -3)"
+      "Bash(ls -la /Users/leochens/Desktop/zhl/life-os/dist/assets/*.js 2>&1 | head -3)",
+      "Bash(cp /tmp/test_imap_163.rs /tmp/test_imap/main.rs && cd /tmp/test_imap && cargo run 2>&1)",
+      "Bash(cd /tmp/test_imap_fetch && cargo run 2>&1)"
     ]
   }
 }

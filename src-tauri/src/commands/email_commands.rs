@@ -1,9 +1,70 @@
 use serde::{Deserialize, Serialize};
 use native_tls::TlsConnector;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{Cursor, Read, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
+
+/// A stream wrapper that replays a prefix buffer before delegating to the inner stream.
+/// Used to replay the IMAP greeting after manually sending the ID command.
+#[derive(Debug)]
+struct PrefixStream<T> {
+    inner: T,
+    prefix: Cursor<Vec<u8>>,
+    prefix_done: bool,
+}
+
+impl<T> PrefixStream<T> {
+    fn new(inner: T, prefix: Vec<u8>) -> Self {
+        PrefixStream {
+            inner,
+            prefix: Cursor::new(prefix),
+            prefix_done: false,
+        }
+    }
+}
+
+impl<T: Read> Read for PrefixStream<T> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        if !self.prefix_done {
+            let n = self.prefix.read(buf)?;
+            if n == 0 {
+                self.prefix_done = true;
+                self.inner.read(buf)
+            } else {
+                Ok(n)
+            }
+        } else {
+            self.inner.read(buf)
+        }
+    }
+}
+
+impl<T: Write> Write for PrefixStream<T> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.inner.write(buf)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+/// Read a single CRLF-terminated line from a stream (byte-by-byte for safety)
+fn read_imap_line(stream: &mut impl Read) -> Result<Vec<u8>, String> {
+    let mut line = Vec::with_capacity(256);
+    let mut buf = [0u8; 1];
+    loop {
+        stream.read_exact(&mut buf).map_err(|e| format!("读取 IMAP 响应失败: {}", e))?;
+        line.push(buf[0]);
+        if line.len() >= 2 && line[line.len() - 2] == b'\r' && line[line.len() - 1] == b'\n' {
+            break;
+        }
+        if line.len() > 8192 {
+            break; // Safety limit
+        }
+    }
+    Ok(line)
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmailMessage {
@@ -11,6 +72,8 @@ pub struct EmailMessage {
     pub id: String,
     #[serde(rename = "uid")]
     pub uid: u32,
+    #[serde(rename = "uidString")]
+    pub uid_string: Option<String>, // POP3 UIDL unique identifier
     #[serde(rename = "from")]
     pub from: String,
     #[serde(rename = "to")]
@@ -53,7 +116,7 @@ pub async fn imap_sync(
     let port = account.imap_port;
     let email = account.email.clone();
     let password = account.password.clone();
-    let protocol = account.protocol.clone().unwrap_or_else(|| "pop3".to_string());
+    let protocol = account.protocol.clone().unwrap_or_else(|| "imap".to_string());
     let account_id = account.account_id.clone();
 
     // Debug: 打印接收到的 account_id
@@ -108,27 +171,73 @@ fn imap_sync_with_crate(
         .build()
         .map_err(|e| format!("TLS 创建失败: {}", e))?;
 
-    // Connect
-    let client = if use_tls {
-        imap::connect((host, port), host, &tls)
-            .map_err(|e| format!("IMAP 连接失败: {}", e))?
+    if use_tls {
+        // Connect manually to send IMAP ID command before login.
+        // Required by NetEase (163/126/yeah.net) to avoid "Unsafe Login" error.
+        let tcp = TcpStream::connect((host, port))
+            .map_err(|e| format!("连接失败: {}", e))?;
+        tcp.set_read_timeout(Some(std::time::Duration::from_secs(30))).ok();
+
+        let mut tls_stream = tls.connect(host, tcp)
+            .map_err(|e| format!("TLS 握手失败: {}", e))?;
+
+        // Read server greeting
+        let greeting = read_imap_line(&mut tls_stream)?;
+        println!("[DEBUG] IMAP greeting: {}", String::from_utf8_lossy(&greeting).trim());
+
+        // Send IMAP ID command (RFC 2971) — needed by 163/126/yeah.net
+        tls_stream.write_all(
+            b"A000 ID (\"name\" \"LifeOS\" \"version\" \"1.0.0\" \"vendor\" \"LifeOS\")\r\n"
+        ).map_err(|e| format!("发送 ID 命令失败: {}", e))?;
+        tls_stream.flush().map_err(|e| format!("flush 失败: {}", e))?;
+
+        // Read ID response until tagged response
+        loop {
+            let line = read_imap_line(&mut tls_stream)?;
+            let line_str = String::from_utf8_lossy(&line);
+            println!("[DEBUG] ID response: {}", line_str.trim());
+            if line_str.starts_with("A000 ") {
+                break;
+            }
+        }
+
+        // Wrap stream: replay greeting so imap::Client::new() sees it
+        let prefix_stream = PrefixStream::new(tls_stream, greeting);
+        let client = imap::Client::new(prefix_stream);
+
+        let mut session = client
+            .login(email, password)
+            .map_err(|e| format!("登录失败: {}", e.0))?;
+
+        let result = imap_fetch_emails(&mut session, folder, max_emails, vault_path, account_dir);
+        session.logout().ok();
+        result
     } else {
+        // Non-TLS: use STARTTLS via imap crate (ID command not injected here)
         let stream = TcpStream::connect((host, port))
             .map_err(|e| format!("连接失败: {}", e))?;
-        imap::Client::new(stream)
+        let client = imap::Client::new(stream)
             .secure(host, &tls)
-            .map_err(|e| format!("STARTTLS 失败: {}", e))?
-    };
+            .map_err(|e| format!("STARTTLS 失败: {}", e))?;
 
-    // Login
-    let mut session = client
-        .login(email, password)
-        .map_err(|e| format!("登录失败: {}", e.0))?;
+        let mut session = client
+            .login(email, password)
+            .map_err(|e| format!("登录失败: {}", e.0))?;
 
-    // 注意：ID 命令会导致 rust-imap panic，所以暂时跳过
-    // 这会导致 163/126 等邮箱报 "Unsafe Login" 错误
-    // 解决方案：使用 POP3 或升级到修复后的库版本
+        let result = imap_fetch_emails(&mut session, folder, max_emails, vault_path, account_dir);
+        session.logout().ok();
+        result
+    }
+}
 
+/// Shared IMAP fetch logic: select folder, fetch messages, parse, save to cache
+fn imap_fetch_emails<T: Read + Write>(
+    session: &mut imap::Session<T>,
+    folder: &str,
+    max_emails: u32,
+    vault_path: &str,
+    account_dir: &str,
+) -> Result<Vec<EmailMessage>, String> {
     // Select mailbox
     let mailbox = session
         .select(folder)
@@ -136,7 +245,6 @@ fn imap_sync_with_crate(
 
     let total = mailbox.exists as u32;
     if total == 0 {
-        session.logout().ok();
         return Ok(Vec::new());
     }
 
@@ -145,80 +253,18 @@ fn imap_sync_with_crate(
     let start = total.saturating_sub(fetch_count) + 1;
     let range = format!("{}:{}", start, total);
 
-    // Fetch emails with RFC822 to get full message content
+    // Fetch emails — use (UID FLAGS RFC822) without ENVELOPE.
+    // 163/Coremail servers return broken responses when ENVELOPE and RFC822 are
+    // requested together, causing the imap crate to fail parsing both.
+    // Instead we fetch just RFC822 and parse everything locally with mail-parser.
     let messages = session
-        .fetch(&range, "UID FLAGS ENVELOPE RFC822")
+        .fetch(&range, "(UID FLAGS RFC822)")
         .map_err(|e| format!("拉取邮件失败: {}", e))?;
 
     let mut emails = Vec::new();
 
     for msg in messages.iter() {
         let uid = msg.uid.unwrap_or(0);
-
-        // Parse envelope for metadata
-        let (subject, from, to, date) = if let Some(env) = msg.envelope() {
-            let subject = env
-                .subject
-                .as_ref()
-                .map(|s| {
-                    // Try to decode RFC2047 encoded subject
-                    let s_str = String::from_utf8_lossy(s).to_string();
-                    decode_mime_header(&s_str)
-                })
-                .unwrap_or_default();
-
-            let from = env
-                .from
-                .as_ref()
-                .and_then(|addrs| addrs.first())
-                .map(|a| {
-                    let mailbox = a.mailbox.as_ref().map(|m| String::from_utf8_lossy(m).to_string()).unwrap_or_default();
-                    let host = a.host.as_ref().map(|h| String::from_utf8_lossy(h).to_string()).unwrap_or_default();
-                    let name = a.name.as_ref().map(|n| {
-                        let n_str = String::from_utf8_lossy(n).to_string();
-                        decode_mime_header(&n_str)
-                    });
-                    if let Some(name) = name {
-                        format!("{} <{}@{}>", name, mailbox, host)
-                    } else {
-                        format!("{}@{}", mailbox, host)
-                    }
-                })
-                .unwrap_or_default();
-
-            let to = env
-                .to
-                .as_ref()
-                .and_then(|addrs| addrs.first())
-                .map(|a| {
-                    let mailbox = a.mailbox.as_ref().map(|m| String::from_utf8_lossy(m).to_string()).unwrap_or_default();
-                    let host = a.host.as_ref().map(|h| String::from_utf8_lossy(h).to_string()).unwrap_or_default();
-                    format!("{}@{}", mailbox, host)
-                })
-                .unwrap_or_default();
-
-            let date = env
-                .date
-                .as_ref()
-                .map(|d| String::from_utf8_lossy(d).to_string())
-                .unwrap_or_default();
-
-            (subject, from, to, date)
-        } else {
-            (String::new(), String::new(), String::new(), String::new())
-        };
-
-        // Parse full message body with mail-parser
-        let body_opt = msg.body();
-        if body_opt.is_none() {
-            println!("[DEBUG] msg.body() returned None for uid {}", uid);
-        } else {
-            println!("[DEBUG] msg.body() has data, len: {}", body_opt.unwrap().len());
-        }
-        let (body_text, body_html) = match body_opt {
-            Some(body) => parse_email_body(body),
-            None => (None, None),
-        };
 
         // Parse flags
         let flags: Vec<String> = msg
@@ -227,9 +273,48 @@ fn imap_sync_with_crate(
             .map(|f| format!("{:?}", f))
             .collect();
 
+        // Parse the full email from RFC822 body using mail-parser
+        let (subject, from, to, date, body_text, body_html) = match msg.body() {
+            Some(raw) => {
+                println!("[DEBUG] RFC822 body for uid {}: {} bytes", uid, raw.len());
+                use mail_parser::MessageParser;
+                let parser = MessageParser::default();
+                if let Some(parsed) = parser.parse(raw) {
+                    let subject = parsed.subject().unwrap_or("").to_string();
+                    let from = parsed.from().and_then(|a| a.first())
+                        .map(|a| {
+                            if let Some(name) = a.name() {
+                                if let Some(addr) = a.address() {
+                                    format!("{} <{}>", name, addr)
+                                } else { name.to_string() }
+                            } else {
+                                a.address().unwrap_or("").to_string()
+                            }
+                        }).unwrap_or_default();
+                    let to = parsed.to().and_then(|a| a.first())
+                        .map(|a| a.address().unwrap_or("").to_string())
+                        .unwrap_or_default();
+                    let date = parsed.date()
+                        .map(|d| d.to_rfc3339())
+                        .unwrap_or_default();
+                    let body_text = parsed.body_text(0).map(|t| t.to_string());
+                    let body_html = parsed.body_html(0).map(|h| h.to_string());
+                    (subject, from, to, date, body_text, body_html)
+                } else {
+                    println!("[DEBUG] mail-parser failed to parse uid {}", uid);
+                    (String::new(), String::new(), String::new(), String::new(), None, None)
+                }
+            }
+            None => {
+                println!("[DEBUG] msg.body() returned None for uid {}", uid);
+                (String::new(), String::new(), String::new(), String::new(), None, None)
+            }
+        };
+
         emails.push(EmailMessage {
             id: format!("{}_{}", folder, uid),
             uid,
+            uid_string: Some(uid.to_string()),
             from,
             to,
             subject,
@@ -244,9 +329,6 @@ fn imap_sync_with_crate(
 
     // Reverse so newest is first
     emails.reverse();
-
-    // Logout
-    session.logout().ok();
 
     // Save to vault cache
     let emails_dir = PathBuf::from(vault_path).join("Mailbox").join(account_dir);
@@ -416,21 +498,28 @@ fn pop3_sync_tls(
 
     // Get UIDL to track which emails we've already downloaded
     let local_uids = load_local_uids(vault_path, account_dir);
-    let mut new_uids: std::collections::HashSet<u32> = std::collections::HashSet::new();
+    println!("[DEBUG] local_uids count: {}, values: {:?}", local_uids.len(), local_uids.iter().take(5).collect::<Vec<_>>());
 
     // Request UIDL from server
     stream.write_all(b"UIDL\r\n").map_err(|e| format!("发送失败: {}", e))?;
     let uidl_resp = read_response(&mut stream)?;
     let server_uids = parse_uidl_response(&uidl_resp);
+    println!("[DEBUG] server_uids count: {}", server_uids.len());
 
-    // Determine which emails are new
-    for (seq, _uid) in server_uids {
-        if !local_uids.contains(&seq) {
-            new_uids.insert(seq);
+    // Determine which emails are new (using string UID)
+    let mut new_emails: Vec<(u32, String)> = Vec::new(); // (seq, uid_string)
+    for (seq, uid) in server_uids {
+        if !local_uids.contains(&uid) {
+            new_emails.push((seq, uid));
         }
     }
+    println!("[DEBUG] new_emails count: {}", new_emails.len());
 
-    let fetch_count = std::cmp::min(max_emails as usize, new_uids.len());
+    // Sort by seq descending (newest first)
+    new_emails.sort_by(|a, b| b.0.cmp(&a.0));
+
+    let fetch_count = std::cmp::min(max_emails as usize, new_emails.len());
+    println!("[DEBUG] fetch_count: {}", fetch_count);
 
     if fetch_count == 0 {
         stream.write_all(b"QUIT\r\n").ok();
@@ -438,10 +527,8 @@ fn pop3_sync_tls(
         return get_cached_emails(vault_path.to_string(), account_dir.to_string(), None, None);
     }
 
-    // Fetch only new emails (from newest)
-    let mut new_uids_vec: Vec<u32> = new_uids.into_iter().collect();
-    new_uids_vec.sort_by(|a, b| b.cmp(a)); // Sort descending (newest first)
-    let new_uids_to_fetch: Vec<u32> = new_uids_vec.into_iter().take(fetch_count).collect();
+    // Take the newest N emails
+    let new_emails_to_fetch: Vec<(u32, String)> = new_emails.into_iter().take(fetch_count).collect();
 
     // Prepare directory
     let emails_dir = PathBuf::from(vault_path).join("Mailbox").join(account_dir);
@@ -449,7 +536,7 @@ fn pop3_sync_tls(
 
     let mut emails = Vec::new();
 
-    for seq in new_uids_to_fetch {
+    for (seq, uid_string) in new_emails_to_fetch {
         let retr_cmd = format!("RETR {}\r\n", seq);
         stream.write_all(retr_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
 
@@ -478,7 +565,7 @@ fn pop3_sync_tls(
         };
 
         // Parse email
-        let (email_msg, message_id) = parse_pop3_email_with_parser(raw_email, account_dir, seq);
+        let (email_msg, message_id) = parse_pop3_email_with_parser(raw_email, account_dir, seq, Some(uid_string.clone()));
 
         // Save as EML file using Message-ID as filename (or seq as fallback)
         let eml_filename = message_id.clone().unwrap_or_else(|| seq.to_string());
@@ -553,7 +640,6 @@ fn pop3_sync_plain(
 
     // Get UIDL to track which emails we've already downloaded
     let local_uids = load_local_uids(vault_path, account_dir);
-    let mut new_uids: std::collections::HashSet<u32> = std::collections::HashSet::new();
 
     // Request UIDL from server
     stream.write_all(b"UIDL\r\n").map_err(|e| format!("发送失败: {}", e))?;
@@ -561,14 +647,18 @@ fn pop3_sync_plain(
     let uidl_resp = String::from_utf8_lossy(&buf[..n]).to_string();
     let server_uids = parse_uidl_response(&uidl_resp);
 
-    // Determine which emails are new
-    for (seq, _uid) in server_uids {
-        if !local_uids.contains(&seq) {
-            new_uids.insert(seq);
+    // Determine which emails are new (using string UID)
+    let mut new_emails: Vec<(u32, String)> = Vec::new(); // (seq, uid_string)
+    for (seq, uid) in server_uids {
+        if !local_uids.contains(&uid) {
+            new_emails.push((seq, uid));
         }
     }
 
-    let fetch_count = std::cmp::min(max_emails as usize, new_uids.len());
+    // Sort by seq descending (newest first)
+    new_emails.sort_by(|a, b| b.0.cmp(&a.0));
+
+    let fetch_count = std::cmp::min(max_emails as usize, new_emails.len());
 
     if fetch_count == 0 {
         stream.write_all(b"QUIT\r\n").ok();
@@ -576,18 +666,16 @@ fn pop3_sync_plain(
         return get_cached_emails(vault_path.to_string(), account_dir.to_string(), None, None);
     }
 
+    // Take the newest N emails
+    let new_emails_to_fetch: Vec<(u32, String)> = new_emails.into_iter().take(fetch_count).collect();
+
     // Prepare directory
     let emails_dir = PathBuf::from(vault_path).join("Mailbox").join(account_dir);
     fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
 
-    // Fetch only new emails (from newest)
-    let mut new_uids_vec: Vec<u32> = new_uids.into_iter().collect();
-    new_uids_vec.sort_by(|a, b| b.cmp(a)); // Sort descending (newest first)
-    let new_uids_to_fetch: Vec<u32> = new_uids_vec.into_iter().take(fetch_count).collect();
-
     let mut emails = Vec::new();
 
-    for seq in new_uids_to_fetch {
+    for (seq, uid_string) in new_emails_to_fetch {
         let retr_cmd = format!("RETR {}\r\n", seq);
         stream.write_all(retr_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
 
@@ -614,7 +702,7 @@ fn pop3_sync_plain(
         };
 
         // Parse email
-        let (email_msg, message_id) = parse_pop3_email_with_parser(raw_email, account_dir, seq);
+        let (email_msg, message_id) = parse_pop3_email_with_parser(raw_email, account_dir, seq, Some(uid_string.clone()));
 
         // Save as EML file using Message-ID as filename (or seq as fallback)
         let eml_filename = message_id.clone().unwrap_or_else(|| seq.to_string());
@@ -646,7 +734,7 @@ fn pop3_sync_plain(
 
 /// Parse a POP3 email using mail-parser for proper MIME handling
 /// Returns (EmailMessage, Option<Message-ID>)
-fn parse_pop3_email_with_parser(raw: &[u8], folder: &str, seq: u32) -> (EmailMessage, Option<String>) {
+fn parse_pop3_email_with_parser(raw: &[u8], folder: &str, seq: u32, uid_string: Option<String>) -> (EmailMessage, Option<String>) {
     use mail_parser::MessageParser;
 
     let parser = MessageParser::default();
@@ -688,6 +776,7 @@ fn parse_pop3_email_with_parser(raw: &[u8], folder: &str, seq: u32) -> (EmailMes
         let email_msg = EmailMessage {
             id: message_id.clone().unwrap_or_else(|| format!("{}_{}", folder, seq)),
             uid: seq,
+            uid_string,
             from,
             to,
             subject,
@@ -703,16 +792,16 @@ fn parse_pop3_email_with_parser(raw: &[u8], folder: &str, seq: u32) -> (EmailMes
     } else {
         // Fallback to basic header parsing
         let text = String::from_utf8_lossy(raw);
-        parse_pop3_email_basic_raw(&text, folder, seq)
+        parse_pop3_email_basic_raw(&text, folder, seq, None)
     }
 }
 
 fn parse_pop3_email_basic(response: &str, folder: &str, seq: u32) -> EmailMessage {
-    let (msg, _) = parse_pop3_email_basic_raw(response, folder, seq);
+    let (msg, _) = parse_pop3_email_basic_raw(response, folder, seq, None);
     msg
 }
 
-fn parse_pop3_email_basic_raw(response: &str, folder: &str, seq: u32) -> (EmailMessage, Option<String>) {
+fn parse_pop3_email_basic_raw(response: &str, folder: &str, seq: u32, uid_string: Option<String>) -> (EmailMessage, Option<String>) {
     let mut from = String::new();
     let mut to = String::new();
     let mut subject = String::new();
@@ -739,6 +828,7 @@ fn parse_pop3_email_basic_raw(response: &str, folder: &str, seq: u32) -> (EmailM
     let email_msg = EmailMessage {
         id: msg_id,
         uid: seq,
+        uid_string,
         from,
         to,
         subject,
@@ -755,8 +845,8 @@ fn parse_pop3_email_basic_raw(response: &str, folder: &str, seq: u32) -> (EmailM
 
 // ── Helper functions for EML file storage ─────────────────────────────────────
 
-/// Load existing email UIDs from local index
-fn load_local_uids(vault_path: &str, folder: &str) -> std::collections::HashSet<u32> {
+/// Load existing email UIDs from local index (using string UID from UIDL)
+fn load_local_uids(vault_path: &str, folder: &str) -> std::collections::HashSet<String> {
     let index_path = PathBuf::from(vault_path)
         .join("Mailbox")
         .join(folder)
@@ -768,7 +858,10 @@ fn load_local_uids(vault_path: &str, folder: &str) -> std::collections::HashSet<
 
     if let Ok(content) = fs::read_to_string(&index_path) {
         if let Ok(emails) = serde_json::from_str::<Vec<EmailMessage>>(&content) {
-            return emails.iter().map(|e| e.uid).collect();
+            // Use uid_string if available, otherwise fall back to uid
+            return emails.iter()
+                .filter_map(|e| e.uid_string.clone().or_else(|| Some(e.uid.to_string())))
+                .collect();
         }
     }
 
@@ -996,16 +1089,16 @@ pub async fn delete_email(
             if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
                 data.get("protocol")
                     .and_then(|p| p.as_str())
-                    .unwrap_or("pop3")
+                    .unwrap_or("imap")
                     .to_string()
             } else {
-                "pop3".to_string()
+                "imap".to_string()
             }
         } else {
-            "pop3".to_string()
+            "imap".to_string()
         }
     } else {
-        "pop3".to_string()
+        "imap".to_string()
     };
 
     // First, try to mark as deleted on IMAP server if it's IMAP protocol
@@ -1134,16 +1227,16 @@ pub async fn mark_email_read(
             if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
                 data.get("protocol")
                     .and_then(|p| p.as_str())
-                    .unwrap_or("pop3")
+                    .unwrap_or("imap")
                     .to_string()
             } else {
-                "pop3".to_string()
+                "imap".to_string()
             }
         } else {
-            "pop3".to_string()
+            "imap".to_string()
         }
     } else {
-        "pop3".to_string()
+        "imap".to_string()
     };
 
     // First, try to mark as read/unread on IMAP server if it's IMAP protocol

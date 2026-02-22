@@ -55,9 +55,9 @@ export default function MailView() {
   // Form state
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
-  const formProtocol: "imap" | "pop3" = "pop3";
+  const formProtocol: "imap" | "pop3" = "imap";
   const [formImapHost, setFormImapHost] = useState("");
-  const [formImapPort, setFormImapPort] = useState("995");
+  const [formImapPort, setFormImapPort] = useState("993");
   const [formSmtpHost, setFormSmtpHost] = useState("");
   const [formSmtpPort, setFormSmtpPort] = useState("587");
   const [formUsername, setFormUsername] = useState("");
@@ -185,14 +185,14 @@ export default function MailView() {
   const resetForm = () => {
     setFormName(""); setFormEmail(""); setFormImapHost("");
     setFormImapPort("993"); setFormSmtpHost(""); setFormSmtpPort("587");
+
     setFormUsername(""); setFormPassword(""); setFormFolders("INBOX,Sent,Draft,Trash,Archive");
   };
 
-  const autoFillProvider = (email: string, protocol: "imap" | "pop3" = "pop3") => {
+  const autoFillProvider = (email: string) => {
     const domain = email.split("@")[1]?.toLowerCase() || "";
-    const prefix = protocol === "pop3" ? "pop" : "imap";
-    if (domain.includes("163.com")) { setFormImapHost(`${prefix}.163.com`); setFormImapPort(protocol === "pop3" ? "995" : "993"); setFormSmtpHost("smtp.163.com"); setFormSmtpPort("465"); }
-    else if (domain.includes("qq.com") || domain.includes("foxmail.com")) { setFormImapHost(`${prefix}.qq.com`); setFormImapPort(protocol === "pop3" ? "995" : "993"); setFormSmtpHost("smtp.qq.com"); setFormSmtpPort("465"); }
+    if (domain.includes("163.com")) { setFormImapHost("imap.163.com"); setFormImapPort("993"); setFormSmtpHost("smtp.163.com"); setFormSmtpPort("465"); }
+    else if (domain.includes("qq.com") || domain.includes("foxmail.com")) { setFormImapHost("imap.qq.com"); setFormImapPort("993"); setFormSmtpHost("smtp.qq.com"); setFormSmtpPort("465"); }
     else if (domain.includes("gmail.com")) { setFormImapHost("imap.gmail.com"); setFormImapPort("993"); setFormSmtpHost("smtp.gmail.com"); setFormSmtpPort("587"); }
     else if (domain.includes("outlook.com") || domain.includes("hotmail.com")) { setFormImapHost("outlook.office365.com"); setFormImapPort("993"); setFormSmtpHost("smtp.office365.com"); setFormSmtpPort("587"); }
     if (!formUsername && email) setFormUsername(email);
@@ -246,7 +246,7 @@ export default function MailView() {
       const password = account.password || "";
       if (!password) { alert("请先在账户设置中填写密码"); setSyncing(false); return; }
       console.log("[DEBUG] handleSync - account.id:", account.id, "account.email:", account.email);
-      const emails = await imapSync({ email: account.email, password, imapHost, imapPort, protocol: account.protocol || "pop3", account_id: account.id }, vaultPath, folder, 50);
+      const emails = await imapSync({ email: account.email, password, imapHost, imapPort, protocol: account.protocol || "imap", account_id: account.id }, vaultPath, folder, 500);
       console.log("Sync complete, emails:", emails.length);
       // Reload current folder
       const cached = await getCachedEmails(vaultPath, selectedAccount?.id || "", 0, PAGE_SIZE);
@@ -270,7 +270,7 @@ export default function MailView() {
       imapPort: account.imapPort,
       smtpHost: account.smtpHost,
       smtpPort: account.smtpPort,
-      protocol: account.protocol || "pop3",
+      protocol: account.protocol || "imap",
       username: account.username,
       password: account.password || "",
       authType: account.authType || "password",
@@ -625,7 +625,6 @@ ${originalContent}`;
           <AccountForm
             formName={formName} setFormName={setFormName}
             formEmail={formEmail} setFormEmail={setFormEmail}
-            formProtocol={formProtocol}
             formImapHost={formImapHost} setFormImapHost={setFormImapHost}
             formImapPort={formImapPort} setFormImapPort={setFormImapPort}
             formSmtpHost={formSmtpHost} setFormSmtpHost={setFormSmtpHost}
@@ -759,7 +758,7 @@ ${originalContent}`;
 
 // ==================== 子组件 ====================
 
-function AccountForm({ formName, setFormName, formEmail, setFormEmail, formProtocol, formImapHost, setFormImapHost, formImapPort, setFormImapPort, formSmtpHost, setFormSmtpHost, formSmtpPort, setFormSmtpPort, formUsername, setFormUsername, formPassword, setFormPassword, formFolders, setFormFolders, showHelp, setShowHelp, editingAccount, onSave, onCancel, autoFillProvider }: any) {
+function AccountForm({ formName, setFormName, formEmail, setFormEmail, formImapHost, setFormImapHost, formImapPort, setFormImapPort, formSmtpHost, setFormSmtpHost, formSmtpPort, setFormSmtpPort, formUsername, setFormUsername, formPassword, setFormPassword, formFolders, setFormFolders, showHelp, setShowHelp, editingAccount, onSave, onCancel, autoFillProvider }: any) {
   return (
     <div className="p-6 overflow-auto max-w-[500px]">
       <div className="flex items-center justify-between mb-4">
@@ -780,12 +779,12 @@ function AccountForm({ formName, setFormName, formEmail, setFormEmail, formProto
       )}
       <div className="flex flex-col gap-3">
         <div><label className="text-[12px] text-text-mid block mb-1">账户名称</label><input className="input w-full" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="工作邮箱" /></div>
-        <div><label className="text-[12px] text-text-mid block mb-1">邮箱地址</label><input className="input w-full" value={formEmail} onChange={(e) => { setFormEmail(e.target.value); autoFillProvider(e.target.value, formProtocol); }} placeholder="you@example.com" /></div>
+        <div><label className="text-[12px] text-text-mid block mb-1">邮箱地址</label><input className="input w-full" value={formEmail} onChange={(e) => { setFormEmail(e.target.value); autoFillProvider(e.target.value); }} placeholder="you@example.com" /></div>
         <div><label className="text-[12px] text-text-mid block mb-1">协议</label>
-          <div className="text-sm">POP3 (默认)</div>
+          <div className="text-sm">IMAP (默认)</div>
         </div>
         <div className="grid grid-cols-[2fr_1fr] gap-3">
-          <div><label className="text-[12px] text-text-mid block mb-1">POP3 服务器</label><input className="input w-full" value={formImapHost} onChange={(e) => setFormImapHost(e.target.value)} placeholder="pop.example.com" /></div>
+          <div><label className="text-[12px] text-text-mid block mb-1">IMAP 服务器</label><input className="input w-full" value={formImapHost} onChange={(e) => setFormImapHost(e.target.value)} placeholder="imap.example.com" /></div>
           <div><label className="text-[12px] text-text-mid block mb-1">端口</label><input className="input w-full" value={formImapPort} onChange={(e) => setFormImapPort(e.target.value)} placeholder="993" /></div>
         </div>
         <div className="grid grid-cols-[2fr_1fr] gap-3">
