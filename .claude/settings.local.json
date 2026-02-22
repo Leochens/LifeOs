@@ -66,7 +66,11 @@
       "Bash(npm install @heroui/react framer-motion)",
       "Bash(git checkout:*)",
       "mcp__MiniMax__web_search",
-      "WebFetch(domain:crates.io)"
+      "WebFetch(domain:crates.io)",
+      "Bash(git branch:*)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "mcp__MiniMax__understand_image",
+      "Bash(cargo build:*)"
     ]
   }
 }

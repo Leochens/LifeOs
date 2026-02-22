@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { writeNote, listNotes, imapSync, getCachedEmails, deleteFile, sendEmail } from "@/services/fs";
+import { imapSync, getCachedEmails, deleteFile, sendEmail, readFile, writeFile, listDir } from "@/services/fs";
 import type { EmailMessage, SendEmailRequest } from "@/services/fs";
 import type { EmailAccount } from "@/types";
 import { HelpCircle, Send, ChevronDown, ChevronRight, Inbox, Mail, Star, Trash2, Archive, RefreshCw } from "lucide-react";
@@ -55,9 +55,9 @@ export default function MailView() {
   // Form state
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
-  const [formProtocol, setFormProtocol] = useState<"imap" | "pop3">("imap");
+  const formProtocol: "imap" | "pop3" = "pop3";
   const [formImapHost, setFormImapHost] = useState("");
-  const [formImapPort, setFormImapPort] = useState("993");
+  const [formImapPort, setFormImapPort] = useState("995");
   const [formSmtpHost, setFormSmtpHost] = useState("");
   const [formSmtpPort, setFormSmtpPort] = useState("587");
   const [formUsername, setFormUsername] = useState("");
@@ -80,28 +80,39 @@ export default function MailView() {
     setLoading(true);
     try {
       const dir = `${vaultPath}/${EMAILS_DIR}`;
-      const notes = await listNotes(dir, false);
+      const files = await listDir(dir, false);
       const accounts: EmailAccount[] = [];
-      for (const n of notes) {
-        if (n.frontmatter.id && n.frontmatter.imapHost) {
-          accounts.push({
-            id: n.frontmatter.id,
-            name: n.frontmatter.name || "",
-            email: n.frontmatter.email || "",
-            imapHost: n.frontmatter.imapHost || "",
-            imapPort: parseInt(n.frontmatter.imapPort) || 993,
-            smtpHost: n.frontmatter.smtpHost || "",
-            smtpPort: parseInt(n.frontmatter.smtpPort) || 587,
-            protocol: (n.frontmatter.protocol as "imap" | "pop3") || "imap",
-            username: n.frontmatter.username || "",
-            password: n.frontmatter.password || "",
-            authType: (n.frontmatter.authType as "password" | "oauth2") || "password",
-            folders: n.frontmatter.folders ? n.frontmatter.folders.split(",") : [],
-            lastSync: n.frontmatter.lastSync,
-            enabled: n.frontmatter.enabled !== "false",
-          });
+      for (const file of files) {
+        if (!file.is_dir && file.name.endsWith(".json")) {
+          try {
+            const content = await readFile(file.path);
+            const data = JSON.parse(content);
+            console.log("[DEBUG] loadAccounts - file:", file.name, "data:", JSON.stringify(data));
+            if (data.id && data.imapHost) {
+              console.log("[DEBUG] loadAccounts - pushing account with id:", data.id);
+              accounts.push({
+                id: data.id,
+                name: data.name || "",
+                email: data.email || "",
+                imapHost: data.imapHost || "",
+                imapPort: parseInt(data.imapPort) || 993,
+                smtpHost: data.smtpHost || "",
+                smtpPort: parseInt(data.smtpPort) || 587,
+                protocol: data.protocol || "pop3",
+                username: data.username || "",
+                password: data.password || "",
+                authType: data.authType || "password",
+                folders: data.folders ? data.folders.split(",") : [],
+                lastSync: data.lastSync,
+                enabled: data.enabled !== false,
+              });
+            }
+          } catch (e) {
+            console.error("Failed to parse account file:", file.path, e);
+          }
         }
       }
+      console.log("[DEBUG] loadAccounts - final accounts:", JSON.stringify(accounts));
       setEmailAccounts(accounts);
     } catch (e) {
       console.error("Failed to load accounts:", e);
@@ -120,7 +131,7 @@ export default function MailView() {
     }
     const loadEmails = async () => {
       try {
-        const cached = await getCachedEmails(vaultPath, selectedFolder, 0, PAGE_SIZE);
+        const cached = await getCachedEmails(vaultPath, selectedAccount?.id || "", 0, PAGE_SIZE);
         console.log("Loaded emails:", cached.length, "folder:", selectedFolder);
         console.log("First email sample:", cached[0]);
         setEmails(cached);
@@ -158,7 +169,7 @@ export default function MailView() {
     setFormUsername(""); setFormPassword(""); setFormFolders("INBOX,Sent,Draft,Trash,Archive");
   };
 
-  const autoFillProvider = (email: string, protocol: "imap" | "pop3" = "imap") => {
+  const autoFillProvider = (email: string, protocol: "imap" | "pop3" = "pop3") => {
     const domain = email.split("@")[1]?.toLowerCase() || "";
     const prefix = protocol === "pop3" ? "pop" : "imap";
     if (domain.includes("163.com")) { setFormImapHost(`${prefix}.163.com`); setFormImapPort(protocol === "pop3" ? "995" : "993"); setFormSmtpHost("smtp.163.com"); setFormSmtpPort("465"); }
@@ -170,13 +181,26 @@ export default function MailView() {
 
   const handleSaveAccount = async () => {
     if (!vaultPath || !formName.trim() || !formEmail.trim()) return;
-    const id = `email-${Date.now()}`;
-    const slug = formName.toLowerCase().replace(/\s+/g, "-");
-    const path = `${vaultPath}/${EMAILS_DIR}/${slug}.md`;
-    const fm: Record<string, string> = { id, name: formName, email: formEmail, imapHost: formImapHost, imapPort: formImapPort, smtpHost: formSmtpHost, smtpPort: formSmtpPort, protocol: formProtocol, username: formUsername, password: formPassword || "", authType: "password", folders: formFolders, enabled: "true" };
-    const content = `# ${formName}\n\n## 账户信息\n- 邮箱: ${formEmail}\n- IMAP: ${formImapHost}:${formImapPort}\n- SMTP: ${formSmtpHost}:${formSmtpPort}\n\n## 说明\n在此添加账户备注信息\n`;
+    // 生成唯一的账户 ID
+    const id = crypto.randomUUID();
+    const path = `${vaultPath}/${EMAILS_DIR}/${id}.json`;
+    const accountData = {
+      id,
+      name: formName,
+      email: formEmail,
+      imapHost: formImapHost,
+      imapPort: formImapPort,
+      smtpHost: formSmtpHost,
+      smtpPort: formSmtpPort,
+      protocol: formProtocol,
+      username: formUsername,
+      password: formPassword || "",
+      authType: "password",
+      folders: formFolders,
+      enabled: true
+    };
     try {
-      await writeNote(path, fm, content);
+      await writeFile(path, JSON.stringify(accountData, null, 2));
       await loadAccounts();
       setShowAccountForm(false);
       resetForm();
@@ -187,8 +211,7 @@ export default function MailView() {
     if (!vaultPath) return;
     if (!confirm(`确定要删除账户 "${account.name}" 吗？`)) return;
     try {
-      const slug = account.name.toLowerCase().replace(/\s+/g, "-");
-      const path = `${vaultPath}/${EMAILS_DIR}/${slug}.md`;
+      const path = `${vaultPath}/${EMAILS_DIR}/${account.id}.json`;
       await deleteFile(path);
       await loadAccounts();
       if (selectedAccount?.id === account.id) { setSelectedAccount(null); setEmails([]); }
@@ -203,10 +226,11 @@ export default function MailView() {
       const imapPort = account.imapPort || 993;
       const password = account.password || "";
       if (!password) { alert("请先在账户设置中填写密码"); setSyncing(false); return; }
-      const emails = await imapSync({ email: account.email, password, imapHost, imapPort, protocol: account.protocol || "imap" }, vaultPath, folder, 50);
+      console.log("[DEBUG] handleSync - account.id:", account.id, "account.email:", account.email);
+      const emails = await imapSync({ email: account.email, password, imapHost, imapPort, protocol: account.protocol || "pop3", account_id: account.id }, vaultPath, folder, 50);
       console.log("Sync complete, emails:", emails.length);
       // Reload current folder
-      const cached = await getCachedEmails(vaultPath, selectedFolder, 0, PAGE_SIZE);
+      const cached = await getCachedEmails(vaultPath, selectedAccount?.id || "", 0, PAGE_SIZE);
       setEmails(cached);
       setHasMoreEmails(cached.length === PAGE_SIZE);
       alert(`同步完成！获取 ${emails.length} 封邮件`);
@@ -218,12 +242,24 @@ export default function MailView() {
 
   const handleToggleEnabled = async (account: EmailAccount) => {
     if (!vaultPath) return;
-    const slug = account.name.toLowerCase().replace(/\s+/g, "-");
-    const path = `${vaultPath}/${EMAILS_DIR}/${slug}.md`;
-    const fm: Record<string, string> = { id: account.id, name: account.name, email: account.email, imapHost: account.imapHost, imapPort: String(account.imapPort), protocol: account.protocol || "imap", username: account.username, authType: account.authType, folders: account.folders.join(","), enabled: String(!account.enabled), lastSync: account.lastSync || "" };
-    if (account.password) fm.password = account.password;
-    const content = `# ${account.name}\n\n## 账户信息\n- 邮箱: ${account.email}\n- IMAP: ${account.imapHost}:${account.imapPort}\n- 用户名: ${account.username}\n`;
-    try { await writeNote(path, fm, content); await loadAccounts(); } catch (e) { console.error("Failed to toggle account:", e); }
+    const path = `${vaultPath}/${EMAILS_DIR}/${account.id}.json`;
+    const accountData = {
+      id: account.id,
+      name: account.name,
+      email: account.email,
+      imapHost: account.imapHost,
+      imapPort: account.imapPort,
+      smtpHost: account.smtpHost,
+      smtpPort: account.smtpPort,
+      protocol: account.protocol || "pop3",
+      username: account.username,
+      password: account.password || "",
+      authType: account.authType || "password",
+      folders: account.folders.join(","),
+      enabled: !account.enabled,
+      lastSync: account.lastSync || ""
+    };
+    try { await writeFile(path, JSON.stringify(accountData, null, 2)); await loadAccounts(); } catch (e) { console.error("Failed to toggle account:", e); }
   };
 
   const handleStartEdit = (account: EmailAccount) => {
@@ -237,17 +273,26 @@ export default function MailView() {
 
   const handleSaveEdit = async () => {
     if (!vaultPath || !editingAccount || !formName.trim() || !formEmail.trim()) return;
-    const slug = formName.toLowerCase().replace(/\s+/g, "-");
-    const path = `${vaultPath}/${EMAILS_DIR}/${slug}.md`;
-    const oldSlug = editingAccount.name.toLowerCase().replace(/\s+/g, "-");
-    const oldPath = `${vaultPath}/${EMAILS_DIR}/${oldSlug}.md`;
-    if (oldPath !== path) { try { await deleteFile(oldPath); } catch {} }
-    const password = formPassword || (editingAccount as any).password || "";
-    const fm: Record<string, string> = { id: editingAccount.id, name: formName, email: formEmail, imapHost: formImapHost, imapPort: formImapPort, smtpHost: formSmtpHost, smtpPort: formSmtpPort, protocol: formProtocol, username: formUsername, authType: "password", folders: formFolders, enabled: String(editingAccount.enabled) };
-    if (password) fm.password = password;
-    const content = `# ${formName}\n\n## 账户信息\n- 邮箱: ${formEmail}\n- IMAP: ${formImapHost}:${formImapPort}\n- 用户名: ${formUsername}\n`;
+    // 保持原有的 account_id 不变
+    const path = `${vaultPath}/${EMAILS_DIR}/${editingAccount.id}.json`;
+    const password = formPassword || editingAccount.password || "";
+    const accountData = {
+      id: editingAccount.id,  // 保持不变
+      name: formName,
+      email: formEmail,
+      imapHost: formImapHost,
+      imapPort: formImapPort,
+      smtpHost: formSmtpHost,
+      smtpPort: formSmtpPort,
+      protocol: formProtocol,
+      username: formUsername,
+      password,
+      authType: "password",
+      folders: formFolders,
+      enabled: editingAccount.enabled
+    };
     try {
-      await writeNote(path, fm, content);
+      await writeFile(path, JSON.stringify(accountData, null, 2));
       await loadAccounts();
       setShowAccountForm(false);
       setEditingAccount(null);
@@ -260,7 +305,7 @@ export default function MailView() {
     setLoadingMore(true);
     try {
       const nextPage = emailPage + 1;
-      const cached = await getCachedEmails(vaultPath, selectedFolder, nextPage * PAGE_SIZE, PAGE_SIZE);
+      const cached = await getCachedEmails(vaultPath, selectedAccount?.id || "", nextPage * PAGE_SIZE, PAGE_SIZE);
       setEmails(prev => [...prev, ...cached]);
       setEmailPage(nextPage);
       setHasMoreEmails(cached.length === PAGE_SIZE);
@@ -417,7 +462,7 @@ export default function MailView() {
           <AccountForm
             formName={formName} setFormName={setFormName}
             formEmail={formEmail} setFormEmail={setFormEmail}
-            formProtocol={formProtocol} setFormProtocol={setFormProtocol}
+            formProtocol={formProtocol}
             formImapHost={formImapHost} setFormImapHost={setFormImapHost}
             formImapPort={formImapPort} setFormImapPort={setFormImapPort}
             formSmtpHost={formSmtpHost} setFormSmtpHost={setFormSmtpHost}
@@ -475,7 +520,7 @@ export default function MailView() {
 
 // ==================== 子组件 ====================
 
-function AccountForm({ formName, setFormName, formEmail, setFormEmail, formProtocol, setFormProtocol, formImapHost, setFormImapHost, formImapPort, setFormImapPort, formSmtpHost, setFormSmtpHost, formSmtpPort, setFormSmtpPort, formUsername, setFormUsername, formPassword, setFormPassword, formFolders, setFormFolders, showHelp, setShowHelp, editingAccount, onSave, onCancel, autoFillProvider }: any) {
+function AccountForm({ formName, setFormName, formEmail, setFormEmail, formProtocol, formImapHost, setFormImapHost, formImapPort, setFormImapPort, formSmtpHost, setFormSmtpHost, formSmtpPort, setFormSmtpPort, formUsername, setFormUsername, formPassword, setFormPassword, formFolders, setFormFolders, showHelp, setShowHelp, editingAccount, onSave, onCancel, autoFillProvider }: any) {
   return (
     <div className="p-6 overflow-auto max-w-[500px]">
       <div className="flex items-center justify-between mb-4">
@@ -498,13 +543,10 @@ function AccountForm({ formName, setFormName, formEmail, setFormEmail, formProto
         <div><label className="text-[12px] text-text-mid block mb-1">账户名称</label><input className="input w-full" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="工作邮箱" /></div>
         <div><label className="text-[12px] text-text-mid block mb-1">邮箱地址</label><input className="input w-full" value={formEmail} onChange={(e) => { setFormEmail(e.target.value); autoFillProvider(e.target.value, formProtocol); }} placeholder="you@example.com" /></div>
         <div><label className="text-[12px] text-text-mid block mb-1">协议</label>
-          <div className="flex gap-2">
-            <button type="button" className={`btn ${formProtocol === "imap" ? "btn-primary" : "btn-ghost"} flex-1 text-[12px]`} onClick={() => { setFormProtocol("imap"); autoFillProvider(formEmail, "imap"); }}>IMAP</button>
-            <button type="button" className={`btn ${formProtocol === "pop3" ? "btn-primary" : "btn-ghost"} flex-1 text-[12px]`} onClick={() => { setFormProtocol("pop3"); autoFillProvider(formEmail, "pop3"); }}>POP3</button>
-          </div>
+          <div className="text-sm">POP3 (默认)</div>
         </div>
         <div className="grid grid-cols-[2fr_1fr] gap-3">
-          <div><label className="text-[12px] text-text-mid block mb-1">{formProtocol === "imap" ? "IMAP" : "POP3"} 服务器</label><input className="input w-full" value={formImapHost} onChange={(e) => setFormImapHost(e.target.value)} placeholder={formProtocol === "imap" ? "imap.example.com" : "pop.example.com"} /></div>
+          <div><label className="text-[12px] text-text-mid block mb-1">POP3 服务器</label><input className="input w-full" value={formImapHost} onChange={(e) => setFormImapHost(e.target.value)} placeholder="pop.example.com" /></div>
           <div><label className="text-[12px] text-text-mid block mb-1">端口</label><input className="input w-full" value={formImapPort} onChange={(e) => setFormImapPort(e.target.value)} placeholder="993" /></div>
         </div>
         <div className="grid grid-cols-[2fr_1fr] gap-3">

@@ -38,6 +38,7 @@ pub struct ImapAccount {
     pub imap_host: String,
     pub imap_port: u16,
     pub protocol: Option<String>, // "imap" or "pop3"
+    pub account_id: Option<String>, // 用于区分不同账户的标识
 }
 
 /// Connect to IMAP or POP3 server and sync emails (with TLS support)
@@ -52,7 +53,17 @@ pub fn imap_sync(
     let port = account.imap_port;
     let email = &account.email;
     let password = &account.password;
-    let protocol = account.protocol.as_deref().unwrap_or("imap");
+    let protocol = account.protocol.as_deref().unwrap_or("pop3");
+
+    // Debug: 打印接收到的 account_id
+    println!("[DEBUG] imap_sync received - email: {}, account_id: {:?}", email, account.account_id);
+
+    // 使用 account_id 或 email 作为账户目录名
+    let account_dir = account.account_id
+        .unwrap_or_else(|| {
+            println!("[DEBUG] account_id is None, using email as fallback: {}", email.replace("@", "_at_"));
+            email.replace("@", "_at_")
+        });
 
     // Determine if we need TLS (port 993/995 typically means SSL)
     let use_tls = port == 993 || port == 995;
@@ -60,13 +71,13 @@ pub fn imap_sync(
     // Route to IMAP or POP3 based on protocol
     if protocol == "pop3" {
         if use_tls {
-            pop3_sync_tls(host, port, email, password, &vault_path, max_emails)
+            pop3_sync_tls(host, port, email, password, &vault_path, &account_dir, max_emails)
         } else {
-            pop3_sync_plain(host, port, email, password, &vault_path, max_emails)
+            pop3_sync_plain(host, port, email, password, &vault_path, &account_dir, max_emails)
         }
     } else {
         // IMAP — use the `imap` crate for reliable parsing
-        imap_sync_with_crate(host, port, email, password, &vault_path, &folder, max_emails, use_tls)
+        imap_sync_with_crate(host, port, email, password, &vault_path, &account_dir, &folder, max_emails, use_tls)
     }
 }
 
@@ -78,6 +89,7 @@ fn imap_sync_with_crate(
     email: &str,
     password: &str,
     vault_path: &str,
+    account_dir: &str,
     folder: &str,
     max_emails: u32,
     use_tls: bool,
@@ -104,9 +116,9 @@ fn imap_sync_with_crate(
         .login(email, password)
         .map_err(|e| format!("登录失败: {}", e.0))?;
 
-    // 尝试发送 IMAP ID 命令（RFC 2971）- 这对于 163/126 等邮箱是必须的
-    // 注意：这个命令可能导致 panic，所以用更安全的方式处理
-    let _ = session.noop(); // 先发送 NOOP 确保连接正常
+    // 注意：ID 命令会导致 rust-imap panic，所以暂时跳过
+    // 这会导致 163/126 等邮箱报 "Unsafe Login" 错误
+    // 解决方案：使用 POP3 或升级到修复后的库版本
 
     // Select mailbox
     let mailbox = session
@@ -124,29 +136,18 @@ fn imap_sync_with_crate(
     let start = total.saturating_sub(fetch_count) + 1;
     let range = format!("{}:{}", start, total);
 
-    // Step 1: Fetch basic info (UID, FLAGS, ENVELOPE)
-    let basic_messages = session
-        .fetch(&range, "UID FLAGS ENVELOPE")
+    // Fetch emails with RFC822 to get full message content
+    let messages = session
+        .fetch(&range, "UID FLAGS ENVELOPE RFC822")
         .map_err(|e| format!("拉取邮件失败: {}", e))?;
 
     let mut emails = Vec::new();
 
-    for basic_msg in basic_messages.iter() {
-        let uid = basic_msg.uid.unwrap_or(0);
-
-        // Step 2: Fetch full RFC822 content for each message
-        let full_messages = session
-            .fetch(uid.to_string(), "RFC822")
-            .map_err(|e| format!("拉取邮件内容失败: {}", e))?;
-
-        let msg = if let Some(m) = full_messages.iter().next() {
-            m
-        } else {
-            continue;
-        };
+    for msg in messages.iter() {
+        let uid = msg.uid.unwrap_or(0);
 
         // Parse envelope for metadata
-        let (subject, from, to, date) = if let Some(env) = basic_msg.envelope() {
+        let (subject, from, to, date) = if let Some(env) = msg.envelope() {
             let subject = env
                 .subject
                 .as_ref()
@@ -239,7 +240,7 @@ fn imap_sync_with_crate(
     session.logout().ok();
 
     // Save to vault cache
-    let emails_dir = PathBuf::from(vault_path).join(".lifeos/emails").join(folder);
+    let emails_dir = PathBuf::from(vault_path).join("Mailbox").join(account_dir);
     fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
 
     let index_path = emails_dir.join("index.json");
@@ -341,12 +342,25 @@ fn decode_quoted_printable_header(input: &str) -> Option<Vec<u8>> {
 
 // ── POP3 support ─────────────────────────────────────────────────────────────────
 
+/// Index entry for email metadata (stored in index.json)
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EmailIndexEntry {
+    pub uid: u32,
+    pub message_id: Option<String>,
+    pub subject: String,
+    pub from: String,
+    pub date: String,
+    pub file: String,  // EML filename
+    pub flags: Vec<String>,
+}
+
 fn pop3_sync_tls(
     host: &str,
     port: u16,
     email: &str,
     password: &str,
     vault_path: &str,
+    account_dir: &str,
     max_emails: u32,
 ) -> Result<Vec<EmailMessage>, String> {
     use native_tls::TlsStream;
@@ -385,24 +399,49 @@ fn pop3_sync_tls(
     // Get email count
     stream.write_all(b"STAT\r\n").map_err(|e| format!("发送失败: {}", e))?;
     let stat_resp = read_response(&mut stream)?;
-    let message_count: usize = stat_resp
+    let _message_count: usize = stat_resp
         .split_whitespace()
         .nth(1)
         .and_then(|n| n.parse().ok())
         .unwrap_or(0);
 
-    let fetch_count = std::cmp::min(max_emails as usize, message_count);
+    // Get UIDL to track which emails we've already downloaded
+    let local_uids = load_local_uids(vault_path, account_dir);
+    let mut new_uids: std::collections::HashSet<u32> = std::collections::HashSet::new();
+
+    // Request UIDL from server
+    stream.write_all(b"UIDL\r\n").map_err(|e| format!("发送失败: {}", e))?;
+    let uidl_resp = read_response(&mut stream)?;
+    let server_uids = parse_uidl_response(&uidl_resp);
+
+    // Determine which emails are new
+    for (seq, _uid) in server_uids {
+        if !local_uids.contains(&seq) {
+            new_uids.insert(seq);
+        }
+    }
+
+    let fetch_count = std::cmp::min(max_emails as usize, new_uids.len());
 
     if fetch_count == 0 {
         stream.write_all(b"QUIT\r\n").ok();
-        return Ok(Vec::new());
+        // Return existing emails from cache
+        return get_cached_emails(vault_path.to_string(), account_dir.to_string(), None, None);
     }
 
-    // Fetch emails (from newest)
+    // Fetch only new emails (from newest)
+    let mut new_uids_vec: Vec<u32> = new_uids.into_iter().collect();
+    new_uids_vec.sort_by(|a, b| b.cmp(a)); // Sort descending (newest first)
+    let new_uids_to_fetch: Vec<u32> = new_uids_vec.into_iter().take(fetch_count).collect();
+
+    // Prepare directory
+    let emails_dir = PathBuf::from(vault_path).join("Mailbox").join(account_dir);
+    fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
+
     let mut emails = Vec::new();
-    let start = if message_count > fetch_count { message_count - fetch_count + 1 } else { 1 };
-    for i in (start..=message_count).rev() {
-        let retr_cmd = format!("RETR {}\r\n", i);
+
+    for seq in new_uids_to_fetch {
+        let retr_cmd = format!("RETR {}\r\n", seq);
         stream.write_all(retr_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
 
         let mut response = Vec::new();
@@ -421,28 +460,43 @@ fn pop3_sync_tls(
             }
         }
 
-        // Strip POP3 +OK header line, then parse with mail-parser
+        // Strip POP3 +OK header line
         let resp_str = String::from_utf8_lossy(&response);
-        let raw_email = if let Some(idx) = resp_str.find("\r\n") {
+        let raw_email: &[u8] = if let Some(idx) = resp_str.find("\r\n") {
             &response[idx + 2..]
         } else {
             &response[..]
         };
 
-        let email_msg = parse_pop3_email_with_parser(raw_email, "INBOX", i as u32);
+        // Parse email
+        let (email_msg, message_id) = parse_pop3_email_with_parser(raw_email, account_dir, seq);
+
+        // Save as EML file using Message-ID as filename (or seq as fallback)
+        let eml_filename = message_id.clone().unwrap_or_else(|| seq.to_string());
+        let safe_filename = eml_filename.chars().filter(|c| c.is_alphanumeric() || *c == '@' || *c == '.' || *c == '-' || *c == '_').take(100).collect::<String>();
+        let eml_path = emails_dir.join(format!("{}.eml", safe_filename));
+        fs::write(&eml_path, raw_email).map_err(|e| format!("保存 EML 文件失败: {}", e))?;
+
         emails.push(email_msg);
     }
 
     stream.write_all(b"QUIT\r\n").ok();
 
-    // Save to vault
-    let emails_dir = PathBuf::from(vault_path).join(".lifeos/emails").join("INBOX");
-    fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
-    let index_path = emails_dir.join("index.json");
-    let index_json = serde_json::to_string_pretty(&emails).map_err(|e| e.to_string())?;
-    fs::write(&index_path, index_json).map_err(|e| format!("写入文件失败: {}", e))?;
+    // Load existing index and merge with new emails
+    let mut all_emails = load_existing_emails(vault_path, account_dir)?;
+    for email in &emails {
+        all_emails.push(email.clone());
+    }
 
-    Ok(emails)
+    // Sort by date (newest first)
+    all_emails.sort_by(|a, b| b.date.cmp(&a.date));
+
+    // Save updated index
+    let index_path = emails_dir.join("index.json");
+    let index_json = serde_json::to_string_pretty(&all_emails).map_err(|e| e.to_string())?;
+    fs::write(&index_path, index_json).map_err(|e| format!("写入索引文件失败: {}", e))?;
+
+    Ok(all_emails)
 }
 
 fn pop3_sync_plain(
@@ -451,6 +505,7 @@ fn pop3_sync_plain(
     email: &str,
     password: &str,
     vault_path: &str,
+    account_dir: &str,
     max_emails: u32,
 ) -> Result<Vec<EmailMessage>, String> {
     let addr = format!("{}:{}", host, port);
@@ -481,23 +536,50 @@ fn pop3_sync_plain(
     stream.write_all(b"STAT\r\n").map_err(|e| format!("发送失败: {}", e))?;
     let n = stream.read(&mut buf).map_err(|e| format!("读取失败: {}", e))?;
     let stat_resp = String::from_utf8_lossy(&buf[..n]);
-    let message_count: usize = stat_resp
+    let _message_count: usize = stat_resp
         .split_whitespace()
         .nth(1)
         .and_then(|n| n.parse().ok())
         .unwrap_or(0);
 
-    let fetch_count = std::cmp::min(max_emails as usize, message_count);
+    // Get UIDL to track which emails we've already downloaded
+    let local_uids = load_local_uids(vault_path, account_dir);
+    let mut new_uids: std::collections::HashSet<u32> = std::collections::HashSet::new();
+
+    // Request UIDL from server
+    stream.write_all(b"UIDL\r\n").map_err(|e| format!("发送失败: {}", e))?;
+    let n = stream.read(&mut buf).map_err(|e| format!("读取失败: {}", e))?;
+    let uidl_resp = String::from_utf8_lossy(&buf[..n]).to_string();
+    let server_uids = parse_uidl_response(&uidl_resp);
+
+    // Determine which emails are new
+    for (seq, _uid) in server_uids {
+        if !local_uids.contains(&seq) {
+            new_uids.insert(seq);
+        }
+    }
+
+    let fetch_count = std::cmp::min(max_emails as usize, new_uids.len());
 
     if fetch_count == 0 {
         stream.write_all(b"QUIT\r\n").ok();
-        return Ok(Vec::new());
+        // Return existing emails from cache
+        return get_cached_emails(vault_path.to_string(), account_dir.to_string(), None, None);
     }
 
+    // Prepare directory
+    let emails_dir = PathBuf::from(vault_path).join("Mailbox").join(account_dir);
+    fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
+
+    // Fetch only new emails (from newest)
+    let mut new_uids_vec: Vec<u32> = new_uids.into_iter().collect();
+    new_uids_vec.sort_by(|a, b| b.cmp(a)); // Sort descending (newest first)
+    let new_uids_to_fetch: Vec<u32> = new_uids_vec.into_iter().take(fetch_count).collect();
+
     let mut emails = Vec::new();
-    let start = if message_count > fetch_count { message_count - fetch_count + 1 } else { 1 };
-    for i in (start..=message_count).rev() {
-        let retr_cmd = format!("RETR {}\r\n", i);
+
+    for seq in new_uids_to_fetch {
+        let retr_cmd = format!("RETR {}\r\n", seq);
         stream.write_all(retr_cmd.as_bytes()).map_err(|e| format!("发送失败: {}", e))?;
 
         let mut response = Vec::new();
@@ -516,29 +598,46 @@ fn pop3_sync_plain(
         }
 
         let resp_str = String::from_utf8_lossy(&response);
-        let raw_email = if let Some(idx) = resp_str.find("\r\n") {
+        let raw_email: &[u8] = if let Some(idx) = resp_str.find("\r\n") {
             &response[idx + 2..]
         } else {
             &response[..]
         };
 
-        let email_msg = parse_pop3_email_with_parser(raw_email, "INBOX", i as u32);
+        // Parse email
+        let (email_msg, message_id) = parse_pop3_email_with_parser(raw_email, account_dir, seq);
+
+        // Save as EML file using Message-ID as filename (or seq as fallback)
+        let eml_filename = message_id.clone().unwrap_or_else(|| seq.to_string());
+        let safe_filename = eml_filename.chars().filter(|c| c.is_alphanumeric() || *c == '@' || *c == '.' || *c == '-' || *c == '_').take(100).collect::<String>();
+        let eml_path = emails_dir.join(format!("{}.eml", safe_filename));
+        fs::write(&eml_path, raw_email).map_err(|e| format!("保存 EML 文件失败: {}", e))?;
+
         emails.push(email_msg);
     }
 
     stream.write_all(b"QUIT\r\n").ok();
 
-    let emails_dir = PathBuf::from(vault_path).join(".lifeos/emails").join("INBOX");
-    fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
-    let index_path = emails_dir.join("index.json");
-    let index_json = serde_json::to_string_pretty(&emails).map_err(|e| e.to_string())?;
-    fs::write(&index_path, index_json).map_err(|e| format!("写入文件失败: {}", e))?;
+    // Load existing index and merge with new emails
+    let mut all_emails = load_existing_emails(vault_path, account_dir)?;
+    for email in &emails {
+        all_emails.push(email.clone());
+    }
 
-    Ok(emails)
+    // Sort by date (newest first)
+    all_emails.sort_by(|a, b| b.date.cmp(&a.date));
+
+    // Save updated index
+    let index_path = emails_dir.join("index.json");
+    let index_json = serde_json::to_string_pretty(&all_emails).map_err(|e| e.to_string())?;
+    fs::write(&index_path, index_json).map_err(|e| format!("写入索引文件失败: {}", e))?;
+
+    Ok(all_emails)
 }
 
 /// Parse a POP3 email using mail-parser for proper MIME handling
-fn parse_pop3_email_with_parser(raw: &[u8], folder: &str, seq: u32) -> EmailMessage {
+/// Returns (EmailMessage, Option<Message-ID>)
+fn parse_pop3_email_with_parser(raw: &[u8], folder: &str, seq: u32) -> (EmailMessage, Option<String>) {
     use mail_parser::MessageParser;
 
     let parser = MessageParser::default();
@@ -566,8 +665,19 @@ fn parse_pop3_email_with_parser(raw: &[u8], folder: &str, seq: u32) -> EmailMess
         let body_text = message.body_text(0).map(|t| t.to_string());
         let body_html = message.body_html(0).map(|h| h.to_string());
 
-        EmailMessage {
-            id: format!("{}_{}", folder, seq),
+        // Extract Message-ID for unique filename
+        let message_id = message.message_id().map(|id| {
+            let id_str = id.to_string();
+            // Sanitize: remove < > brackets and invalid chars
+            id_str.trim_matches(|c| c == '<' || c == '>')
+                .chars()
+                .filter(|c| c.is_alphanumeric() || *c == '@' || *c == '.' || *c == '-' || *c == '_')
+                .take(100)
+                .collect()
+        });
+
+        let email_msg = EmailMessage {
+            id: message_id.clone().unwrap_or_else(|| format!("{}_{}", folder, seq)),
             uid: seq,
             from,
             to,
@@ -578,19 +688,27 @@ fn parse_pop3_email_with_parser(raw: &[u8], folder: &str, seq: u32) -> EmailMess
             attachments: vec![],
             flags: vec![],
             folder: folder.to_string(),
-        }
+        };
+
+        (email_msg, message_id)
     } else {
         // Fallback to basic header parsing
         let text = String::from_utf8_lossy(raw);
-        parse_pop3_email_basic(&text, folder, seq)
+        parse_pop3_email_basic_raw(&text, folder, seq)
     }
 }
 
 fn parse_pop3_email_basic(response: &str, folder: &str, seq: u32) -> EmailMessage {
+    let (msg, _) = parse_pop3_email_basic_raw(response, folder, seq);
+    msg
+}
+
+fn parse_pop3_email_basic_raw(response: &str, folder: &str, seq: u32) -> (EmailMessage, Option<String>) {
     let mut from = String::new();
     let mut to = String::new();
     let mut subject = String::new();
     let mut date = String::new();
+    let mut message_id: Option<String> = None;
 
     for line in response.lines() {
         let lower = line.to_lowercase();
@@ -602,11 +720,15 @@ fn parse_pop3_email_basic(response: &str, folder: &str, seq: u32) -> EmailMessag
             subject = line[8..].trim().to_string();
         } else if lower.starts_with("date:") {
             date = line[5..].trim().to_string();
+        } else if lower.starts_with("message-id:") {
+            let id = line[11..].trim().to_string();
+            message_id = Some(id.trim_matches(|c| c == '<' || c == '>').to_string());
         }
     }
 
-    EmailMessage {
-        id: format!("{}_{}", folder, seq),
+    let msg_id = message_id.clone().unwrap_or_else(|| format!("{}_{}", folder, seq));
+    let email_msg = EmailMessage {
+        id: msg_id,
         uid: seq,
         from,
         to,
@@ -617,7 +739,75 @@ fn parse_pop3_email_basic(response: &str, folder: &str, seq: u32) -> EmailMessag
         attachments: vec![],
         flags: vec![],
         folder: folder.to_string(),
+    };
+
+    (email_msg, message_id)
+}
+
+// ── Helper functions for EML file storage ─────────────────────────────────────
+
+/// Load existing email UIDs from local index
+fn load_local_uids(vault_path: &str, folder: &str) -> std::collections::HashSet<u32> {
+    let index_path = PathBuf::from(vault_path)
+        .join("Mailbox")
+        .join(folder)
+        .join("index.json");
+
+    if !index_path.exists() {
+        return std::collections::HashSet::new();
     }
+
+    if let Ok(content) = fs::read_to_string(&index_path) {
+        if let Ok(emails) = serde_json::from_str::<Vec<EmailMessage>>(&content) {
+            return emails.iter().map(|e| e.uid).collect();
+        }
+    }
+
+    std::collections::HashSet::new()
+}
+
+/// Parse UIDL response from POP3 server
+/// Returns vector of (message_number, unique_id) tuples
+fn parse_uidl_response(response: &str) -> Vec<(u32, String)> {
+    let mut result = Vec::new();
+
+    for line in response.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with("+OK") {
+            continue;
+        }
+        if line == "." {
+            break;
+        }
+
+        // Format: "1 unique_id_12345"
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            if let Ok(seq) = parts[0].parse::<u32>() {
+                let uid = parts[1].to_string();
+                result.push((seq, uid));
+            }
+        }
+    }
+
+    result
+}
+
+/// Load existing emails from local storage
+fn load_existing_emails(vault_path: &str, folder: &str) -> Result<Vec<EmailMessage>, String> {
+    let index_path = PathBuf::from(vault_path)
+        .join("Mailbox")
+        .join(folder)
+        .join("index.json");
+
+    if !index_path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let content = fs::read_to_string(&index_path).map_err(|e| format!("读取失败: {}", e))?;
+    let emails: Vec<EmailMessage> = serde_json::from_str(&content).map_err(|e| format!("解析失败: {}", e))?;
+
+    Ok(emails)
 }
 
 fn read_response<T: Read>(stream: &mut T) -> Result<String, String> {
@@ -628,10 +818,10 @@ fn read_response<T: Read>(stream: &mut T) -> Result<String, String> {
 
 /// Get emails from local cache with optional pagination
 #[tauri::command]
-pub fn get_cached_emails(vault_path: String, folder: String, offset: Option<usize>, limit: Option<usize>) -> Result<Vec<EmailMessage>, String> {
+pub fn get_cached_emails(vault_path: String, account_id: String, offset: Option<usize>, limit: Option<usize>) -> Result<Vec<EmailMessage>, String> {
     let index_path = PathBuf::from(&vault_path)
-        .join(".lifeos/emails")
-        .join(&folder)
+        .join("Mailbox")
+        .join(&account_id)
         .join("index.json");
 
     if !index_path.exists() {
@@ -654,7 +844,7 @@ pub fn get_cached_emails(vault_path: String, folder: String, offset: Option<usiz
 /// List available email folders
 #[tauri::command]
 pub fn list_email_folders(vault_path: String) -> Result<Vec<String>, String> {
-    let emails_dir = PathBuf::from(&vault_path).join(".lifeos/emails");
+    let emails_dir = PathBuf::from(&vault_path).join("Mailbox");
 
     if !emails_dir.exists() {
         return Ok(vec![

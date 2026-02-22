@@ -181,6 +181,7 @@ export interface ImapAccount {
   imapHost: string;
   imapPort: number;
   protocol?: string;
+  account_id?: string;
 }
 
 export interface EmailMessage {
@@ -210,14 +211,15 @@ export const imapSync = (
       imap_host: account.imapHost,
       imap_port: account.imapPort,
       protocol: account.protocol,
+      account_id: account.account_id,
     },
     vaultPath,
     folder,
     maxEmails,
   });
 
-export const getCachedEmails = (vaultPath: string, folder: string, offset?: number, limit?: number): Promise<EmailMessage[]> =>
-  invoke("get_cached_emails", { vaultPath, folder, offset, limit });
+export const getCachedEmails = (vaultPath: string, accountId: string, offset?: number, limit?: number): Promise<EmailMessage[]> =>
+  invoke("get_cached_emails", { vaultPath, accountId, offset, limit });
 
 export const listEmailFolders = (vaultPath: string): Promise<string[]> =>
   invoke("list_email_folders", { vaultPath });
