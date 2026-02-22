@@ -313,6 +313,7 @@ export default function MailView() {
                 {/* 账号行 */}
                 <div
                   onClick={() => toggleAccountExpand(account.id)}
+                  onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, account }); }}
                   className="flex items-center gap-2 p-[8px_10px] rounded-[var(--radius-sm)] cursor-pointer"
                   style={{
                     background: selectedAccount?.id === account.id ? "rgba(0,200,255,0.15)" : "transparent",

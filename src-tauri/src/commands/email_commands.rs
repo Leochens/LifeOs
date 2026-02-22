@@ -104,6 +104,10 @@ fn imap_sync_with_crate(
         .login(email, password)
         .map_err(|e| format!("登录失败: {}", e.0))?;
 
+    // 尝试发送 IMAP ID 命令（RFC 2971）- 这对于 163/126 等邮箱是必须的
+    // 注意：这个命令可能导致 panic，所以用更安全的方式处理
+    let _ = session.noop(); // 先发送 NOOP 确保连接正常
+
     // Select mailbox
     let mailbox = session
         .select(folder)
@@ -120,18 +124,29 @@ fn imap_sync_with_crate(
     let start = total.saturating_sub(fetch_count) + 1;
     let range = format!("{}:{}", start, total);
 
-    // Fetch envelope + full body (BODY[] returns complete message)
-    let messages = session
-        .fetch(&range, "(UID FLAGS ENVELOPE BODY[])")
+    // Step 1: Fetch basic info (UID, FLAGS, ENVELOPE)
+    let basic_messages = session
+        .fetch(&range, "UID FLAGS ENVELOPE")
         .map_err(|e| format!("拉取邮件失败: {}", e))?;
 
     let mut emails = Vec::new();
 
-    for msg in messages.iter() {
-        let uid = msg.uid.unwrap_or(0);
+    for basic_msg in basic_messages.iter() {
+        let uid = basic_msg.uid.unwrap_or(0);
+
+        // Step 2: Fetch full RFC822 content for each message
+        let full_messages = session
+            .fetch(uid.to_string(), "RFC822")
+            .map_err(|e| format!("拉取邮件内容失败: {}", e))?;
+
+        let msg = if let Some(m) = full_messages.iter().next() {
+            m
+        } else {
+            continue;
+        };
 
         // Parse envelope for metadata
-        let (subject, from, to, date) = if let Some(env) = msg.envelope() {
+        let (subject, from, to, date) = if let Some(env) = basic_msg.envelope() {
             let subject = env
                 .subject
                 .as_ref()
@@ -184,10 +199,15 @@ fn imap_sync_with_crate(
         };
 
         // Parse full message body with mail-parser
-        let (body_text, body_html) = if let Some(body) = msg.body() {
-            parse_email_body(body)
+        let body_opt = msg.body();
+        if body_opt.is_none() {
+            println!("[DEBUG] msg.body() returned None for uid {}", uid);
         } else {
-            (None, None)
+            println!("[DEBUG] msg.body() has data, len: {}", body_opt.unwrap().len());
+        }
+        let (body_text, body_html) = match body_opt {
+            Some(body) => parse_email_body(body),
+            None => (None, None),
         };
 
         // Parse flags

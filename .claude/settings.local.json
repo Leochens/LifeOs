@@ -64,7 +64,9 @@
       "mcp__ide__getDiagnostics",
       "WebFetch(domain:www.heroui.com)",
       "Bash(npm install @heroui/react framer-motion)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "mcp__MiniMax__web_search",
+      "WebFetch(domain:crates.io)"
     ]
   }
 }
