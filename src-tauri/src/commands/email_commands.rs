@@ -914,10 +914,24 @@ pub async fn send_email(request: SendEmailRequest) -> Result<(), String> {
     use lettre::transport::smtp::authentication::Credentials;
     use lettre::message::header::ContentType;
 
+    // 处理发件人地址，如果 from_name 为空或与 from_email 相同则直接使用邮箱地址
+    let from_name_trimmed = request.smtp.from_name.trim();
+    let from_address = if from_name_trimmed.is_empty() || from_name_trimmed == &request.smtp.from_email {
+        // 名称为空或与邮箱相同，直接使用邮箱地址
+        request.smtp.from_email.clone()
+    } else {
+        format!("{} <{}>", request.smtp.from_name, request.smtp.from_email)
+    };
+
+    // 调试日志
+    println!("[DEBUG send_email] from_email: {:?}", request.smtp.from_email);
+    println!("[DEBUG send_email] from_name: {:?}", request.smtp.from_name);
+    println!("[DEBUG send_email] from_address: {:?}", from_address);
+
     let email = Message::builder()
-        .from(format!("{} <{}>", request.smtp.from_name, request.smtp.from_email)
+        .from(from_address
             .parse()
-            .map_err(|e| format!("发件人地址无效: {}", e))?)
+            .map_err(|e| format!("发件人地址无效: {} (from_address: {:?})", e, from_address))?)
         .to(request.to.parse().map_err(|e| format!("收件人地址无效: {}", e))?)
         .subject(&request.subject)
         .header(ContentType::TEXT_PLAIN)

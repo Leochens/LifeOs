@@ -344,6 +344,7 @@ export default function MailView() {
         body: replyBody,
         in_reply_to: selectedEmail.id,
       };
+      console.log("[DEBUG] handleSendReply request:", JSON.stringify(request));
       await sendEmail(request);
       alert("回复发送成功！");
       setReplyBody(""); setShowReply(false);
@@ -367,6 +368,7 @@ export default function MailView() {
         subject: composeSubject,
         body: composeBody,
       };
+      console.log("[DEBUG] handleSendCompose request:", JSON.stringify(request));
       await sendEmail(request);
       alert("邮件发送成功！");
       setShowCompose(false);
