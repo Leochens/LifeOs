@@ -1970,6 +1970,7 @@ dependencies = [
  "native-tls",
  "notify",
  "once_cell",
+ "open",
  "serde",
  "serde_json",
  "serde_yaml",

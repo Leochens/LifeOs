@@ -1223,3 +1223,9 @@ pub async fn mark_email_read(
 
     Ok(())
 }
+
+/// Open URL in external browser
+#[tauri::command]
+pub async fn open_external_url(url: String) -> Result<(), String> {
+    open::that(&url).map_err(|e| format!("打开链接失败: {}", e))
+}

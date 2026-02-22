@@ -288,3 +288,6 @@ export const markEmailRead = (
     imapPassword,
     email,
   });
+
+export const openExternalUrl = (url: string): Promise<void> =>
+  invoke("open_external_url", { url });

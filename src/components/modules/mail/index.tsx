@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { imapSync, getCachedEmails, deleteFile, sendEmail, readFile, writeFile, listDir, deleteEmail, markEmailRead } from "@/services/fs";
+import { imapSync, getCachedEmails, deleteFile, sendEmail, readFile, writeFile, listDir, deleteEmail, markEmailRead, openExternalUrl } from "@/services/fs";
 import type { EmailMessage, SendEmailRequest } from "@/services/fs";
 import type { EmailAccount } from "@/types";
 import { HelpCircle, Send, ChevronDown, ChevronRight, Inbox, Mail, Star, Trash2, Archive, RefreshCw, Plus, X, MailOpen, Circle, Search } from "lucide-react";
@@ -424,6 +424,20 @@ ${originalContent}`;
     } catch (e) { console.error(e); }
   };
 
+  // Handle selecting an email - auto mark as read
+  const handleSelectEmail = (email: EmailMessage) => {
+    setSelectedEmail(email);
+    setShowReply(false);
+    // Auto mark as read if not already read
+    if (!email.flags?.includes("Seen") && selectedAccount && vaultPath) {
+      markEmailRead(vaultPath, selectedAccount.id, email.id, true, email.folder, selectedAccount.imapHost, selectedAccount.imapPort, selectedAccount.password, selectedAccount.email)
+        .then(() => {
+          setEmails(prev => prev.map(e => e.id === email.id ? { ...e, flags: [...(e.flags || []), "Seen"] } : e));
+        })
+        .catch(console.error);
+    }
+  };
+
   // Check if email is read
   const isEmailRead = (email: EmailMessage) => email.flags?.includes("Seen") ?? false;
 
@@ -576,7 +590,7 @@ ${originalContent}`;
                   {filteredEmails.map((email, i) => (
                 <div
                   key={email.id || i}
-                  onClick={() => { setSelectedEmail(email); setShowReply(false); }}
+                  onClick={() => handleSelectEmail(email)}
                   className="p-[12px_16px] border-b border-border cursor-pointer"
                   style={{
                     background: selectedEmail?.id === email.id ? "rgba(0,200,255,0.1)" : "var(--panel)",
@@ -791,6 +805,59 @@ function AccountForm({ formName, setFormName, formEmail, setFormEmail, formProto
 }
 
 function EmailDetail({ email, showReply, setShowReply, replyBody, setReplyBody, sending, onSend, onForward, onDelete, onMarkAsRead, isRead }: { email: EmailMessage; showReply: boolean; setShowReply: (v: boolean) => void; replyBody: string; setReplyBody: (v: string) => void; sending: boolean; onSend: () => void; onForward?: () => void; onDelete?: () => void; onMarkAsRead?: (read: boolean) => void; isRead?: boolean }) {
+  // Handle external link clicks from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "open-url") {
+        openExternalUrl(event.data.url).catch(console.error);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  // Pre-process HTML to intercept link clicks
+  const getWrappedHtml = (html: string) => {
+    // Parse HTML and add click handlers to all links
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const links = doc.querySelectorAll("a");
+    links.forEach((link) => {
+      const href = link.getAttribute("href");
+      if (href && !href.startsWith("javascript:") && !href.startsWith("mailto:")) {
+        link.setAttribute("data-original-href", href);
+        link.removeAttribute("href");
+        link.style.cursor = "pointer";
+        link.style.color = "blue";
+        link.style.textDecoration = "underline";
+      }
+    });
+    // Add inline onclick handlers
+    const processedHtml = doc.body.innerHTML;
+    return processedHtml.replace(
+      /data-original-href="([^"]+)"/g,
+      'onclick="window.parent.postMessage({ type: \'open-url\', url: \'$1\' }, \'*\'); return false;"'
+    );
+  };
+
+  // Convert URLs in plain text to clickable links
+  const renderTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) =>
+      urlRegex.test(part) ? (
+        <a
+          key={i}
+          href="#"
+          className="text-blue-500 underline cursor-pointer"
+          onClick={(e) => { e.preventDefault(); openExternalUrl(part).catch(console.error); }}
+        >
+          {part}
+        </a>
+      ) : part
+    );
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* 头部 */}
@@ -816,14 +883,14 @@ function EmailDetail({ email, showReply, setShowReply, replyBody, setReplyBody, 
       <div className="flex-1 overflow-auto p-5">
         {email.bodyHtml ? (
           <iframe
-            srcDoc={email.bodyHtml}
-            sandbox="allow-same-origin"
+            srcDoc={getWrappedHtml(email.bodyHtml)}
+            sandbox="allow-same-origin allow-scripts"
             className="w-full h-full min-h-[400px] border-none bg-white rounded-[var(--radius-sm)]"
             title="Email content"
           />
         ) : (
           <div className="text-[14px] leading-[1.7] whitespace-pre-wrap text-text">
-            {email.bodyText || "（邮件内容为空或需要进一步解析）"}
+            {email.bodyText ? renderTextWithLinks(email.bodyText) : "（邮件内容为空或需要进一步解析）"}
           </div>
         )}
       </div>

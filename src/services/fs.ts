@@ -191,3 +191,6 @@ export const markEmailRead = (
   email?: string
 ) =>
   tauri.markEmailRead(vaultPath, accountId, emailId, read, folder, imapHost, imapPort, imapPassword, email);
+
+export const openExternalUrl = (url: string): Promise<void> =>
+  tauri.openExternalUrl(url);

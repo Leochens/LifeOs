@@ -56,6 +56,7 @@ pub fn run() {
             email_commands::send_email,
             email_commands::delete_email,
             email_commands::mark_email_read,
+            email_commands::open_external_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Life OS");
