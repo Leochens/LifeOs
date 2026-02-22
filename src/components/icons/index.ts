@@ -19,6 +19,7 @@ import {
   Clock,
   Settings,
   FileText,
+  ExternalLink,
 } from "lucide-react";
 
 export {
@@ -39,4 +40,5 @@ export {
   Clock,
   Settings,
   FileText,
+  ExternalLink,
 };

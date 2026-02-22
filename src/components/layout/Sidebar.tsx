@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useStore } from "@/stores/app";
 import type { ViewId, Plugin, PluginGroup } from "@/types";
 import * as Icons from "@/components/icons";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 // Icon component renderer
 const IconRenderer = ({ name, size = 14 }: { name: string; size?: number }) => {
@@ -12,14 +13,85 @@ const IconRenderer = ({ name, size = 14 }: { name: string; size?: number }) => {
   return <IconComponent size={size} />;
 };
 
+// Context menu state
+interface ContextMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+  pluginName: string;
+  viewId: string;
+}
+
+async function openInNewWindow(viewId: string, pluginName: string) {
+  const label = `plugin-${viewId}`;
+  // Try to focus existing window first
+  const existing = await WebviewWindow.getByLabel(label);
+  if (existing) {
+    await existing.setFocus();
+    return;
+  }
+  // Create new window
+  new WebviewWindow(label, {
+    url: `index.html?view=${viewId}&standalone=true`,
+    title: pluginName,
+    width: 1100,
+    height: 700,
+    center: true,
+  });
+}
+
 export default function Sidebar() {
   const currentView = useStore((s) => s.currentView);
   const setView = useStore((s) => s.setView);
   const vaultPath = useStore((s) => s.vaultPath);
   const menuConfig = useStore((s) => s.menuConfig);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    pluginName: "",
+    viewId: "",
+  });
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const folderName = vaultPath?.split("/").pop() ?? "vault";
+
+  // Close context menu on click outside or Escape
+  const closeMenu = useCallback(() => {
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  useEffect(() => {
+    if (!contextMenu.visible) return;
+    const handleClick = () => closeMenu();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeMenu();
+    };
+    document.addEventListener("click", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("click", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [contextMenu.visible, closeMenu]);
+
+  const handleContextMenu = (e: React.MouseEvent, viewId: string, pluginName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      pluginName,
+      viewId,
+    });
+  };
+
+  const handleOpenNewWindow = () => {
+    openInNewWindow(contextMenu.viewId, contextMenu.pluginName);
+    closeMenu();
+  };
 
   const toggleGroup = (groupId: string) => {
     setCollapsedGroups((prev) => {
@@ -50,6 +122,7 @@ export default function Sidebar() {
       <button
         key={plugin.id}
         onClick={() => setView(plugin.component as ViewId)}
+        onContextMenu={(e) => handleContextMenu(e, plugin.component, plugin.name)}
         className={`flex items-center gap-2.5 px-3 py-2 w-full text-left text-xs transition-all duration-200 cursor-pointer ${
           active
             ? "bg-accent/15 border border-accent/30 text-accent scale-[0.98]"
@@ -128,6 +201,7 @@ export default function Sidebar() {
       <div className="pt-2 border-t border-border flex flex-col gap-1">
         <button
           onClick={() => setView("settings")}
+          onContextMenu={(e) => handleContextMenu(e, "settings", "设置")}
           className={`flex items-center gap-2.5 px-3 py-2 w-full text-left text-xs transition-all duration-200 cursor-pointer ${
             settingsActive
               ? "bg-accent/15 border border-accent/30 text-accent scale-[0.98]"
@@ -144,6 +218,27 @@ export default function Sidebar() {
           ⌘K 快速命令
         </div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu.visible && (
+        <div
+          ref={menuRef}
+          className="fixed z-[9999] bg-panel border border-border shadow-lg py-1 min-w-[160px]"
+          style={{
+            left: contextMenu.x,
+            top: contextMenu.y,
+            borderRadius: "var(--radius-sm)",
+          }}
+        >
+          <button
+            onClick={handleOpenNewWindow}
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-text-dim hover:text-text hover:bg-hover cursor-pointer bg-transparent border-none text-left"
+          >
+            <IconRenderer name="ExternalLink" size={12} />
+            <span>在新窗口打开</span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

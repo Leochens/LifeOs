@@ -7,6 +7,7 @@ export default function Shell() {
   const currentView = useStore((s) => s.currentView);
   const setCmdPalette = useStore((s) => s.setCmdPalette);
   const theme = useStore((s) => s.theme);
+  const isStandalone = useStore((s) => s.isStandalone);
 
   // 动态获取当前视图的组件
   const ViewComponent = useMemo(() => {
@@ -35,7 +36,7 @@ export default function Shell() {
     return (
       <div className="relative z-10 flex flex-col h-screen overflow-hidden">
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
+          {!isStandalone && <Sidebar />}
           <main className="flex-1 overflow-auto p-5">
             <div className="flex flex-col items-center justify-center h-full text-text-dim">
               <div className="text-5xl mb-4">⚙️</div>
@@ -53,7 +54,7 @@ export default function Shell() {
   return (
     <div className="relative z-10 flex flex-col h-screen overflow-hidden">
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        {!isStandalone && <Sidebar />}
         <main className="flex-1 overflow-auto p-5">
           <div className="fade-up" key={currentView}>
             <ViewComponent />

@@ -318,6 +318,10 @@ interface AppState {
   subscriptions: Subscription[];
   setSubscriptions: (subs: Subscription[]) => void;
 
+  // Standalone window mode
+  isStandalone: boolean;
+  setStandalone: (v: boolean) => void;
+
   // UI
   isLoading: boolean;
   setLoading: (v: boolean) => void;
@@ -544,6 +548,10 @@ export const useStore = create<AppState>((set) => ({
   // Subscriptions
   subscriptions: [],
   setSubscriptions: (subscriptions) => set({ subscriptions }),
+
+  // Standalone window mode
+  isStandalone: false,
+  setStandalone: (isStandalone) => set({ isStandalone }),
 
   isLoading: false,
   setLoading: (isLoading) => set({ isLoading }),

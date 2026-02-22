@@ -2,9 +2,11 @@
   "$schema": "https://schema.tauri.app/config/2",
   "identifier": "default",
   "description": "Default capabilities for Life OS",
-  "windows": ["main"],
+  "windows": ["main", "plugin-*"],
   "permissions": [
     "core:default",
+    "core:window:allow-create",
+    "core:webview:allow-create-webview-window",
     "fs:default",
     "fs:allow-home-read-recursive",
     "fs:allow-home-write-recursive",

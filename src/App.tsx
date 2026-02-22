@@ -12,6 +12,21 @@ import { setDirectoryHandle } from "@/services/web-fs";
 function AppContent() {
   const { vaultPath, setVaultPath } = useStore();
   const { loadAll } = useVaultLoader();
+  const setView = useStore((s) => s.setView);
+  const setStandalone = useStore((s) => s.setStandalone);
+
+  // On mount: check URL query params for standalone window mode
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get("view");
+    const standalone = params.get("standalone");
+    if (view) {
+      setView(view as import("@/types").ViewId);
+    }
+    if (standalone === "true") {
+      setStandalone(true);
+    }
+  }, []);
 
   // On mount: check if vault is already configured
   useEffect(() => {
