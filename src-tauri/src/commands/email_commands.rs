@@ -261,10 +261,21 @@ fn imap_fetch_emails<T: Read + Write>(
         .fetch(&range, "(UID FLAGS RFC822)")
         .map_err(|e| format!("拉取邮件失败: {}", e))?;
 
+    // Prepare directory for .eml files
+    let emails_dir = PathBuf::from(vault_path).join("Mailbox").join(account_dir);
+    fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
+
     let mut emails = Vec::new();
 
     for msg in messages.iter() {
         let uid = msg.uid.unwrap_or(0);
+        let email_id = format!("{}_{}", folder, uid);
+
+        // Save raw RFC822 as .eml file
+        if let Some(raw) = msg.body() {
+            let eml_path = emails_dir.join(format!("{}.eml", email_id));
+            fs::write(&eml_path, raw).map_err(|e| format!("保存 EML 文件失败: {}", e))?;
+        }
 
         // Parse flags
         let flags: Vec<String> = msg
@@ -312,7 +323,7 @@ fn imap_fetch_emails<T: Read + Write>(
         };
 
         emails.push(EmailMessage {
-            id: format!("{}_{}", folder, uid),
+            id: email_id,
             uid,
             uid_string: Some(uid.to_string()),
             from,
@@ -330,13 +341,24 @@ fn imap_fetch_emails<T: Read + Write>(
     // Reverse so newest is first
     emails.reverse();
 
-    // Save to vault cache
-    let emails_dir = PathBuf::from(vault_path).join("Mailbox").join(account_dir);
-    fs::create_dir_all(&emails_dir).map_err(|e| format!("创建目录失败: {}", e))?;
-
+    // Save index.json with metadata only (no body content)
+    let index_entries: Vec<EmailMessage> = emails.iter().map(|e| EmailMessage {
+        id: e.id.clone(),
+        uid: e.uid,
+        uid_string: e.uid_string.clone(),
+        from: e.from.clone(),
+        to: e.to.clone(),
+        subject: e.subject.clone(),
+        date: e.date.clone(),
+        body_text: None,
+        body_html: None,
+        attachments: e.attachments.clone(),
+        flags: e.flags.clone(),
+        folder: e.folder.clone(),
+    }).collect();
     let index_path = emails_dir.join("index.json");
-    let index_json = serde_json::to_string_pretty(&emails).map_err(|e| e.to_string())?;
-    fs::write(&index_path, index_json).map_err(|e| format!("写入文件失败: {}", e))?;
+    let index_json = serde_json::to_string_pretty(&index_entries).map_err(|e| e.to_string())?;
+    fs::write(&index_path, index_json).map_err(|e| format!("写入索引文件失败: {}", e))?;
 
     Ok(emails)
 }
@@ -578,16 +600,29 @@ fn pop3_sync_tls(
 
     stream.write_all(b"QUIT\r\n").ok();
 
-    // Load existing index and merge with new emails
+    // .eml files are already saved above, now save index.json with metadata only
     let mut all_emails = load_existing_emails(vault_path, account_dir)?;
     for email in &emails {
-        all_emails.push(email.clone());
+        all_emails.push(EmailMessage {
+            id: email.id.clone(),
+            uid: email.uid,
+            uid_string: email.uid_string.clone(),
+            from: email.from.clone(),
+            to: email.to.clone(),
+            subject: email.subject.clone(),
+            date: email.date.clone(),
+            body_text: None,
+            body_html: None,
+            attachments: email.attachments.clone(),
+            flags: email.flags.clone(),
+            folder: email.folder.clone(),
+        });
     }
 
     // Sort by date (newest first)
     all_emails.sort_by(|a, b| b.date.cmp(&a.date));
 
-    // Save updated index
+    // Save updated index (metadata only)
     let index_path = emails_dir.join("index.json");
     let index_json = serde_json::to_string_pretty(&all_emails).map_err(|e| e.to_string())?;
     fs::write(&index_path, index_json).map_err(|e| format!("写入索引文件失败: {}", e))?;
@@ -715,16 +750,29 @@ fn pop3_sync_plain(
 
     stream.write_all(b"QUIT\r\n").ok();
 
-    // Load existing index and merge with new emails
+    // .eml files are already saved above, now save index.json with metadata only
     let mut all_emails = load_existing_emails(vault_path, account_dir)?;
     for email in &emails {
-        all_emails.push(email.clone());
+        all_emails.push(EmailMessage {
+            id: email.id.clone(),
+            uid: email.uid,
+            uid_string: email.uid_string.clone(),
+            from: email.from.clone(),
+            to: email.to.clone(),
+            subject: email.subject.clone(),
+            date: email.date.clone(),
+            body_text: None,
+            body_html: None,
+            attachments: email.attachments.clone(),
+            flags: email.flags.clone(),
+            folder: email.folder.clone(),
+        });
     }
 
     // Sort by date (newest first)
     all_emails.sort_by(|a, b| b.date.cmp(&a.date));
 
-    // Save updated index
+    // Save updated index (metadata only)
     let index_path = emails_dir.join("index.json");
     let index_json = serde_json::to_string_pretty(&all_emails).map_err(|e| e.to_string())?;
     fs::write(&index_path, index_json).map_err(|e| format!("写入索引文件失败: {}", e))?;
@@ -941,6 +989,81 @@ pub fn get_cached_emails(vault_path: String, account_id: String, offset: Option<
     };
 
     Ok(emails)
+}
+
+/// Get full email content from .eml file
+#[tauri::command]
+pub fn get_email_content(vault_path: String, account_id: String, email_id: String) -> Result<EmailMessage, String> {
+    let safe_id = email_id.replace('/', "_").replace('\\', "_");
+
+    // Try .eml file first (standard format)
+    let eml_path = PathBuf::from(&vault_path)
+        .join("Mailbox")
+        .join(&account_id)
+        .join(format!("{}.eml", safe_id));
+
+    if eml_path.exists() {
+        // Read and parse .eml file
+        let raw_bytes = fs::read(&eml_path).map_err(|e| format!("读取邮件失败: {}", e))?;
+        use mail_parser::MessageParser;
+        let parser = MessageParser::default();
+
+        if let Some(parsed) = parser.parse(&raw_bytes) {
+            let subject = parsed.subject().unwrap_or("").to_string();
+            let from = parsed.from().and_then(|a| a.first())
+                .map(|a| {
+                    if let Some(name) = a.name() {
+                        if let Some(addr) = a.address() {
+                            format!("{} <{}>", name, addr)
+                        } else { name.to_string() }
+                    } else {
+                        a.address().unwrap_or("").to_string()
+                    }
+                }).unwrap_or_default();
+            let to = parsed.to().and_then(|a| a.first())
+                .map(|a| a.address().unwrap_or("").to_string())
+                .unwrap_or_default();
+            let date = parsed.date()
+                .map(|d| d.to_rfc3339())
+                .unwrap_or_default();
+            let body_text = parsed.body_text(0).map(|t| t.to_string());
+            let body_html = parsed.body_html(0).map(|h| h.to_string());
+
+            // Extract Message-ID for the id field
+            let message_id = parsed.message_id()
+                .map(|id| id.to_string())
+                .unwrap_or_else(|| email_id.clone());
+
+            return Ok(EmailMessage {
+                id: message_id,
+                uid: 0,
+                uid_string: None,
+                from,
+                to,
+                subject,
+                date,
+                body_text,
+                body_html,
+                attachments: vec![],
+                flags: vec![],
+                folder: account_id,
+            });
+        }
+    }
+
+    // Fallback: try JSON file (legacy format)
+    let json_path = PathBuf::from(&vault_path)
+        .join("Mailbox")
+        .join(&account_id)
+        .join(format!("{}.json", safe_id));
+
+    if json_path.exists() {
+        let content = fs::read_to_string(&json_path).map_err(|e| format!("读取邮件失败: {}", e))?;
+        let email: EmailMessage = serde_json::from_str(&content).map_err(|e| format!("解析邮件失败: {}", e))?;
+        return Ok(email);
+    }
+
+    Err(format!("邮件文件不存在: {}", email_id))
 }
 
 /// List available email folders

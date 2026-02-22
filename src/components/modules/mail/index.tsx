@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/stores/app";
-import { imapSync, getCachedEmails, deleteFile, sendEmail, readFile, writeFile, listDir, deleteEmail, markEmailRead, openExternalUrl } from "@/services/fs";
+import { imapSync, getCachedEmails, getEmailContent, deleteFile, sendEmail, readFile, writeFile, listDir, deleteEmail, markEmailRead, openExternalUrl } from "@/services/fs";
 import type { EmailMessage, SendEmailRequest } from "@/services/fs";
 import type { EmailAccount } from "@/types";
-import { HelpCircle, Send, ChevronDown, ChevronRight, Inbox, Mail, Star, Trash2, Archive, RefreshCw, Plus, X, MailOpen, Circle, Search } from "lucide-react";
+import { HelpCircle, Send, ChevronDown, ChevronRight, Inbox, Mail, Star, Trash2, Archive, RefreshCw, Plus, X, MailOpen, Circle, Search, Loader2 } from "lucide-react";
 
 const EMAILS_DIR = ".lifeos/emails";
 const PAGE_SIZE = 20;
@@ -36,6 +36,8 @@ export default function MailView() {
   const [selectedFolder, setSelectedFolder] = useState<string>("INBOX");
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
+  const [emailContent, setEmailContent] = useState<EmailMessage | null>(null);
+  const [loadingEmailContent, setLoadingEmailContent] = useState(false);
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -157,6 +159,7 @@ export default function MailView() {
         setHasMoreEmails(cached.length === PAGE_SIZE);
         setEmailPage(0);
         setSelectedEmail(null);
+        setEmailContent(null);
       } catch (e) {
         console.error("Failed to load cached emails:", e);
         setEmails([]);
@@ -408,6 +411,7 @@ ${originalContent}`;
       await deleteEmail(vaultPath, selectedAccount.id, selectedEmail.id, selectedAccount.imapHost, selectedAccount.imapPort, selectedAccount.password, selectedAccount.email, selectedEmail.folder);
       setEmails(prev => prev.filter(e => e.id !== selectedEmail.id));
       setSelectedEmail(null);
+      setEmailContent(null);
       setShowDeleteConfirm(false);
       alert("邮件已删除");
     } catch (e) { alert("删除失败: " + e); }
@@ -424,10 +428,26 @@ ${originalContent}`;
     } catch (e) { console.error(e); }
   };
 
-  // Handle selecting an email - auto mark as read
-  const handleSelectEmail = (email: EmailMessage) => {
+  // Handle selecting an email - auto mark as read and load full content
+  const handleSelectEmail = async (email: EmailMessage) => {
     setSelectedEmail(email);
+    setEmailContent(null); // Clear previous content
     setShowReply(false);
+    setLoadingEmailContent(true);
+
+    // Load full email content from file
+    if (selectedAccount && vaultPath) {
+      try {
+        const fullContent = await getEmailContent(vaultPath, selectedAccount.id, email.id);
+        setEmailContent(fullContent);
+      } catch (e) {
+        console.error("Failed to load email content:", e);
+        // Fall back to using the email itself if file doesn't exist
+        setEmailContent(email);
+      }
+    }
+    setLoadingEmailContent(false);
+
     // Auto mark as read if not already read
     if (!email.flags?.includes("Seen") && selectedAccount && vaultPath) {
       markEmailRead(vaultPath, selectedAccount.id, email.id, true, email.folder, selectedAccount.imapHost, selectedAccount.imapPort, selectedAccount.password, selectedAccount.email)
@@ -639,17 +659,26 @@ ${originalContent}`;
             autoFillProvider={autoFillProvider}
           />
         ) : selectedEmail ? (
-          <EmailDetail
-            email={selectedEmail}
-            showReply={showReply} setShowReply={setShowReply}
-            replyBody={replyBody} setReplyBody={setReplyBody}
-            sending={sending}
-            onSend={handleSendReply}
-            onForward={handleForward}
-            onDelete={() => setShowDeleteConfirm(true)}
-            onMarkAsRead={handleMarkAsRead}
-            isRead={isEmailRead(selectedEmail)}
-          />
+          loadingEmailContent ? (
+            <div className="flex-1 flex items-center justify-center text-text-dim">
+              <div className="text-center">
+                <Loader2 size={32} className="animate-spin mb-2 mx-auto" />
+                <div>加载邮件内容...</div>
+              </div>
+            </div>
+          ) : (
+            <EmailDetail
+              email={emailContent || selectedEmail}
+              showReply={showReply} setShowReply={setShowReply}
+              replyBody={replyBody} setReplyBody={setReplyBody}
+              sending={sending}
+              onSend={handleSendReply}
+              onForward={handleForward}
+              onDelete={() => setShowDeleteConfirm(true)}
+              onMarkAsRead={handleMarkAsRead}
+              isRead={isEmailRead(selectedEmail)}
+            />
+          )
         ) : (
           <div className="flex-1 flex items-center justify-center text-text-dim">
             <div className="text-center">

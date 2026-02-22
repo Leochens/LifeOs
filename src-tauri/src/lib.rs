@@ -52,6 +52,7 @@ pub fn run() {
             // Email: IMAP sync
             email_commands::imap_sync,
             email_commands::get_cached_emails,
+            email_commands::get_email_content,
             email_commands::list_email_folders,
             email_commands::send_email,
             email_commands::delete_email,

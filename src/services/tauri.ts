@@ -221,6 +221,9 @@ export const imapSync = (
 export const getCachedEmails = (vaultPath: string, accountId: string, offset?: number, limit?: number): Promise<EmailMessage[]> =>
   invoke("get_cached_emails", { vaultPath, accountId, offset, limit });
 
+export const getEmailContent = (vaultPath: string, accountId: string, emailId: string): Promise<EmailMessage> =>
+  invoke("get_email_content", { vaultPath, accountId, emailId });
+
 export const listEmailFolders = (vaultPath: string): Promise<string[]> =>
   invoke("list_email_folders", { vaultPath });
 
